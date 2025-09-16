@@ -98,6 +98,8 @@ def bulk_edit_page(request):
             table_type = 'barnameh'
         elif model_name == 'NonBazargahPurchase':
             table_type = 'non_bazargah_purchase'
+        elif model_name == 'Barnameh' and 'non-bazargah-barnameh' in referer:
+            table_type = 'non_bazargah_barnameh'
     
     print(f"DEBUG - Final parameters: model_name={model_name}, app_name={app_name}, table_type={table_type}, section={section}")
     
@@ -151,6 +153,7 @@ def get_editable_fields(model, table_type, selected_ids=None):
         'Barbary': ['name'],
         'VaredKonandeh': ['name'],
         'NonBazargahPurchase': ['purchase_number'],
+        'Barnameh': ['number', 'serial'],
     }
     
     model_name = model.__name__
@@ -372,6 +375,36 @@ def get_editable_fields(model, table_type, selected_ids=None):
                 'total_weight': 'وزن کل (کیلوگرم)',
             }
             field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
+        elif model_name == 'Barnameh' and table_type == 'non_bazargah_barnameh':
+            field_labels = {
+                'number': 'شماره بارنامه',
+                'serial': 'سریال بارنامه',
+                'tonnage': 'وزن (کیلوگرم)',
+                'driver_name': 'نام راننده',
+                'driver_phone': 'شماره تلفن راننده',
+                'vehicle_plate': 'پلاک خودرو',
+                'receiver_name': 'نام گیرنده',
+                'destination': 'مقصد',
+                'barnameh_date': 'تاریخ بارنامه',
+                'non_bazargah_purchase': 'خرید خارج بازارگاه',
+                'buyer_name': 'نام خریدار',
+                'company_price': 'فی خرید (ریال)',
+                'customer_price': 'فی فروش (ریال)',
+                'total_sales_amount': 'مبلغ کل فروش',
+                'total_purchase_amount': 'مبلغ کل خرید',
+                'origin': 'مبدا',
+                'rent': 'کرایه',
+                'empty_vehicle_weight': 'وزن خالی ماشین',
+                'loaded_vehicle_weight': 'وزن پر ماشین',
+                'final_delivered_weight': 'وزن نهایی تحویل',
+                'vehicle_arrival_time': 'زمان ورود ماشین',
+                'departure_time': 'زمان خروج از انبار',
+                'delivery_time': 'زمان تحویل',
+                'status': 'وضعیت',
+                'is_sent_to_bki': 'ارسال به بازارگاه',
+                'is_factored': 'فاکتور صادر شده',
+            }
+            field_label = field_labels.get(field.name, getattr(field, 'verbose_name', field.name.replace('_', ' ').title()))
         else:
             field_label = getattr(field, 'verbose_name', None)
             if not field_label:
@@ -462,9 +495,10 @@ def bulk_edit_excel_page(request):
     
     # تشخیص مدل
     table_type = ''
+    referer = request.META.get('HTTP_REFERER', '')
+    print(f"DEBUG - Excel page referer: {referer}")
+    
     if not model_name:
-        referer = request.META.get('HTTP_REFERER', '')
-        print(f"DEBUG - Excel page referer: {referer}")
         if 'purchase' in referer:
             model_name = 'Purchase'
             table_type = 'purchase'
@@ -474,6 +508,9 @@ def bulk_edit_excel_page(request):
         elif 'cargo_product' in referer or 'cargo-product' in referer:
             model_name = 'CargoProduct'
             table_type = 'cargo_product'
+        elif 'non-bazargah-barnameh' in referer:
+            model_name = 'Barnameh'
+            table_type = 'non_bazargah_barnameh'
     
     # اگر model_name مشخص شده ولی table_type نه، آن را تشخیص دهیم
     if model_name and not table_type:
@@ -485,6 +522,8 @@ def bulk_edit_excel_page(request):
             table_type = 'cargo_product'
         elif model_name == 'NonBazargahPurchase':
             table_type = 'non_bazargah_purchase'
+        elif model_name == 'Barnameh' and 'non-bazargah-barnameh' in referer:
+            table_type = 'non_bazargah_barnameh'
     
     # دریافت مدل
     from django.apps import apps

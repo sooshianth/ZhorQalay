@@ -8,6 +8,89 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 <link href="{% static 'css/non_bazargah_barnameh_list.css' %}" rel="stylesheet">
+<style>
+    /* Bulk Edit Controls */
+    .bulk-edit-controls {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%) !important;
+        border: 2px solid #fc8181 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 2px 8px rgba(252, 129, 129, 0.2) !important;
+    }
+    
+    .bulk-edit-toolbar {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
+    }
+    
+    .selected-count {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-weight: 600 !important;
+        color: #dc2626 !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .bulk-edit-actions {
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .bulk-edit-actions .btn {
+        padding: 8px 16px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .bulk-edit-actions .btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .bulk-edit-actions .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-info {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-secondary {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+        border: none !important;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .bulk-edit-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .bulk-edit-actions {
+            justify-content: center !important;
+        }
+        
+        .bulk-edit-actions .btn {
+            flex: 1 !important;
+            min-width: 120px !important;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -38,6 +121,30 @@
         </div>
     </div>
 
+    <!-- Bulk Edit Controls Panel -->
+    <div class="bulk-edit-controls" style="display: none;">
+        <div class="bulk-edit-toolbar">
+            <div class="selected-count">
+                <i class="fas fa-check-square"></i>
+                <span class="count">0</span> مورد انتخاب شده
+            </div>
+            <div class="bulk-edit-actions">
+                <button class="btn btn-primary bulk-edit-btn" data-action="edit">
+                    <i class="fas fa-edit"></i> ویرایش گروهی
+                </button>
+                <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
+                    <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                </button>
+                <button class="btn btn-info download-template-btn" data-action="template">
+                    <i class="fas fa-download"></i> دانلود قالب اکسل
+                </button>
+                <button class="btn btn-secondary clear-selection-btn" data-action="clear">
+                    <i class="fas fa-times"></i> پاک کردن انتخاب
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- جدول بارنامه‌ها -->
     <div class="table-container">
         <h5 class="mb-4">
@@ -50,7 +157,7 @@
                     <thead>
                         <tr>
                             <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
-                                <input type="checkbox" id="selectAllCheckbox" title="انتخاب همه">
+                                <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" title="انتخاب همه">
                             </th>
                             <th data-column-id="number" data-column-type="text" style="min-width: 120px;">شماره بارنامه</th>
                             <th data-column-id="serial" data-column-type="text" style="min-width: 100px;">سریال</th>
@@ -84,7 +191,7 @@
                         {% for barnameh in barnamehs %}
                             <tr>
                                 <td data-column="select">
-                                    <input type="checkbox" class="row-checkbox" value="{{ barnameh.id }}" title="انتخاب این بارنامه">
+                                    <input type="checkbox" class="row-checkbox" data-id="{{ barnameh.id }}" value="{{ barnameh.id }}" title="انتخاب این بارنامه" onchange="toggleRowSelection(this)">
                                 </td>
                                 <td data-column="number">
                                     <strong>{{ barnameh.number|default:"تعیین نشده" }}</strong>
@@ -605,4 +712,21 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/non_bazargah_barnameh_list.js' %}"></script>
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script>
+function toggleRowSelection(checkbox) {
+    // این تابع توسط bulk_edit.js مدیریت می‌شود
+    // فقط برای سازگاری با کد موجود اضافه شده
+}
+
+// Event listener برای select all checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            // این رویداد توسط bulk_edit.js مدیریت می‌شود
+        });
+    }
+});
+</script>
 {% endblock %}
