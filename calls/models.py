@@ -59,6 +59,7 @@ class AutomaticCall(models.Model):
     CALL_STATUS_CHOICES = [
         ('pending', 'در انتظار'),
         ('in_progress', 'در حال انجام'),
+        ('paused', 'متوقف موقت'),
         ('completed', 'تکمیل شده'),
         ('failed', 'ناموفق'),
         ('cancelled', 'لغو شده'),

@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 import json
 import uuid
 import pandas as pd
+import requests
 from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 
@@ -25,6 +26,7 @@ def automatic_calls_dashboard(request):
     total_calls = AutomaticCall.objects.count()
     pending_calls = AutomaticCall.objects.filter(status='pending').count()
     in_progress_calls = AutomaticCall.objects.filter(status='in_progress').count()
+    paused_calls = AutomaticCall.objects.filter(status='paused').count()
     completed_calls = AutomaticCall.objects.filter(status='completed').count()
     
     # تماس‌های اخیر
@@ -34,6 +36,7 @@ def automatic_calls_dashboard(request):
         'total_calls': total_calls,
         'pending_calls': pending_calls,
         'in_progress_calls': in_progress_calls,
+        'paused_calls': paused_calls,
         'completed_calls': completed_calls,
         'recent_calls': recent_calls,
     }
@@ -46,6 +49,9 @@ def automatic_calls_list(request):
     لیست تماس‌های اتوماتیک
     """
     calls = AutomaticCall.objects.all().order_by('-created_at')
+    
+    # بررسی وجود تماس فعال (در حال انجام)
+    has_active_calls = AutomaticCall.objects.filter(status='in_progress').exists()
     
     # فیلترها
     status_filter = request.GET.get('status')
@@ -80,6 +86,7 @@ def automatic_calls_list(request):
         'current_status': status_filter,
         'current_call_type': call_type_filter,
         'current_search': search_query,
+        'has_active_calls': has_active_calls,
     }
     return render(request, 'calls/automatic_calls_list.html', context)
 
@@ -181,12 +188,16 @@ def automatic_call_detail(request, call_id):
     """
     call = get_object_or_404(AutomaticCall, id=call_id)
     
+    # بررسی وجود تماس فعال (در حال انجام) غیر از تماس فعلی
+    has_active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id).exists()
+    
     # لاگ‌های تماس
     logs = call.logs.order_by('-timestamp')[:20]
     
     context = {
         'call': call,
         'logs': logs,
+        'has_active_calls': has_active_calls,
     }
     return render(request, 'calls/automatic_call_detail.html', context)
 
@@ -364,6 +375,7 @@ def get_call_stats_api(request):
         'total': AutomaticCall.objects.count(),
         'pending': AutomaticCall.objects.filter(status='pending').count(),
         'in_progress': AutomaticCall.objects.filter(status='in_progress').count(),
+        'paused': AutomaticCall.objects.filter(status='paused').count(),
         'completed': AutomaticCall.objects.filter(status='completed').count(),
         'failed': AutomaticCall.objects.filter(status='failed').count(),
     }
@@ -782,8 +794,6 @@ def search_customers_api(request):
 
 @login_required 
 @require_http_methods(["POST"])
-@login_required 
-@require_http_methods(["POST"])
 def start_asterisk_call(request, call_id):
     """
     شروع تماس از طریق Asterisk
@@ -793,6 +803,15 @@ def start_asterisk_call(request, call_id):
     # Check if call is in the right status
     if call.status != 'pending':
         messages.error(request, 'این تماس قبلاً شروع شده یا تکمیل شده است.')
+        return redirect('calls:automatic_call_detail', call_id=call.id)
+    
+    # Check if there are any other active calls
+    active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id)
+    if active_calls.exists():
+        active_call_titles = ', '.join([active_call.title for active_call in active_calls[:3]])
+        if active_calls.count() > 3:
+            active_call_titles += f' و {active_calls.count() - 3} تماس دیگر'
+        messages.error(request, f'تماس دیگری در حال انجام است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.')
         return redirect('calls:automatic_call_detail', call_id=call.id)
     
     result = call.start_asterisk_call()
@@ -1079,3 +1098,206 @@ def get_call_queue_status(request, call_id):
         return JsonResponse({'success': False, 'error': 'Call not found'}, status=404)
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+@login_required
+@require_POST
+def pause_call_api(request, call_id):
+    """
+    API برای متوقف کردن موقت تماس اتوماتیک
+    """
+    call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    if call.status != 'in_progress':
+        return JsonResponse({
+            'success': False, 
+            'error': 'فقط تماس‌های در حال انجام قابل متوقف کردن موقت هستند.'
+        })
+    
+    try:
+        # ارسال درخواست به API Asterisk
+        headers = {'Content-Type': 'application/json'}
+        if call.asterisk_api_key:
+            headers['X-API-KEY'] = call.asterisk_api_key
+            
+        data = {
+            'call_id': call.id,
+            'title': call.title
+        }
+        
+        response = requests.post(
+            f"{call.asterisk_api_url.replace('/api/start-dialer', '/api/pause-call')}",
+            headers=headers,
+            json=data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            # به‌روزرسانی وضعیت به paused
+            if 'paused' not in dict(AutomaticCall.CALL_STATUS_CHOICES):
+                # اگر paused در choices نیست، از pending استفاده می‌کنیم
+                call.status = 'pending'
+            else:
+                call.status = 'paused'
+            call.save()
+            
+            # ثبت لاگ
+            CallLog.objects.create(
+                call=call,
+                event_type='paused',
+                message=f'تماس "{call.title}" موقتاً متوقف شد.'
+            )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'تماس با موفقیت متوقف شد.'
+            })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': f'خطا در API: {response.status_code} - {response.text[:100]}'
+            })
+            
+    except requests.RequestException as e:
+        CallLog.objects.create(
+            call=call,
+            event_type='pause_error',
+            message=f'خطا در متوقف کردن تماس: {str(e)}'
+        )
+        return JsonResponse({
+            'success': False, 
+            'error': f'خطا در ارتباط با سرور: {str(e)}'
+        })
+
+
+@login_required
+@require_POST
+def resume_call_api(request, call_id):
+    """
+    API برای ادامه دادن تماس اتوماتیک متوقف شده
+    """
+    call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    if call.status not in ['pending', 'paused']:
+        return JsonResponse({
+            'success': False, 
+            'error': 'فقط تماس‌های متوقف شده قابل ادامه دادن هستند.'
+        })
+    
+    try:
+        # ارسال درخواست به API Asterisk
+        headers = {'Content-Type': 'application/json'}
+        if call.asterisk_api_key:
+            headers['X-API-KEY'] = call.asterisk_api_key
+            
+        data = {
+            'call_id': call.id,
+            'title': call.title
+        }
+        
+        response = requests.post(
+            f"{call.asterisk_api_url.replace('/api/start-dialer', '/api/resume-call')}",
+            headers=headers,
+            json=data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            # به‌روزرسانی وضعیت به in_progress
+            call.status = 'in_progress'
+            call.save()
+            
+            # ثبت لاگ
+            CallLog.objects.create(
+                call=call,
+                event_type='resumed',
+                message=f'تماس "{call.title}" از سر گرفته شد.'
+            )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'تماس با موفقیت از سر گرفته شد.'
+            })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': f'خطا در API: {response.status_code} - {response.text[:100]}'
+            })
+            
+    except requests.RequestException as e:
+        CallLog.objects.create(
+            call=call,
+            event_type='resume_error',
+            message=f'خطا در ادامه دادن تماس: {str(e)}'
+        )
+        return JsonResponse({
+            'success': False, 
+            'error': f'خطا در ارتباط با سرور: {str(e)}'
+        })
+
+
+@login_required
+@require_POST
+def cancel_call_api(request, call_id):
+    """
+    API برای لغو تماس اتوماتیک (متفاوت از حذف)
+    """
+    call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    if call.status not in ['pending', 'in_progress', 'paused']:
+        return JsonResponse({
+            'success': False, 
+            'error': 'این تماس قابل لغو نیست.'
+        })
+    
+    try:
+        # ارسال درخواست به API Asterisk
+        headers = {'Content-Type': 'application/json'}
+        if call.asterisk_api_key:
+            headers['X-API-KEY'] = call.asterisk_api_key
+            
+        data = {
+            'call_id': call.id,
+            'title': call.title
+        }
+        
+        response = requests.post(
+            f"{call.asterisk_api_url.replace('/api/start-dialer', '/api/cancel-call')}",
+            headers=headers,
+            json=data,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            # به‌روزرسانی وضعیت به cancelled
+            call.status = 'cancelled'
+            call.end_time = timezone.now()
+            call.save()
+            
+            # ثبت لاگ
+            CallLog.objects.create(
+                call=call,
+                event_type='cancelled',
+                message=f'تماس "{call.title}" لغو شد.'
+            )
+            
+            return JsonResponse({
+                'success': True, 
+                'message': 'تماس با موفقیت لغو شد.'
+            })
+        else:
+            return JsonResponse({
+                'success': False, 
+                'error': f'خطا در API: {response.status_code} - {response.text[:100]}'
+            })
+            
+    except requests.RequestException as e:
+        CallLog.objects.create(
+            call=call,
+            event_type='cancel_error',
+            message=f'خطا در لغو تماس: {str(e)}'
+        )
+        return JsonResponse({
+            'success': False, 
+            'error': f'خطا در ارتباط با سرور: {str(e)}'
+        })

@@ -76,6 +76,11 @@
     color: #DC2626;
 }
 
+.call-status-badge.paused {
+    background-color: #FEF3C7;
+    color: #B45309;
+}
+
 .call-status-badge.cancelled {
     background-color: #F3F4F6;
     color: #6B7280;

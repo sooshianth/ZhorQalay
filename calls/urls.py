@@ -28,6 +28,11 @@ urlpatterns = [
     
     # API endpoints
     path('api/stats/', views.get_call_stats_api, name='get_call_stats_api'),
+    
+    # Call control API endpoints
+    path('api/pause-call/<int:call_id>/', views.pause_call_api, name='pause_call_api'),
+    path('api/resume-call/<int:call_id>/', views.resume_call_api, name='resume_call_api'),
+    path('api/cancel-call/<int:call_id>/', views.cancel_call_api, name='cancel_call_api'),
 
     # Asterisk Webhook API endpoints
     path('api/asterisk/call-start/', views.asterisk_webhook_call_start, name='asterisk_webhook_call_start'),

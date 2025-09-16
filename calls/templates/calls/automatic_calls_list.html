@@ -447,6 +447,16 @@
         </form>
     </div>
 
+    <!-- هشدار تماس فعال -->
+    {% if has_active_calls %}
+    <div class="alert alert-warning" style="margin-bottom: 2rem; padding: 1rem; background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--border-radius); color: #92400E;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>توجه:</strong> تماس دیگری در حال انجام است. تا زمان اتمام آن نمی‌توانید تماس جدیدی شروع کنید.
+        </div>
+    </div>
+    {% endif %}
+
     <!-- جدول تماس‌ها -->
     <div class="calls-table-container">
         <div class="table-header">
@@ -518,7 +528,7 @@
                                     </a>
                                     
                                     {% if call.status == 'pending' %}
-                                        {% if call.queue_session_id %}
+                                        {% if call.queue_session_id and not has_active_calls %}
                                             <form method="post" action="{% url 'calls:start_asterisk_call' call.id %}" style="display: inline;">
                                                 {% csrf_token %}
                                                 <button type="submit" class="action-btn start" title="شروع تماس اتوماتیک"
@@ -526,6 +536,10 @@
                                                     <i class="fas fa-phone"></i>
                                                 </button>
                                             </form>
+                                        {% elif has_active_calls %}
+                                            <span class="action-btn start disabled" title="تماس دیگری در حال انجام است. لطفاً منتظر اتمام آن باشید">
+                                                <i class="fas fa-phone"></i>
+                                            </span>
                                         {% else %}
                                             <span class="action-btn start disabled" title="هیچ صفی برای این تماس تعریف نشده است">
                                                 <i class="fas fa-phone"></i>

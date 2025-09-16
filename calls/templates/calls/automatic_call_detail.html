@@ -341,6 +341,18 @@
 
 {% block content %}
 <div class="call-detail-container">
+    {% csrf_token %}
+    
+    <!-- هشدار تماس فعال -->
+    {% if has_active_calls %}
+    <div class="alert alert-warning" style="margin-bottom: 2rem; padding: 1rem; background-color: #FEF3C7; border: 1px solid #F59E0B; border-radius: var(--border-radius); color: #92400E;">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>توجه:</strong> تماس دیگری در حال انجام است. تا زمان اتمام آن نمی‌توانید تماس جدیدی شروع کنید.
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- هدر صفحه -->
     <div class="detail-header">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -371,7 +383,7 @@
                         <i class="fas fa-edit"></i>
                         ویرایش تماس
                     </a>
-                    {% if call.queue_session_id %}
+                    {% if call.queue_session_id and not has_active_calls %}
                     <form method="post" action="{% url 'calls:start_asterisk_call' call.id %}" style="display: inline;">
                         {% csrf_token %}
                         <button type="submit" class="btn btn-primary" 
@@ -380,6 +392,11 @@
                             شروع تماس اتوماتیک
                         </button>
                     </form>
+                    {% elif has_active_calls %}
+                    <span class="btn btn-secondary" style="cursor: not-allowed;" title="تماس دیگری در حال انجام است. لطفاً منتظر اتمام آن باشید">
+                        <i class="fas fa-phone"></i>
+                        شروع تماس اتوماتیک
+                    </span>
                     {% else %}
                     <span class="btn btn-secondary" style="cursor: not-allowed;" title="هیچ صفی برای این تماس تعریف نشده است">
                         <i class="fas fa-phone"></i>
@@ -387,10 +404,27 @@
                     </span>
                     {% endif %}
                 {% elif call.status == 'in_progress' %}
+                    <button type="button" class="btn btn-warning" onclick="pauseCall({{ call.id }})">
+                        <i class="fas fa-pause"></i>
+                        متوقف موقت
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="cancelCall({{ call.id }})">
+                        <i class="fas fa-times"></i>
+                        لغو تماس
+                    </button>
                     <a href="{% url 'calls:stop_automatic_call' call.id %}" class="btn btn-secondary">
                         <i class="fas fa-stop"></i>
                         متوقف کردن
                     </a>
+                {% elif call.status == 'paused' %}
+                    <button type="button" class="btn btn-primary" onclick="resumeCall({{ call.id }})">
+                        <i class="fas fa-play"></i>
+                        ادامه تماس
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="cancelCall({{ call.id }})">
+                        <i class="fas fa-times"></i>
+                        لغو تماس
+                    </button>
                 {% endif %}
                 
                 <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-outline">
@@ -718,6 +752,151 @@
 
 {% block extra_scripts %}
 <script>
+// Global functions for call control (defined at script level)
+window.pauseCall = function(callId) {
+    if (confirm('آیا می‌خواهید این تماس را موقتاً متوقف کنید?')) {
+        fetch(`{% url 'calls:pause_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+};
+
+window.resumeCall = function(callId) {
+    if (confirm('آیا می‌خواهید این تماس را از سر بگیرید?')) {
+        fetch(`{% url 'calls:resume_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+};
+
+window.cancelCall = function(callId) {
+    if (confirm('آیا می‌خواهید این تماس را لغو کنید? این عمل غیرقابل بازگشت است.')) {
+        fetch(`{% url 'calls:cancel_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+};
+
+// Global message function
+function showMessage(message, type = 'info') {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+        document.body.appendChild(container);
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        padding: 12px 16px;
+        margin-bottom: 10px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateX(400px);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    `;
+    
+    // Set colors based on type
+    if (type === 'success') {
+        notification.style.backgroundColor = '#059669';
+        notification.innerHTML = '<i class="fas fa-check-circle"></i>' + message;
+    } else if (type === 'error') {
+        notification.style.backgroundColor = '#DC2626';
+        notification.innerHTML = '<i class="fas fa-exclamation-circle"></i>' + message;
+    } else {
+        notification.style.backgroundColor = '#2563EB';
+        notification.innerHTML = '<i class="fas fa-info-circle"></i>' + message;
+    }
+    
+    container.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        notification.style.transform = 'translateX(400px)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // JavaScript variables from Django
     const callStatus = '{{ call.status }}';
@@ -1089,69 +1268,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     } // End of isPending check
-
-    // Show notification
-    function showMessage(message, type = 'info') {
-        // Create notification container if it doesn't exist
-        let container = document.getElementById('notification-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'notification-container';
-            container.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 9999;
-                max-width: 400px;
-            `;
-            document.body.appendChild(container);
-        }
-        
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            padding: 12px 16px;
-            margin-bottom: 10px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 500;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            transform: translateX(400px);
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        `;
-        
-        // Set colors based on type
-        if (type === 'success') {
-            notification.style.backgroundColor = '#059669';
-            notification.innerHTML = '<i class="fas fa-check-circle"></i>' + message;
-        } else if (type === 'error') {
-            notification.style.backgroundColor = '#DC2626';
-            notification.innerHTML = '<i class="fas fa-exclamation-circle"></i>' + message;
-        } else {
-            notification.style.backgroundColor = '#2563EB';
-            notification.innerHTML = '<i class="fas fa-info-circle"></i>' + message;
-        }
-        
-        container.appendChild(notification);
-        
-        // Animate in
-        setTimeout(() => {
-            notification.style.transform = 'translateX(0)';
-        }, 10);
-        
-        // Auto remove after 3 seconds
-        setTimeout(() => {
-            notification.style.transform = 'translateX(400px)';
-            setTimeout(() => {
-                if (notification.parentNode) {
-                    notification.parentNode.removeChild(notification);
-                }
-            }, 300);
-        }, 3000);
-    }
 
     // انیمیشن ورود عناصر
     const sections = document.querySelectorAll('.info-section, .logs-section, .queue-container');

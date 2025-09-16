@@ -85,6 +85,10 @@
         border-left-color: var(--secondary-color);
     }
 
+    .stat-card.paused {
+        border-left-color: var(--danger-color);
+    }
+
     .stat-header {
         display: flex;
         justify-content: space-between;
@@ -121,6 +125,10 @@
 
     .stat-icon.in-progress {
         background-color: var(--info-color);
+    }
+
+    .stat-icon.paused {
+        background-color: var(--danger-color);
     }
 
     .stat-icon.completed {
@@ -357,6 +365,17 @@
             <div class="stat-label">تماس‌های در حال انجام</div>
         </div>
 
+        <div class="stat-card paused">
+            <div class="stat-header">
+                <span class="stat-title">متوقف موقت</span>
+                <div class="stat-icon paused">
+                    <i class="fas fa-pause-circle"></i>
+                </div>
+            </div>
+            <div class="stat-number">{{ paused_calls }}</div>
+            <div class="stat-label">تماس‌های متوقف موقت</div>
+        </div>
+
         <div class="stat-card completed">
             <div class="stat-header">
                 <span class="stat-title">تکمیل شده</span>
@@ -448,6 +467,7 @@
                 document.querySelector('.stat-card .stat-number').textContent = data.total;
                 document.querySelector('.stat-card.pending .stat-number').textContent = data.pending;
                 document.querySelector('.stat-card.in-progress .stat-number').textContent = data.in_progress;
+                document.querySelector('.stat-card.paused .stat-number').textContent = data.paused;
                 document.querySelector('.stat-card.completed .stat-number').textContent = data.completed;
             })
             .catch(error => console.error('خطا در دریافت آمار:', error));
