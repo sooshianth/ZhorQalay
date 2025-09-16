@@ -91,11 +91,16 @@
     background: #064E3B;
     color: white;
     border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
     font-weight: 600;
     padding: 15px 12px;
     font-size: 0.95rem;
     text-align: center;
     white-space: nowrap;
+}
+
+.table thead th:last-child {
+    border-right: none;
 }
 
 .table tbody tr {
@@ -220,9 +225,14 @@
     vertical-align: middle;
     text-align: center;
     border: none;
+    border-right: 1px solid #e2e8f0;
     font-size: 0.9rem;
     color: #2d3748;
     white-space: nowrap;
+}
+
+.table tbody td:last-child {
+    border-right: none;
 }
 
 /* وضعیت‌ها */

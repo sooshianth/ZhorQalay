@@ -8,7 +8,7 @@ from .views.non_bazargah_purchase_CRUD import (
     download_barnameh_excel_template,
     # upload_non_bazargah_document  # منسوخ شده - حالا درون فرم اصلی handle می‌شود
 )
-from .views.pdf_views import generate_barnameh_pdf
+from .views.pdf_views import generate_barnameh_pdf, generate_comprehensive_purchase_pdf
 
 urlpatterns = [
     path('non-bazargah-purchases/', non_bazargah_purchase_list, name='non_bazargah_purchase_list'),
@@ -18,6 +18,7 @@ urlpatterns = [
     path('non-bazargah-purchase/<int:purchase_id>/', non_bazargah_purchase_CRUD_view, name='non_bazargah_purchase_CRUD'),
     path('non-bazargah-purchase/<int:purchase_id>/delete/', delete_non_bazargah_purchase_view, name='delete_non_bazargah_purchase'),
     path('non-bazargah-purchase/<int:purchase_id>/pdf/', generate_barnameh_pdf, name='generate_barnameh_pdf'),
+    path('non-bazargah-purchase/<int:purchase_id>/comprehensive-pdf/', generate_comprehensive_purchase_pdf, name='generate_comprehensive_purchase_pdf'),
     path('download-allocation-excel-template/', download_allocation_excel_template, name='download_allocation_excel_template'),
     path('download-barnameh-excel-template/', download_barnameh_excel_template, name='download_barnameh_excel_template'),
     # path('non-bazargah-purchase/<int:purchase_id>/upload/', upload_non_bazargah_document, name='upload_non_bazargah_document'),  # منسوخ

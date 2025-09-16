@@ -965,6 +965,11 @@
           </form>
         {% endif %}
 
+        <!-- دکمه تولید PDF جامع (همیشه در دسترس) -->
+        <a href="{% url 'generate_comprehensive_purchase_pdf' purchase.id %}" class="button pdf-btn" target="_blank">
+          <i class="fas fa-file-pdf"></i> 📋 گزارش جامع PDF
+        </a>
+
         {% if purchase.state in 'barnameh_issued,delivered,purchase_closed' %}
           <!-- دکمه تولید PDF بارنامه‌ها -->
           <a href="{% url 'generate_barnameh_pdf' purchase.id %}" class="button pdf-btn" target="_blank">

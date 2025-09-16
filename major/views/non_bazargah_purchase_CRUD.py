@@ -226,7 +226,10 @@ def process_barnameh_excel(file, purchase):
         has_delivered_weights = any(row['delivered_weight'] and row['delivered_weight'] > 0 for row in valid_rows)
         
         # تعیین مرحله نهایی بر اساس اطلاعات موجود
-        if has_delivered_weights:
+        # برای رفتن به مرحله delivered، باید همه بارنامه‌ها وزن تحویلی داشته باشند
+        all_have_delivered_weights = all(row['delivered_weight'] and row['delivered_weight'] > 0 for row in valid_rows)
+        
+        if all_have_delivered_weights:
             max_stage = 'delivered'
         elif has_loaded_weights:
             max_stage = 'loaded_weighed'
@@ -235,7 +238,7 @@ def process_barnameh_excel(file, purchase):
         else:
             max_stage = 'vehicle_arrived'
         
-        logger.info(f"مراحل تشخیص داده شده: empty={has_empty_weights}, loaded={has_loaded_weights}, delivered={has_delivered_weights} -> مرحله نهایی: {max_stage}")
+        logger.info(f"مراحل تشخیص داده شده: empty={has_empty_weights}, loaded={has_loaded_weights}, delivered={has_delivered_weights}, all_delivered={all_have_delivered_weights} -> مرحله نهایی: {max_stage}")
         
         for row_data in valid_rows:
             try:
@@ -279,7 +282,7 @@ def process_barnameh_excel(file, purchase):
                 
                 # تعیین وضعیت جدید بر اساس اطلاعات موجود
                 target_states = []
-                if has_delivered_weights:
+                if all_have_delivered_weights:
                     target_states = ['delivered', 'barnameh_issued', 'loaded_weighed', 'empty_weighed', 'vehicle_arrived']
                 elif has_loaded_weights:
                     target_states = ['loaded_weighed', 'empty_weighed', 'vehicle_arrived']
@@ -346,7 +349,7 @@ def process_barnameh_excel(file, purchase):
             message = f'{created_barnamehs} بارنامه با موفقیت ایجاد شد'
             
             # اضافه کردن اطلاعات مرحله
-            if has_delivered_weights:
+            if all_have_delivered_weights:
                 message += f' - وضعیت خرید به "تحویل به مشتری" تغییر کرد'
             elif has_loaded_weights:
                 message += f' - وضعیت خرید به "وزن پر" تغییر کرد'
