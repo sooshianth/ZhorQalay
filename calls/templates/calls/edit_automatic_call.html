@@ -1263,24 +1263,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const cottage = productCard.dataset.cottage;
             const country = productCard.dataset.country;
             const price = productCard.dataset.price;
-            const productTypeKey = productCard.dataset.productTypeKey;
-            const countryKey = productCard.dataset.countryKey;
             
             console.log('Product selection triggered (edit):', {
-                productId, productName, cottage, country, price, productTypeKey, countryKey,
+                productId, productName, cottage, country, price,
                 checked: e.target.checked
             });
             
             if (e.target.checked) {
-                // Add product to selected list
+                // Add product to selected list - same format as create function
                 const product = {
                     id: productId,
-                    name: productName,  // Persian name for display
+                    name: productName,  // For display purposes
                     cottage: cottage,
-                    country: country,   // Persian name for display
-                    price: parseFloat(price) || 0,
-                    product_type_key: productTypeKey,  // English key for API
-                    country_key: countryKey            // English key for API
+                    country: country,   // For display purposes
+                    price: parseFloat(price) || 0
                 };
                 selectedProducts.push(product);
                 productCard.classList.add('selected');
@@ -1382,11 +1378,11 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Format products data the same way as create function
         const productsForAPI = selectedProducts.map(product => ({
-            name: product.product_type_key,  // Send English key instead of Persian name
-            price: product.price,
-            cottage: product.cottage,
-            country: product.country_key     // Send English key instead of Persian name
+            id: product.id,
+            price: product.price || 0,
+            cottage: product.cottage || ''
         }));
         
         const jsonString = JSON.stringify(productsForAPI);

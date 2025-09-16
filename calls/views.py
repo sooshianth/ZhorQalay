@@ -303,7 +303,15 @@ def edit_automatic_call(request, call_id):
             if call_type == 'marketing':
                 products_data = request.POST.get('products_data', '[]')
                 try:
-                    selected_products = json.loads(products_data)
+                    products_json = json.loads(products_data)
+                    # Validate and format product data
+                    for product_data in products_json:
+                        if 'id' in product_data:
+                            selected_products.append({
+                                'id': product_data['id'],
+                                'price': product_data.get('price', 0),
+                                'cottage': product_data.get('cottage', ''),
+                            })
                 except json.JSONDecodeError:
                     selected_products = []
             
