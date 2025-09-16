@@ -58,6 +58,32 @@ class ExcelAllocationUploadForm(forms.Form):
         return file
 
 
+class ExcelBarnamehUploadForm(forms.Form):
+    """فرم آپلود فایل اکسل برای بارنامه‌های دسته‌ای"""
+    
+    excel_file = forms.FileField(
+        label='فایل اکسل',
+        help_text='فایل اکسل حاوی اطلاعات بارنامه‌ها (فرمت‌های مجاز: .xls, .xlsx)',
+        widget=forms.FileInput(attrs={
+            'accept': '.xls,.xlsx',
+            'class': 'form-control'
+        })
+    )
+    
+    def clean_excel_file(self):
+        file = self.cleaned_data.get('excel_file')
+        if file:
+            # بررسی فرمت فایل
+            if not file.name.endswith(('.xls', '.xlsx')):
+                raise ValidationError('فایل باید با فرمت اکسل (.xls یا .xlsx) باشد.')
+            
+            # بررسی حجم فایل (حداکثر 5MB)
+            if file.size > 5 * 1024 * 1024:
+                raise ValidationError('حجم فایل نباید از 5 مگابایت بیشتر باشد.')
+        
+        return file
+
+
 def clean_numeric_value(value):
     """پاکسازی مقادیر عددی از فایل اکسل"""
     if pd.isna(value) or value is None:
@@ -85,6 +111,274 @@ def clean_postal_code(postal_code):
     # تبدیل به رشته و حذف همه کاراکترهای غیر عددی
     cleaned = ''.join(c for c in str(postal_code) if c.isdigit())
     return cleaned
+
+
+def process_barnameh_excel(file, purchase):
+    """پردازش فایل اکسل و ایجاد بارنامه‌ها"""
+    try:
+        # خواندن فایل اکسل با تنظیمات مناسب
+        df = pd.read_excel(file, dtype=str)  # همه ستون‌ها را به صورت رشته بخوان
+        
+        # بررسی وجود ستون‌های ضروری
+        required_columns = ['شناسه تخصیص', 'نام راننده', 'شماره تلفن راننده', 'پلاک خودرو']
+        missing_columns = [col for col in required_columns if col not in df.columns]
+        
+        if missing_columns:
+            return {
+                'success': False,
+                'message': f'ستون‌های زیر در فایل اکسل یافت نشد: {", ".join(missing_columns)}. ستون‌های موجود: {", ".join(df.columns.tolist())}'
+            }
+        
+        # مرحله اول: اعتبارسنجی همه داده‌ها بدون ایجاد بارنامه
+        validation_errors = []
+        valid_rows = []
+        
+        logger.info(f"شروع پردازش فایل اکسل بارنامه‌ها با {len(df)} ردیف")
+        
+        # دریافت لیست تخصیص‌های موجود برای این خرید
+        existing_allocations = list(purchase.allocations.values_list('allocation_number', flat=True))
+        # حذف مقادیر None و خالی
+        existing_allocations = [str(x) for x in existing_allocations if x is not None and str(x).strip()]
+        logger.info(f"شماره‌های تخصیص موجود برای این خرید: {existing_allocations}")
+        
+        for index, row in df.iterrows():
+            try:
+                # استخراج داده‌ها از ردیف اکسل
+                allocation_number_raw = row.get('شناسه تخصیص', '')
+                allocation_number = str(allocation_number_raw).strip()
+                
+                # لاگ برای دیباگ
+                if index < 3:  # فقط برای 3 ردیف اول لاگ کن
+                    logger.info(f"ردیف {index + 2}: شماره تخصیص خام: '{allocation_number_raw}', پاک شده: '{allocation_number}'")
+                
+                driver_name = str(row.get('نام راننده', '')).strip()
+                driver_phone = str(row.get('شماره تلفن راننده', '')).strip()
+                vehicle_plate = str(row.get('پلاک خودرو', '')).strip()
+                empty_weight = clean_numeric_value(row.get('وزن خالی', 0))
+                loaded_weight = clean_numeric_value(row.get('وزن پر', 0))
+                delivered_weight = clean_numeric_value(row.get('وزن تحویلی', 0))
+                notes = str(row.get('توضیحات', '')).strip() or None
+                
+                # اعتبارسنجی داده‌ها
+                if not allocation_number:
+                    validation_errors.append(f'ردیف {index + 2}: شماره تخصیص نمی‌تواند خالی باشد')
+                    continue
+                
+                if not driver_name:
+                    validation_errors.append(f'ردیف {index + 2}: نام راننده نمی‌تواند خالی باشد')
+                    continue
+                
+                if not driver_phone:
+                    validation_errors.append(f'ردیف {index + 2}: شماره تلفن راننده نمی‌تواند خالی باشد')
+                    continue
+                
+                if not vehicle_plate:
+                    validation_errors.append(f'ردیف {index + 2}: پلاک خودرو نمی‌تواند خالی باشد')
+                    continue
+                
+                # بررسی شماره تلفن (حداقل 10 رقم)
+                phone_digits = ''.join(c for c in driver_phone if c.isdigit())
+                if len(phone_digits) < 10:
+                    validation_errors.append(f'ردیف {index + 2}: شماره تلفن راننده باید حداقل 10 رقم باشد')
+                    continue
+                
+                # بررسی وجود تخصیص
+                try:
+                    allocation = NonBazargahAllocation.objects.get(allocation_number=allocation_number, purchase=purchase)
+                    logger.info(f"ردیف {index + 2}: تخصیص با شماره {allocation_number} یافت شد")
+                except NonBazargahAllocation.DoesNotExist:
+                    validation_errors.append(f'ردیف {index + 2}: تخصیص با شماره {allocation_number} یافت نشد. شماره‌های موجود: {existing_allocations}')
+                    continue
+                
+                # ذخیره ردیف معتبر
+                valid_rows.append({
+                    'allocation': allocation,
+                    'driver_name': driver_name,
+                    'driver_phone': driver_phone,
+                    'vehicle_plate': vehicle_plate,
+                    'empty_weight': empty_weight,
+                    'loaded_weight': loaded_weight,
+                    'delivered_weight': delivered_weight,
+                    'notes': notes,
+                    'row_number': index + 2
+                })
+                
+            except Exception as e:
+                validation_errors.append(f'ردیف {index + 2}: خطا در پردازش - {str(e)}')
+                continue
+        
+        # اگر خطای اعتبارسنجی وجود دارد، فقط آن‌ها را برگردان
+        if validation_errors:
+            return {
+                'success': False,
+                'message': f'{len(validation_errors)} خطا در اعتبارسنجی داده‌ها',
+                'errors': validation_errors[:10]  # فقط 10 خطای اول
+            }
+        
+        # مرحله دوم: ایجاد بارنامه‌ها (همه ردیف‌ها معتبر هستند)
+        created_barnamehs = 0
+        creation_errors = []
+        
+        # تعیین حداکثر مرحله بر اساس اطلاعات موجود
+        max_stage = 'carrier_notified'  # مرحله پایه
+        has_empty_weights = any(row['empty_weight'] and row['empty_weight'] > 0 for row in valid_rows)
+        has_loaded_weights = any(row['loaded_weight'] and row['loaded_weight'] > 0 for row in valid_rows)
+        has_delivered_weights = any(row['delivered_weight'] and row['delivered_weight'] > 0 for row in valid_rows)
+        
+        # تعیین مرحله نهایی بر اساس اطلاعات موجود
+        if has_delivered_weights:
+            max_stage = 'delivered'
+        elif has_loaded_weights:
+            max_stage = 'loaded_weighed'
+        elif has_empty_weights:
+            max_stage = 'empty_weighed'
+        else:
+            max_stage = 'vehicle_arrived'
+        
+        logger.info(f"مراحل تشخیص داده شده: empty={has_empty_weights}, loaded={has_loaded_weights}, delivered={has_delivered_weights} -> مرحله نهایی: {max_stage}")
+        
+        for row_data in valid_rows:
+            try:
+                # تولید شماره بارنامه ترکیبی
+                allocation = row_data['allocation']
+                barnameh_count = allocation.barnamehs.count() + 1
+                allocation_number = allocation.allocation_number or allocation.id
+                barnameh_number = f"{allocation_number}-{barnameh_count}"
+                
+                barnameh = Barnameh.objects.create(
+                    non_bazargah_allocation=allocation,
+                    non_bazargah_purchase=purchase,
+                    type='Non_Bazargah',
+                    number=barnameh_number,
+                    driver_name=row_data['driver_name'],
+                    driver_phone=row_data['driver_phone'],
+                    vehicle_plate=row_data['vehicle_plate'],
+                    empty_vehicle_weight=row_data['empty_weight'],
+                    loaded_vehicle_weight=row_data['loaded_weight'],
+                    final_delivered_weight=row_data['delivered_weight']
+                )
+                created_barnamehs += 1
+                
+            except Exception as e:
+                creation_errors.append(f'ردیف {row_data["row_number"]}: خطا در ایجاد بارنامه - {str(e)}')
+                continue
+        
+        # بروزرسانی وضعیت خرید بر اساس اطلاعات بارنامه‌ها
+        if created_barnamehs > 0:
+            try:
+                # بررسی وضعیت فعلی و بروزرسانی در صورت نیاز
+                current_state = purchase.state
+                state_transition_map = {
+                    'carrier_notified': 'vehicle_arrived',
+                    'vehicle_arrived': 'empty_weighed',
+                    'empty_weighed': 'loaded_weighed',
+                    'loaded_weighed': 'barnameh_issued',
+                    'barnameh_issued': 'delivered',
+                    'delivered': 'delivered'
+                }
+                
+                # تعیین وضعیت جدید بر اساس اطلاعات موجود
+                target_states = []
+                if has_delivered_weights:
+                    target_states = ['delivered', 'barnameh_issued', 'loaded_weighed', 'empty_weighed', 'vehicle_arrived']
+                elif has_loaded_weights:
+                    target_states = ['loaded_weighed', 'empty_weighed', 'vehicle_arrived']
+                elif has_empty_weights:
+                    target_states = ['empty_weighed', 'vehicle_arrived']
+                else:
+                    target_states = ['vehicle_arrived']
+                
+                # پیدا کردن بالاترین وضعیت مناسب
+                state_priority = {
+                    'carrier_notified': 1,
+                    'vehicle_arrived': 2,
+                    'empty_weighed': 3,
+                    'loaded_weighed': 4,
+                    'barnameh_issued': 5,
+                    'delivered': 6
+                }
+                
+                # انتخاب وضعیت با بالاترین اولویت
+                new_state = current_state
+                for state in target_states:
+                    if state_priority.get(state, 0) > state_priority.get(new_state, 0):
+                        new_state = state
+                
+                # بروزرسانی وضعیت در صورت نیاز
+                if new_state != current_state:
+                    purchase.state = new_state
+                    purchase.save(update_fields=['state'])
+                    logger.info(f"وضعیت خرید {purchase.id} از {current_state} به {new_state} تغییر کرد")
+                    
+                    # محاسبه وزن‌ها در صورت رسیدن به مرحله مناسب
+                    if new_state in ['loaded_weighed', 'barnameh_issued']:
+                        try:
+                            purchase.update_weights_from_barnamehs(save=False)
+                            weight_difference = purchase.calculate_net_weight_difference()
+                            weight_difference_amount = purchase.calculate_weight_difference_amount()
+                            
+                            if weight_difference is not None:
+                                purchase.weight_difference = weight_difference
+                            if weight_difference_amount is not None:
+                                purchase.weight_difference_amount = weight_difference_amount
+                            
+                            purchase.save()
+                            logger.info(f"وزن‌های خرید {purchase.id} بروزرسانی شد")
+                        except Exception as e:
+                            logger.error(f"خطا در بروزرسانی وزن‌ها: {str(e)}")
+                
+            except Exception as e:
+                logger.error(f"خطا در بروزرسانی وضعیت خرید: {str(e)}")
+                creation_errors.append(f"خطا در بروزرسانی وضعیت خرید: {str(e)}")
+        
+        # نتیجه نهایی
+        if created_barnamehs > 0:
+            # تعیین مرحله نهایی برای نمایش
+            stage_names = {
+                'carrier_notified': 'اعلام بار به باربری',
+                'vehicle_arrived': 'ورود ماشین',
+                'empty_weighed': 'وزن خالی',
+                'loaded_weighed': 'وزن پر',
+                'barnameh_issued': 'صدور بارنامه',
+                'delivered': 'تحویل به مشتری'
+            }
+            
+            message = f'{created_barnamehs} بارنامه با موفقیت ایجاد شد'
+            
+            # اضافه کردن اطلاعات مرحله
+            if has_delivered_weights:
+                message += f' - وضعیت خرید به "تحویل به مشتری" تغییر کرد'
+            elif has_loaded_weights:
+                message += f' - وضعیت خرید به "وزن پر" تغییر کرد'
+            elif has_empty_weights:
+                message += f' - وضعیت خرید به "وزن خالی" تغییر کرد'
+            else:
+                message += f' - وضعیت خرید به "ورود ماشین" تغییر کرد'
+            
+            if creation_errors:
+                message += f' - {len(creation_errors)} خطا در ایجاد بارنامه‌ها'
+            
+            return {
+                'success': True,
+                'message': message,
+                'created_count': created_barnamehs,
+                'final_stage': max_stage,
+                'stage_name': stage_names.get(max_stage, max_stage),
+                'errors': creation_errors[:5] if creation_errors else []  # فقط 5 خطای اول
+            }
+        else:
+            return {
+                'success': False,
+                'message': 'هیچ بارنامه‌ای ایجاد نشد',
+                'errors': creation_errors
+            }
+            
+    except Exception as e:
+        logger.error(f"خطا در پردازش فایل اکسل بارنامه‌ها: {str(e)}")
+        return {
+            'success': False,
+            'message': f'خطا در پردازش فایل اکسل: {str(e)}'
+        }
 
 
 def process_allocation_excel(file, purchase):
@@ -760,6 +1054,46 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                 messages.error(request, f'خطا در پردازش فایل اکسل: {str(e)}')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
+        # پردازش آپلود فایل اکسل بارنامه‌ها
+        if 'upload_barnameh_excel' in request.POST and user_role in ['logistics_manager', 'admin']:
+            logger.info(f"درخواست آپلود اکسل بارنامه‌ها برای خرید {purchase_id}")
+            logger.info(f"فایل‌های دریافتی: {list(request.FILES.keys())}")
+            
+            # بررسی اینکه خرید در مرحله مناسب باشد
+            if purchase.state not in ['carrier_notified', 'vehicle_arrived']:
+                messages.error(request, 'برای اضافه کردن بارنامه، خرید باید در مرحله "اعلام بار به باربری" یا "ورود ماشین" باشد')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            
+            excel_file = request.FILES.get('barnameh_excel_file')
+            logger.info(f"فایل دریافتی: {excel_file}")
+            
+            if not excel_file:
+                logger.warning("فایل اکسل بارنامه دریافت نشد")
+                messages.error(request, 'لطفاً یک فایل اکسل انتخاب کنید')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            
+            try:
+                with transaction.atomic():
+                    result = process_barnameh_excel(excel_file, purchase)
+                    
+                    if result['success']:
+                        messages.success(request, result['message'])
+                        if result.get('errors'):
+                            for error in result['errors']:
+                                messages.warning(request, error)
+                    else:
+                        messages.error(request, result['message'])
+                        if result.get('errors'):
+                            for error in result['errors'][:3]:  # فقط 3 خطای اول
+                                messages.error(request, error)
+                
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                
+            except Exception as e:
+                logger.error(f"خطا در آپلود فایل اکسل بارنامه‌ها: {str(e)}")
+                messages.error(request, f'خطا در پردازش فایل اکسل: {str(e)}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
         # پردازش اضافه کردن تخصیص جدید
         if 'add_allocation' in request.POST and user_role in ['logistics_manager', 'admin']:
             if not purchase.can_assign_addresses():
@@ -1137,6 +1471,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     # فرم آپلود اکسل تخصیص‌ها
     excel_upload_form = ExcelAllocationUploadForm()
     
+    # فرم آپلود اکسل بارنامه‌ها
+    excel_barnameh_upload_form = ExcelBarnamehUploadForm()
+    
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
     
@@ -1158,6 +1495,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         'form': form,
         'allocation_form': allocation_form,
         'excel_upload_form': excel_upload_form,
+        'excel_barnameh_upload_form': excel_barnameh_upload_form,
         'allocations': allocations,
         'allocations_with_barnamehs': allocations_with_barnamehs,
         'total_allocated_weight': total_allocated_weight,
@@ -1293,6 +1631,94 @@ def download_allocation_excel_template(request):
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
     response['Content-Disposition'] = 'attachment; filename="template_allocations.xlsx"'
+    
+    return response
+
+
+@role_required('admin', 'logistics_manager')
+@login_required
+def download_barnameh_excel_template(request):
+    """دانلود قالب اکسل برای بارنامه‌ها"""
+    logger.warning(f"دانلود قالب اکسل بارنامه‌ها توسط {request.user.username}, IP: {get_client_ip(request)}")
+    
+    # ایجاد فایل اکسل در حافظه
+    output = io.BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet('بارنامه‌ها')
+    
+    # تنظیم استایل‌ها
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#28a745',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter'
+    })
+    
+    data_format = workbook.add_format({
+        'border': 1,
+        'align': 'right',
+        'valign': 'vcenter'
+    })
+    
+    # تنظیم عرض ستون‌ها
+    worksheet.set_column('A:A', 15)  # شناسه تخصیص
+    worksheet.set_column('B:B', 25)  # نام راننده
+    worksheet.set_column('C:C', 20)  # شماره تلفن راننده
+    worksheet.set_column('D:D', 15)  # پلاک خودرو
+    worksheet.set_column('E:E', 15)  # وزن خالی
+    worksheet.set_column('F:F', 15)  # وزن پر
+    worksheet.set_column('G:G', 15)  # وزن تحویلی
+    worksheet.set_column('H:H', 30)  # توضیحات
+    
+    # نوشتن هدرها
+    headers = [
+        'شناسه تخصیص', 'نام راننده', 'شماره تلفن راننده', 
+        'پلاک خودرو', 'وزن خالی', 'وزن پر', 'وزن تحویلی', 'توضیحات'
+    ]
+    
+    for col, header in enumerate(headers):
+        worksheet.write(0, col, header, header_format)
+    
+    # نوشتن نمونه داده‌ها
+    sample_data = [
+        [
+            'A001',  # شماره تخصیص
+            'احمد محمدی',
+            '09123456789',
+            '12ب12345',
+            15000,  # وزن خالی
+            20000,  # وزن پر
+            19000,  # وزن تحویلی
+            'تحویل در صبح - تماس قبل از رسیدن'
+        ],
+        [
+            'A002',  # شماره تخصیص
+            'علی رضایی',
+            '09987654321',
+            '34ج67890',
+            12000,  # وزن خالی
+            17000,  # وزن پر
+            16500,  # وزن تحویلی
+            'تحویل در عصر'
+        ]
+    ]
+    
+    for row, data in enumerate(sample_data, start=1):
+        for col, value in enumerate(data):
+            worksheet.write(row, col, value, data_format)
+    
+    # بستن workbook
+    workbook.close()
+    output.seek(0)
+    
+    # ایجاد پاسخ HTTP
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="template_barnamehs.xlsx"'
     
     return response
 

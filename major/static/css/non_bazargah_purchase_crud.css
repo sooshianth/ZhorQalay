@@ -224,23 +224,275 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* استایل‌های مخصوص آپلود اکسل بارنامه‌ها */
+.barnameh-excel-upload-form {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+  border: none;
+}
+
+.barnameh-excel-upload-form .barnameh-excel-form-title {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 1.3em;
+  font-weight: 600;
+}
+
+.barnameh-excel-upload-info {
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
+}
+
+.barnameh-excel-info-card {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  flex: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.barnameh-excel-info-card h5 {
+  color: #28a745;
+  margin-bottom: 15px;
+  font-size: 1.1em;
+  font-weight: 600;
+}
+
+.barnameh-excel-info-card ul {
+  margin: 0;
+  padding-right: 20px;
+  list-style-type: none;
+}
+
+.barnameh-excel-info-card li {
+  margin-bottom: 8px;
+  position: relative;
+  color: #555;
+  line-height: 1.5;
+}
+
+.barnameh-excel-info-card li:before {
+  content: '•';
+  color: #28a745;
+  font-weight: bold;
+  position: absolute;
+  right: -15px;
+}
+
+.barnameh-excel-info-card strong {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.barnameh-excel-note {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 15px;
+  color: #155724;
+  font-size: 0.9em;
+  line-height: 1.4;
+}
+
+.barnameh-excel-note i {
+  color: #28a745;
+  margin-left: 8px;
+}
+
+.available-allocations {
+  background: #e8f5e8;
+  border: 1px solid #c3e6cb;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 10px;
+  color: #155724;
+  font-size: 0.9em;
+}
+
+.available-allocations strong {
+  color: #28a745;
+}
+
+.allocation-id {
+  background: #28a745;
+  color: white;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-weight: bold;
+  margin: 0 2px;
+}
+
+.auto-stage-info {
+  background: #e3f2fd;
+  border: 1px solid #90caf9;
+  border-radius: 6px;
+  padding: 15px;
+  margin-top: 15px;
+}
+
+.auto-stage-info h6 {
+  color: #1976d2;
+  margin-bottom: 10px;
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.auto-stage-info h6 i {
+  color: #1976d2;
+  margin-left: 8px;
+}
+
+.stage-list {
+  margin: 0;
+  padding-right: 20px;
+  list-style-type: none;
+}
+
+.stage-list li {
+  margin-bottom: 8px;
+  position: relative;
+  color: #1976d2;
+  line-height: 1.5;
+  font-size: 0.9em;
+}
+
+.stage-list li:before {
+  content: '→';
+  color: #1976d2;
+  font-weight: bold;
+  position: absolute;
+  right: -15px;
+}
+
+.stage-list li strong {
+  color: #0d47a1;
+  font-weight: 600;
+}
+
+.barnameh-excel-upload-form-inline {
+  flex: 1;
+  min-width: 300px;
+}
+
+.barnameh-excel-upload-container {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.barnameh-excel-upload-container .form-group {
+  margin-bottom: 20px;
+}
+
+.barnameh-excel-upload-container label {
+  display: block;
+  margin-bottom: 8px;
+  color: #28a745;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.barnameh-excel-upload-container input[type="file"] {
+  width: 100%;
+  padding: 10px;
+  border: 2px dashed #28a745;
+  border-radius: 6px;
+  background: #f8fff8;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.barnameh-excel-upload-container input[type="file"]:hover {
+  border-color: #20c997;
+  background: #e6f7e6;
+}
+
+.barnameh-excel-upload-container input[type="file"]:focus {
+  outline: none;
+  border-color: #20c997;
+  box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+}
+
+.barnameh-excel-upload-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.barnameh-excel-upload-btn {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95em;
+}
+
+.barnameh-excel-upload-btn:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.download-barnameh-template-btn {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.95em;
+  text-decoration: none;
+}
+
+.download-barnameh-template-btn:hover {
+  background: linear-gradient(135deg, #138496 0%, #117a8b 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+  color: white;
+  text-decoration: none;
+}
+
 /* Responsive design برای آپلود اکسل */
 @media (max-width: 768px) {
-  .excel-upload-info {
+  .excel-upload-info,
+  .barnameh-excel-upload-info {
     flex-direction: column;
     gap: 15px;
   }
   
-  .excel-upload-form-inline {
+  .excel-upload-form-inline,
+  .barnameh-excel-upload-form-inline {
     min-width: auto;
   }
   
-  .excel-upload-actions {
+  .excel-upload-actions,
+  .barnameh-excel-upload-actions {
     flex-direction: column;
   }
   
   .excel-upload-btn,
-  .download-template-btn {
+  .download-template-btn,
+  .barnameh-excel-upload-btn,
+  .download-barnameh-template-btn {
     width: 100%;
     justify-content: center;
   }

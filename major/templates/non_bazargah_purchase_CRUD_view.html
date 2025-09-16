@@ -490,6 +490,77 @@
       </h3>
       <div class="section-content collapsed">
         
+        <!-- فرم آپلود اکسل بارنامه‌ها -->
+        {% if user_role == "logistics_manager" or user_role == "admin" %}
+          {% if purchase.state in 'carrier_notified,vehicle_arrived'|split:',' %}
+            <div class="barnameh-excel-upload-form">
+              <h4 class="barnameh-excel-form-title">
+                <i class="fas fa-file-excel"></i> آپلود فایل اکسل بارنامه‌ها
+              </h4>
+              <div class="barnameh-excel-upload-info">
+                <div class="barnameh-excel-info-card">
+                  <h5><i class="fas fa-info-circle"></i> راهنمای استفاده</h5>
+                  <ul>
+                    <li>فایل اکسل باید شامل ستون‌های زیر باشد:</li>
+                    <li><strong>شناسه تخصیص</strong> - شماره تخصیص موجود (از لیست زیر)</li>
+                    <li><strong>نام راننده</strong> - نام کامل راننده</li>
+                    <li><strong>شماره تلفن راننده</strong> - شماره تماس راننده</li>
+                    <li><strong>پلاک خودرو</strong> - پلاک ماشین</li>
+                    <li><strong>وزن خالی</strong> - (اختیاری) وزن ماشین خالی</li>
+                    <li><strong>وزن پر</strong> - (اختیاری) وزن ماشین پر</li>
+                    <li><strong>وزن تحویلی</strong> - (اختیاری) وزن نهایی تحویل</li>
+                    <li><strong>توضیحات</strong> - (اختیاری) توضیحات اضافی</li>
+                  </ul>
+                  <div class="auto-stage-info">
+                    <h6><i class="fas fa-magic"></i> تشخیص خودکار مرحله:</h6>
+                    <ul class="stage-list">
+                      <li><strong>فقط اطلاعات راننده:</strong> وضعیت به "ورود ماشین" تغییر می‌کند</li>
+                      <li><strong>+ وزن خالی:</strong> وضعیت به "وزن خالی" تغییر می‌کند</li>
+                      <li><strong>+ وزن پر:</strong> وضعیت به "وزن پر" تغییر می‌کند</li>
+                      <li><strong>+ وزن تحویلی:</strong> وضعیت به "تحویل به مشتری" تغییر می‌کند</li>
+                    </ul>
+                  </div>
+                  <p class="barnameh-excel-note">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>توجه:</strong> شناسه تخصیص باید از تخصیص‌های موجود در لیست زیر انتخاب شود.
+                  </p>
+                  <div class="available-allocations">
+                    <strong>شماره‌های تخصیص موجود:</strong>
+                    {% for allocation in allocations %}
+                      {% if allocation.allocation_number %}
+                        <span class="allocation-id">{{ allocation.allocation_number }}</span>{% if not forloop.last %}, {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data" class="barnameh-excel-upload-form-inline">
+                  {% csrf_token %}
+                  <div class="barnameh-excel-upload-container">
+                    <div class="form-group">
+                      <label for="barnameh_excel_file">
+                        <i class="fas fa-file-excel"></i> فایل اکسل بارنامه‌ها
+                      </label>
+                      <input type="file" name="barnameh_excel_file" id="barnameh_excel_file" 
+                             accept=".xls,.xlsx" class="form-control" required>
+                      <small class="form-helptext">فایل اکسل حاوی اطلاعات بارنامه‌ها (فرمت‌های مجاز: .xls, .xlsx)</small>
+                    </div>
+                    
+                    <div class="barnameh-excel-upload-actions">
+                      <button type="submit" name="upload_barnameh_excel" class="button barnameh-excel-upload-btn">
+                        <i class="fas fa-upload"></i> آپلود و پردازش اکسل بارنامه‌ها
+                      </button>
+                      <a href="{% url 'download_barnameh_excel_template' %}" class="button download-barnameh-template-btn" target="_blank">
+                        <i class="fas fa-download"></i> دانلود قالب اکسل
+                      </a>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+        
         {% for item in allocations_with_barnamehs %}
         <div class="allocation-barnameh-container">
           <div class="allocation-barnameh-header">
