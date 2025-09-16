@@ -97,11 +97,24 @@ def create_automatic_call(request):
     """
     ایجاد تماس اتوماتیک جدید - بر اساس صف
     """
-    # ایجاد session_id برای این جلسه اگر وجود نداشته باشد
-    session_id = request.session.get('call_queue_session_id')
-    if not session_id:
+    # Always create a fresh session_id for new call creation
+    # Don't reuse existing session to avoid mixing queue numbers between different calls
+    if request.method == 'GET':
+        # Clean up orphaned queue sessions periodically
+        try:
+            cleanup_orphaned_queue_sessions()
+        except Exception:
+            pass  # Don't let cleanup errors affect the main functionality
+            
+        # For GET requests (loading the page), always create a new session
         session_id = str(uuid.uuid4())
         request.session['call_queue_session_id'] = session_id
+    else:
+        # For POST requests, use the existing session from the current form
+        session_id = request.session.get('call_queue_session_id')
+        if not session_id:
+            session_id = str(uuid.uuid4())
+            request.session['call_queue_session_id'] = session_id
     
     if request.method == 'POST':
         action = request.POST.get('action')
@@ -1351,3 +1364,31 @@ def cancel_call_api(request, call_id):
             'success': False, 
             'error': f'خطا در ارتباط با سرور: {str(e)}'
         })
+
+def cleanup_orphaned_queue_sessions():
+    """
+    Clean up queue sessions that are not associated with any saved call
+    This helps prevent accumulation of orphaned queue numbers from abandoned call creation sessions
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Get all session IDs that are associated with existing calls
+    active_session_ids = set(AutomaticCall.objects.exclude(
+        queue_session_id__isnull=True
+    ).values_list('queue_session_id', flat=True))
+    
+    # Find queue items that are not associated with any call and are older than 1 hour
+    one_hour_ago = timezone.now() - timedelta(hours=1)
+    orphaned_queue_items = CallQueue.objects.filter(
+        created_at__lt=one_hour_ago
+    ).exclude(
+        session_id__in=active_session_ids
+    )
+    
+    deleted_count = orphaned_queue_items.count()
+    if deleted_count > 0:
+        orphaned_queue_items.delete()
+        print(f"Cleaned up {deleted_count} orphaned queue items")
+    
+    return deleted_count
