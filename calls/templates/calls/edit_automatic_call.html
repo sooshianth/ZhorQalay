@@ -338,6 +338,125 @@
         color: #6B7280;
     }
 
+    /* Product Selection Styles */
+    .products-container {
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 1rem;
+        background: #F9FAFB;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 0.75rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .product-card {
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 6px;
+        padding: 0.75rem;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .product-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 4px rgba(6, 95, 70, 0.1);
+    }
+
+    .product-card.selected {
+        border-color: var(--primary-color);
+        background: var(--primary-light);
+    }
+
+    .product-checkbox {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .product-checkbox input[type="checkbox"] {
+        margin-top: 0.25rem;
+    }
+
+    .product-name {
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.25rem;
+    }
+
+    .product-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.875rem;
+        color: #6B7280;
+    }
+
+    .selected-products-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .selected-product-item {
+        background: white;
+        border: 1px solid var(--primary-color);
+        border-radius: 6px;
+        padding: 1rem;
+    }
+
+    .selected-product-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+
+    .selected-product-name {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .remove-product-btn {
+        background: var(--danger-color);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        cursor: pointer;
+    }
+
+    .product-edit-fields {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 0.75rem;
+    }
+
+    .product-field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .product-field label {
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--dark-color);
+    }
+
+    .product-field input {
+        padding: 0.5rem;
+        border: 1px solid #D1D5DB;
+        border-radius: 4px;
+        font-size: 0.875rem;
+    }
+
     @media (max-width: 768px) {
         .main-container {
             grid-template-columns: 1fr;
@@ -398,11 +517,49 @@
                             <i class="fas fa-list"></i>
                             نوع تماس *
                         </label>
-                        <select id="call_type" name="call_type" class="form-select" required>
+                        <select id="call_type" name="call_type" class="form-select" required onchange="toggleProductSelection()">
                             {% for key, value in call.CALL_TYPE_CHOICES %}
                                 <option value="{{ key }}" {% if call.call_type == key %}selected{% endif %}>{{ value }}</option>
                             {% endfor %}
                         </select>
+                    </div>
+
+                    <!-- Product Selection (Only for Marketing Calls) -->
+                    <div class="form-group" id="productsSection" style="display: {% if call.call_type == 'marketing' %}block{% else %}none{% endif %};">
+                        <label class="form-label">
+                            <i class="fas fa-box"></i>
+                            انتخاب محصولات *
+                        </label>
+                        <div class="products-container">
+                            <div class="products-search" style="margin-bottom: 1rem;">
+                                <input type="text" id="productSearch" class="form-input" placeholder="جستجوی محصول...">
+                            </div>
+                            <div class="products-grid" id="productsGrid">
+                                {% for product in cargo_products %}
+                                <div class="product-card" data-product-id="{{ product.id }}" data-product-name="{{ product.get_product_type_display }} {{ product.get_country_display }}" data-cottage="{{ product.cottage }}" data-country="{{ product.get_country_display }}" data-price="{{ product.customer_price }}" data-product-type-key="{{ product.product_type }}" data-country-key="{{ product.country }}">
+                                    <div class="product-checkbox">
+                                        <input type="checkbox" id="product_{{ product.id }}" class="product-select">
+                                        <label for="product_{{ product.id }}">
+                                            <div class="product-name">{{ product.get_product_type_display }} - {{ product.get_country_display }}</div>
+                                            <div class="product-details">
+                                                <span class="product-cottage">کوتاژ: {{ product.cottage }}</span>
+                                                <span class="product-price">قیمت: {{ product.customer_price|floatformat:0 }} ریال</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <!-- Selected Products -->
+                        <div class="selected-products" id="selectedProducts" style="display: none;">
+                            <h4 style="margin: 1.5rem 0 1rem 0; color: var(--primary-color);">محصولات انتخاب شده</h4>
+                            <div class="selected-products-list" id="selectedProductsList"></div>
+                        </div>
+
+                        <!-- Hidden input to store products data -->
+                        <input type="hidden" id="productsData" name="products_data" value="">
                     </div>
 
                     <div class="form-group">
@@ -1052,9 +1209,260 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Product Selection Functions
+    let selectedProducts = [];
+
+    // Initialize selected products from existing call data
+    {% if call.call_type == 'marketing' and call.selected_products %}
+    selectedProducts = {{ call.selected_products|safe }};
+    {% endif %}
+
+    function toggleProductSelection() {
+        const callType = document.getElementById('call_type').value;
+        const productsSection = document.getElementById('productsSection');
+        
+        if (callType === 'marketing') {
+            productsSection.style.display = 'block';
+            updateProductsData();
+        } else {
+            productsSection.style.display = 'none';
+            selectedProducts = [];
+            updateSelectedProducts();
+            updateProductsData();
+        }
+        updateCreateButtonState();
+    }
+
+    // Product search functionality
+    const productSearch = document.getElementById('productSearch');
+    const productCards = document.querySelectorAll('.product-card');
+    
+    if (productSearch) {
+        productSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            productCards.forEach(card => {
+                const productName = card.dataset.productName.toLowerCase();
+                const cottage = card.dataset.cottage.toLowerCase();
+                const country = card.dataset.country.toLowerCase();
+                
+                if (productName.includes(searchTerm) || cottage.includes(searchTerm) || country.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Product selection handling
+    document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('product-select')) {
+            const productCard = e.target.closest('.product-card');
+            const productId = productCard.dataset.productId;
+            const productName = productCard.dataset.productName;
+            const cottage = productCard.dataset.cottage;
+            const country = productCard.dataset.country;
+            const price = productCard.dataset.price;
+            const productTypeKey = productCard.dataset.productTypeKey;
+            const countryKey = productCard.dataset.countryKey;
+            
+            console.log('Product selection triggered (edit):', {
+                productId, productName, cottage, country, price, productTypeKey, countryKey,
+                checked: e.target.checked
+            });
+            
+            if (e.target.checked) {
+                // Add product to selected list
+                const product = {
+                    id: productId,
+                    name: productName,  // Persian name for display
+                    cottage: cottage,
+                    country: country,   // Persian name for display
+                    price: parseFloat(price) || 0,
+                    product_type_key: productTypeKey,  // English key for API
+                    country_key: countryKey            // English key for API
+                };
+                selectedProducts.push(product);
+                productCard.classList.add('selected');
+                console.log('Product added to selectedProducts (edit):', product);
+                console.log('Total selectedProducts (edit):', selectedProducts.length);
+            } else {
+                // Remove product from selected list
+                selectedProducts = selectedProducts.filter(p => p.id !== productId);
+                productCard.classList.remove('selected');
+                console.log('Product removed from selectedProducts (edit), remaining:', selectedProducts.length);
+            }
+            
+            updateSelectedProducts();
+            updateProductsData();
+        }
+    });
+
+    // Update selected products display
+    function updateSelectedProducts() {
+        const selectedProductsContainer = document.getElementById('selectedProducts');
+        const selectedProductsList = document.getElementById('selectedProductsList');
+        
+        if (selectedProducts.length === 0) {
+            selectedProductsContainer.style.display = 'none';
+            return;
+        }
+        
+        selectedProductsContainer.style.display = 'block';
+        selectedProductsList.innerHTML = '';
+        
+        selectedProducts.forEach((product, index) => {
+            const productItem = document.createElement('div');
+            productItem.className = 'selected-product-item';
+            productItem.innerHTML = `
+                <div class="selected-product-header">
+                    <span class="selected-product-name">${product.name}</span>
+                    <button type="button" class="remove-product-btn" onclick="removeProduct('${product.id}')">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="product-edit-fields">
+                    <div class="product-field">
+                        <label>قیمت (ریال)</label>
+                        <input type="number" class="product-price-input" data-product-id="${product.id}" value="${product.price}" min="0">
+                    </div>
+                    <div class="product-field">
+                        <label>کوتاژ</label>
+                        <input type="text" class="product-cottage-input" data-product-id="${product.id}" value="${product.cottage}">
+                    </div>
+                    <div class="product-field">
+                        <label>کشور</label>
+                        <input type="text" class="product-country-input" data-product-id="${product.id}" value="${product.country}">
+                    </div>
+                </div>
+            `;
+            selectedProductsList.appendChild(productItem);
+        });
+        
+        // Add event listeners for product field changes
+        document.querySelectorAll('.product-price-input, .product-cottage-input, .product-country-input').forEach(input => {
+            input.addEventListener('input', function() {
+                const productId = this.dataset.productId;
+                const product = selectedProducts.find(p => p.id === productId);
+                
+                if (product) {
+                    if (this.classList.contains('product-price-input')) {
+                        product.price = parseFloat(this.value) || 0;
+                    } else if (this.classList.contains('product-cottage-input')) {
+                        product.cottage = this.value;
+                    } else if (this.classList.contains('product-country-input')) {
+                        product.country = this.value;
+                    }
+                    updateProductsData();
+                }
+            });
+        });
+    }
+
+    // Remove product function (global scope)
+    window.removeProduct = function(productId) {
+        selectedProducts = selectedProducts.filter(p => p.id !== productId);
+        
+        // Uncheck the product checkbox
+        const checkbox = document.querySelector(`#product_${productId}`);
+        if (checkbox) {
+            checkbox.checked = false;
+            checkbox.closest('.product-card').classList.remove('selected');
+        }
+        
+        updateSelectedProducts();
+        updateProductsData();
+    };
+
+    // Update hidden products data field
+    function updateProductsData() {
+        const productsDataField = document.getElementById('productsData');
+        if (!productsDataField) {
+            console.error('Products data field not found!');
+            return;
+        }
+        
+        const productsForAPI = selectedProducts.map(product => ({
+            name: product.product_type_key,  // Send English key instead of Persian name
+            price: product.price,
+            cottage: product.cottage,
+            country: product.country_key     // Send English key instead of Persian name
+        }));
+        
+        const jsonString = JSON.stringify(productsForAPI);
+        productsDataField.value = jsonString;
+        
+        console.log('Updated products data:', jsonString);
+        console.log('Selected products count:', selectedProducts.length);
+        
+        updateCreateButtonState();
+    }
+
+    function updateCreateButtonState() {
+        const queueCount = document.querySelectorAll('.queue-item').length;
+        const callType = document.getElementById('call_type').value;
+        const updateBtn = document.getElementById('updateCallBtn');
+        
+        if (!updateBtn) return;
+        
+        let canUpdate = queueCount > 0;
+        
+        // For marketing calls, require at least one product
+        if (callType === 'marketing' && selectedProducts.length === 0) {
+            canUpdate = false;
+        }
+        
+        updateBtn.disabled = !canUpdate;
+    }
+
+    // Initialize product selection if editing marketing call
+    if (document.getElementById('call_type').value === 'marketing') {
+        // Pre-select products based on existing data
+        {% if call.call_type == 'marketing' and call.selected_products %}
+        selectedProducts.forEach(product => {
+            const checkbox = document.querySelector(`#product_${product.id}`);
+            if (checkbox) {
+                checkbox.checked = true;
+                checkbox.closest('.product-card').classList.add('selected');
+            }
+        });
+        {% endif %}
+        updateSelectedProducts();
+        updateProductsData();
+    }
+
+    // Form submission validation
+    document.getElementById('editCallForm').addEventListener('submit', function(e) {
+        const callType = document.getElementById('call_type').value;
+        
+        // Update products data first
+        updateProductsData();
+        
+        if (callType === 'marketing' && selectedProducts.length === 0) {
+            e.preventDefault();
+            showNotification('برای تماس‌های بازاریابی باید حداقل یک محصول انتخاب کنید', 'error');
+            return false;
+        }
+        
+        // Final check on products data
+        const productsDataField = document.getElementById('productsData');
+        console.log('Products data being sent:', productsDataField.value);
+        
+        // Let the form submit normally
+        return true;
+    });
+
     // Initialize
     updateSelectionUI();
     updateQueueStats();
+    
+    // Initialize products data field
+    updateProductsData();
+    
+    // Debug: Check if elements exist
+    console.log('Products data field exists:', !!document.getElementById('productsData'));
+    console.log('Call type field exists:', !!document.getElementById('call_type'));
+    console.log('Products section exists:', !!document.getElementById('productsSection'));
 });
 </script>
 {% endblock %}

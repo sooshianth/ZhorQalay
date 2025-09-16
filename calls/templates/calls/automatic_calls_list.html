@@ -546,10 +546,19 @@
                                             </span>
                                         {% endif %}
                                     {% elif call.status == 'in_progress' %}
-                                        <a href="{% url 'calls:stop_automatic_call' call.id %}" 
-                                           class="action-btn stop" title="متوقف کردن">
-                                            <i class="fas fa-stop"></i>
-                                        </a>
+                                        <button type="button" class="action-btn stop" title="متوقف موقت" onclick="pauseCall({{ call.id }})">
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        <button type="button" class="action-btn" style="background-color: var(--warning-color);" title="لغو تماس" onclick="cancelCall({{ call.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    {% elif call.status == 'paused' %}
+                                        <button type="button" class="action-btn start" title="ادامه تماس" onclick="resumeCall({{ call.id }})">
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button type="button" class="action-btn" style="background-color: var(--warning-color);" title="لغو تماس" onclick="cancelCall({{ call.id }})">
+                                            <i class="fas fa-times"></i>
+                                        </button>
                                     {% endif %}
                                     
                                     <a href="{% url 'calls:delete_automatic_call' call.id %}" 
@@ -616,4 +625,135 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Functions for call control in list view
+function pauseCall(callId) {
+    if (confirm('آیا می‌خواهید این تماس را موقتاً متوقف کنید?')) {
+        fetch(`{% url 'calls:pause_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+}
+
+function resumeCall(callId) {
+    if (confirm('آیا می‌خواهید این تماس را از سر بگیرید?')) {
+        fetch(`{% url 'calls:resume_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+}
+
+function cancelCall(callId) {
+    if (confirm('آیا می‌خواهید این تماس را لغو کنید? این عمل غیرقابل بازگشت است.')) {
+        fetch(`{% url 'calls:cancel_call_api' 0 %}`.replace('0', callId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showMessage(data.error, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showMessage('خطا در ارتباط با سرور', 'error');
+        });
+    }
+}
+
+// Simple message function for notifications
+function showMessage(message, type = 'info') {
+    // Create notification container if it doesn't exist
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 400px;
+        `;
+        document.body.appendChild(container);
+    }
+    
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        background: ${type === 'success' ? '#D1FAE5' : type === 'error' ? '#FEE2E2' : '#DBEAFE'};
+        color: ${type === 'success' ? '#065F46' : type === 'error' ? '#DC2626' : '#1E40AF'};
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        border: 1px solid ${type === 'success' ? '#A7F3D0' : type === 'error' ? '#FECACA' : '#BFDBFE'};
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    `;
+    notification.textContent = message;
+    
+    container.appendChild(notification);
+    
+    // Auto-remove after 3 seconds
+    setTimeout(() => {
+        notification.style.opacity = '0';
+        notification.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 300);
+    }, 3000);
+}
+</script>
 {% endblock %}

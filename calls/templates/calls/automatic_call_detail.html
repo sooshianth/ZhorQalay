@@ -412,10 +412,6 @@
                         <i class="fas fa-times"></i>
                         لغو تماس
                     </button>
-                    <a href="{% url 'calls:stop_automatic_call' call.id %}" class="btn btn-secondary">
-                        <i class="fas fa-stop"></i>
-                        متوقف کردن
-                    </a>
                 {% elif call.status == 'paused' %}
                     <button type="button" class="btn btn-primary" onclick="resumeCall({{ call.id }})">
                         <i class="fas fa-play"></i>
@@ -590,6 +586,50 @@
                 </h3>
                 <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 0.5rem; border-left: 4px solid var(--primary-color);">
                     {{ call.message_template }}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- محصولات انتخاب شده برای تماس‌های بازاریابی -->
+            {% if call.call_type == 'marketing' and selected_products_details %}
+            <div style="margin-top: 1.5rem;">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--dark-color); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-box" style="color: var(--primary-color);"></i>
+                    محصولات انتخاب شده:
+                </h3>
+                <div style="display: grid; gap: 1rem;">
+                    {% for product_info in selected_products_details %}
+                    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 0.5rem; padding: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem;">
+                            <h4 style="margin: 0; font-weight: 600; color: var(--dark-color);">
+                                {{ product_info.product.get_product_type_display }}
+                            </h4>
+                            <span style="background-color: var(--primary-color); color: white; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 500;">
+                                {{ product_info.product.get_country_display }}
+                            </span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.5rem; font-size: 0.875rem; color: #6B7280;">
+                            <div>
+                                <span style="font-weight: 500;">کوتاژ:</span>
+                                <span>{{ product_info.custom_cottage }}</span>
+                            </div>
+                            <div>
+                                <span style="font-weight: 500;">قیمت:</span>
+                                <span>{{ product_info.custom_price|floatformat:0 }} ریال</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% elif call.call_type == 'marketing' %}
+            <div style="margin-top: 1.5rem;">
+                <h3 style="font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; color: var(--dark-color); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-box" style="color: #6B7280;"></i>
+                    محصولات انتخاب شده:
+                </h3>
+                <div style="background-color: #F9FAFB; padding: 1rem; border-radius: 0.5rem; color: #6B7280; text-align: center;">
+                    هیچ محصولی انتخاب نشده است
                 </div>
             </div>
             {% endif %}

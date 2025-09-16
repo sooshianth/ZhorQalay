@@ -15,6 +15,7 @@ import pandas as pd
 import requests
 from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
+from core.CargoProductModel import CargoProduct
 
 
 @login_required
@@ -117,9 +118,31 @@ def create_automatic_call(request):
             asterisk_api_key = request.POST.get('asterisk_api_key', '')
             calls_per_minute = request.POST.get('calls_per_minute', 10)
             
+            # پردازش محصولات انتخاب شده برای تماس‌های بازاریابی
+            selected_products = []
+            if call_type == 'marketing':
+                products_data = request.POST.get('products_data', '[]')
+                try:
+                    products_json = json.loads(products_data)
+                    # Validate and format product data
+                    for product_data in products_json:
+                        if 'id' in product_data:
+                            selected_products.append({
+                                'id': product_data['id'],
+                                'price': product_data.get('price', 0),
+                                'cottage': product_data.get('cottage', ''),
+                            })
+                except json.JSONDecodeError:
+                    selected_products = []
+            
             # اعتبارسنجی
             if not all([title, call_type, scheduled_time, calls_per_minute]):
                 messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
+                return redirect('calls:create_automatic_call')
+            
+            # بررسی محصولات برای تماس‌های بازاریابی
+            if call_type == 'marketing' and len(selected_products) == 0:
+                messages.error(request, 'برای تماس‌های بازاریابی باید حداقل یک محصول انتخاب کنید.')
                 return redirect('calls:create_automatic_call')
             
             # بررسی وجود شماره در صف
@@ -140,7 +163,8 @@ def create_automatic_call(request):
                     asterisk_api_key=asterisk_api_key,
                     queue_session_id=session_id,
                     created_by=request.user,
-                    calls_per_minute=int(calls_per_minute)
+                    calls_per_minute=int(calls_per_minute),
+                    selected_products=selected_products
                 )
                 
                 # ثبت لاگ
@@ -170,6 +194,9 @@ def create_automatic_call(request):
     # انتخاب‌ها برای فرم
     call_type_choices = AutomaticCall.CALL_TYPE_CHOICES
     
+    # دریافت محصولات فعال برای نوع تماس بازاریابی
+    cargo_products = CargoProduct.get_active_products()
+    
     context = {
         'call_type_choices': call_type_choices,
         'queue_numbers': queue_numbers,
@@ -177,6 +204,7 @@ def create_automatic_call(request):
         'customer_count': customer_count,
         'manual_count': manual_count,
         'session_id': session_id,
+        'cargo_products': cargo_products,
     }
     return render(request, 'calls/create_automatic_call.html', context)
 
@@ -194,10 +222,28 @@ def automatic_call_detail(request, call_id):
     # لاگ‌های تماس
     logs = call.logs.order_by('-timestamp')[:20]
     
+    # دریافت محصولات انتخاب شده با جزئیات کامل
+    selected_products_details = []
+    if call.call_type == 'marketing' and call.selected_products:
+        for product_data in call.selected_products:
+            try:
+                product_id = product_data.get('id')
+                if product_id:
+                    product = CargoProduct.objects.get(id=product_id)
+                    product_info = {
+                        'product': product,
+                        'custom_price': product_data.get('price', product.customer_price),
+                        'custom_cottage': product_data.get('cottage', product.cottage),
+                    }
+                    selected_products_details.append(product_info)
+            except CargoProduct.DoesNotExist:
+                continue
+    
     context = {
         'call': call,
         'logs': logs,
         'has_active_calls': has_active_calls,
+        'selected_products_details': selected_products_details,
     }
     return render(request, 'calls/automatic_call_detail.html', context)
 
@@ -239,9 +285,23 @@ def edit_automatic_call(request, call_id):
             asterisk_api_key = request.POST.get('asterisk_api_key', '')
             calls_per_minute = request.POST.get('calls_per_minute', 10)
             
+            # پردازش محصولات انتخاب شده برای تماس‌های بازاریابی
+            selected_products = []
+            if call_type == 'marketing':
+                products_data = request.POST.get('products_data', '[]')
+                try:
+                    selected_products = json.loads(products_data)
+                except json.JSONDecodeError:
+                    selected_products = []
+            
             # اعتبارسنجی
             if not all([title, call_type, scheduled_time, calls_per_minute]):
                 messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
+                return redirect('calls:edit_automatic_call', call_id=call.id)
+            
+            # بررسی محصولات برای تماس‌های بازاریابی
+            if call_type == 'marketing' and len(selected_products) == 0:
+                messages.error(request, 'برای تماس‌های بازاریابی باید حداقل یک محصول انتخاب کنید.')
                 return redirect('calls:edit_automatic_call', call_id=call.id)
             
             # بررسی وجود شماره در صف
@@ -261,6 +321,7 @@ def edit_automatic_call(request, call_id):
                 call.asterisk_api_url = asterisk_api_url
                 call.asterisk_api_key = asterisk_api_key
                 call.calls_per_minute = int(calls_per_minute)
+                call.selected_products = selected_products
                 call.save()
                 
                 # ثبت لاگ
@@ -298,46 +359,19 @@ def edit_automatic_call(request, call_id):
     # لیست مشتریان برای پیشنهاد
     all_customers = Customer.objects.all()[:100]  # محدود کردن برای بهبود عملکرد
     
+    # دریافت محصولات فعال برای نوع تماس بازاریابی
+    cargo_products = CargoProduct.get_active_products()
+    
     context = {
         'call': call,
         'queue_numbers': queue_numbers[:50],  # فقط 50 تای اول برای نمایش
         'queue_stats': queue_stats,
         'all_customers': all_customers,
+        'cargo_products': cargo_products,
         'session_id': session_id,
         'is_edit_mode': True,
     }
     return render(request, 'calls/edit_automatic_call.html', context)
-
-
-@login_required
-def stop_automatic_call(request, call_id):
-    """
-    متوقف کردن تماس اتوماتیک
-    """
-    call = get_object_or_404(AutomaticCall, id=call_id)
-    
-    if call.status != 'in_progress':
-        messages.error(request, 'این تماس در حال انجام نیست.')
-        return redirect('calls:automatic_call_detail', call_id=call.id)
-    
-    try:
-        call.status = 'completed'
-        call.end_time = timezone.now()
-        call.save()
-        
-        # ثبت لاگ
-        CallLog.objects.create(
-            call=call,
-            event_type='stopped',
-            message=f'تماس اتوماتیک "{call.title}" متوقف شد.'
-        )
-        
-        messages.success(request, 'تماس اتوماتیک با موفقیت متوقف شد.')
-        
-    except Exception as e:
-        messages.error(request, f'خطا در متوقف کردن تماس: {str(e)}')
-    
-    return redirect('calls:automatic_call_detail', call_id=call.id)
 
 
 @login_required
@@ -827,19 +861,24 @@ def start_asterisk_call(request, call_id):
 @login_required
 def get_queue_numbers(request):
     """
-    API برای دریافت شماره‌های صف یک تماس خاص
+    API برای دریافت شماره‌های صف یک تماس خاص یا session
     """
     call_id = request.GET.get('call_id')
-    if not call_id:
-        return JsonResponse({'success': False, 'error': 'call_id مورد نیاز است'})
+    session_id = request.GET.get('session_id')
+    
+    if not call_id and not session_id:
+        return JsonResponse({'success': False, 'error': 'call_id یا session_id مورد نیاز است'})
     
     try:
-        call = AutomaticCall.objects.get(id=call_id)
+        # If call_id is provided, get session_id from call
+        if call_id:
+            call = AutomaticCall.objects.get(id=call_id)
+            session_id = call.queue_session_id
         
-        # دریافت شماره‌های صف مربوط به این تماس
-        if call.queue_session_id:
+        # دریافت شماره‌های صف مربوط به این session
+        if session_id:
             queue_numbers = CallQueue.objects.filter(
-                session_id=call.queue_session_id
+                session_id=session_id
             ).order_by('-created_at')
             
             numbers_data = []
@@ -1182,6 +1221,17 @@ def resume_call_api(request, call_id):
         return JsonResponse({
             'success': False, 
             'error': 'فقط تماس‌های متوقف شده قابل ادامه دادن هستند.'
+        })
+    
+    # Check if there are any other active calls
+    active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id)
+    if active_calls.exists():
+        active_call_titles = ', '.join([active_call.title for active_call in active_calls[:3]])
+        if active_calls.count() > 3:
+            active_call_titles += f' و {active_calls.count() - 3} تماس دیگر'
+        return JsonResponse({
+            'success': False, 
+            'error': f'تماس دیگری در حال انجام است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.'
         })
     
     try:

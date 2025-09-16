@@ -109,6 +109,9 @@ class AutomaticCall(models.Model):
     # تعداد تماس در دقیقه
     calls_per_minute = models.IntegerField(default=10, verbose_name='تعداد تماس در دقیقه')
     
+    # محصولات انتخاب شده برای تماس‌های بازاریابی (JSON format)
+    selected_products = models.JSONField(default=list, blank=True, verbose_name='محصولات انتخاب شده')
+    
     # زمان‌های سیستمی
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='تاریخ ایجاد')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='تاریخ به‌روزرسانی')
@@ -152,12 +155,37 @@ class AutomaticCall(models.Model):
             'message_template': self.message_template,
             'calls_per_minute': self.calls_per_minute
         }
+        
+        # اضافه کردن محصولات برای تماس‌های بازاریابی
+        if self.call_type == 'marketing':
+            from core.CargoProductModel import CargoProduct
+            api_products = []
+            
+            if self.selected_products:
+                for product_data in self.selected_products:
+                    try:
+                        # Get the actual product from database using the ID
+                        product_id = product_data.get('id')
+                        if product_id:
+                            product = CargoProduct.objects.get(id=product_id)
+                            api_product = {
+                                'name': product.product_type,  # Persian name like 'ذرت', 'جو'
+                                'price': product_data.get('price', product.customer_price),
+                                'cottage': product_data.get('cottage', product.cottage),
+                                'country': product.country  # Persian name like 'آرژانتین', 'برزیل'
+                            }
+                            api_products.append(api_product)
+                    except CargoProduct.DoesNotExist:
+                        continue
+            
+            # Always include products array for marketing calls, even if empty
+            data['products'] = api_products
 
         try:
             response = requests.post(
                 self.asterisk_api_url,
                 headers=headers,
-                data=json.dumps(data),
+                data=json.dumps(data, ensure_ascii=False),
                 timeout=30
             )
 
