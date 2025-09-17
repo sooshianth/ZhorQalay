@@ -8,6 +8,7 @@ from .views import (
     purchase_list_view,
     notification_view,
     support_agent_profile,
+    create_purchase_view,
 )
 
 urlpatterns = [
@@ -43,6 +44,11 @@ urlpatterns = [
 
     path('purchase_CRUD/notifications/', notification_view.get_notifications, name='get_notifications'),
     path('purchase_CRUD/notifications/<int:notification_id>/read/', notification_view.mark_notification_read, name='mark_notification_read'),
+
+    # URLs مربوط به ایجاد خرید توسط ادمین
+    path('create-purchase/', create_purchase_view.create_purchase_view, name='create_purchase'),
+    path('api/product-details/', create_purchase_view.get_product_details_api, name='get_product_details_api'),
+    path('api/customer-details/', create_purchase_view.get_customer_details_api, name='get_customer_details_api'),
 
     # اضافه کردن URL های خریدهای خارج از بازارگاه
     path('major/', include('major.urls')),

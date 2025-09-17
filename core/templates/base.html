@@ -199,6 +199,9 @@
                     </div>
                     
                     <div class="submenu-container collapsed" id="purchase-management">
+                        {% if request.user.is_superuser %}
+                        <li><a href="{% url 'create_purchase' %}"><i class="fas fa-plus-circle"></i> ایجاد خرید جدید</a></li>
+                        {% endif %}
                         <li><a href="{% url 'purchase_list' %}"><i class="fas fa-store"></i> خریدها</a></li>
                         <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>
                         {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
