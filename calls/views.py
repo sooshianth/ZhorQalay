@@ -52,8 +52,8 @@ def automatic_calls_list(request):
     """
     calls = AutomaticCall.objects.all().order_by('-created_at')
     
-    # بررسی وجود تماس فعال (در حال انجام)
-    has_active_calls = AutomaticCall.objects.filter(status='in_progress').exists()
+    # بررسی وجود تماس فعال (در حال انجام یا متوقف شده)
+    has_active_calls = AutomaticCall.objects.filter(status__in=['in_progress', 'paused']).exists()
     
     # فیلترها
     status_filter = request.GET.get('status')
@@ -243,8 +243,8 @@ def automatic_call_detail(request, call_id):
     """
     call = get_object_or_404(AutomaticCall, id=call_id)
     
-    # بررسی وجود تماس فعال (در حال انجام) غیر از تماس فعلی
-    has_active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id).exists()
+    # بررسی وجود تماس فعال (در حال انجام یا متوقف شده) غیر از تماس فعلی
+    has_active_calls = AutomaticCall.objects.filter(status__in=['in_progress', 'paused']).exclude(id=call_id).exists()
     
     # لاگ‌های تماس
     logs = call.logs.order_by('-timestamp')[:20]
@@ -972,12 +972,12 @@ def start_asterisk_call(request, call_id):
         return redirect('calls:automatic_call_detail', call_id=call.id)
     
     # Check if there are any other active calls
-    active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id)
+    active_calls = AutomaticCall.objects.filter(status__in=['in_progress', 'paused']).exclude(id=call_id)
     if active_calls.exists():
         active_call_titles = ', '.join([active_call.title for active_call in active_calls[:3]])
         if active_calls.count() > 3:
             active_call_titles += f' و {active_calls.count() - 3} تماس دیگر'
-        messages.error(request, f'تماس دیگری در حال انجام است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.')
+        messages.error(request, f'تماس دیگری در حال انجام یا متوقف شده است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.')
         return redirect('calls:automatic_call_detail', call_id=call.id)
     
     result = call.start_asterisk_call()
@@ -1356,14 +1356,14 @@ def resume_call_api(request, call_id):
         })
     
     # Check if there are any other active calls
-    active_calls = AutomaticCall.objects.filter(status='in_progress').exclude(id=call_id)
+    active_calls = AutomaticCall.objects.filter(status__in=['in_progress', 'paused']).exclude(id=call_id)
     if active_calls.exists():
         active_call_titles = ', '.join([active_call.title for active_call in active_calls[:3]])
         if active_calls.count() > 3:
             active_call_titles += f' و {active_calls.count() - 3} تماس دیگر'
         return JsonResponse({
             'success': False, 
-            'error': f'تماس دیگری در حال انجام است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.'
+            'error': f'تماس دیگری در حال انجام یا متوقف شده است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.'
         })
     
     try:
