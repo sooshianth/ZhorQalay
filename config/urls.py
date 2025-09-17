@@ -21,7 +21,6 @@ urlpatterns = [
     path('whatsapp/', include(('whatsapp_api.urls', 'whatsapp_api'), namespace='whatsapp_api')),
     path('data-exflow/', include('data_exflow.urls')),
     path('table_filter/', include('table_filter.urls')),
-    path('bi/', include('bi.urls')),
     path('fledger/', include(('fledger.urls', 'fledger'), namespace='fledger')),
     path('crm-api/', include('crm_api.urls')),
     path('major/', include('major.urls')),

@@ -64,7 +64,6 @@ INSTALLED_APPS = [
     'bki_cargos.apps.BkiCargosConfig',
     'data_exflow.apps.DataExflowConfig',
     'table_filter.apps.TableFilterConfig',
-    'bi.apps.BIConfig',
     'fledger.apps.FledgerConfig',
     'crm_api.apps.CrmApiConfig',
     'major.apps.MajorConfig'

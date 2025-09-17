@@ -247,17 +247,25 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته چهارم: لجستیک -->
-                {% if request.user.is_superuser or request.user.logistics_manager %}
+                <!-- دسته چهارم: داشبوردهای مدیریتی -->
+                {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
                 <div class="menu-category">
-                    <div class="category-title" data-toggle="collapse" data-target="logistics-management">
-                        <i class="fas fa-truck-loading category-icon"></i>
-                        <span>مدیریت منابع</span>
+                    <div class="category-title" data-toggle="collapse" data-target="management-dashboards">
+                        <i class="fas fa-tachometer-alt category-icon"></i>
+                        <span>داشبوردهای مدیریتی</span>
                         <i class="fas fa-chevron-down category-arrow"></i>
                     </div>
                     
-                    <div class="submenu-container collapsed" id="logistics-management">
-                        <li><a href="{% url 'fledger:logistics_dashboard' %}"><i class="fas fa-tachometer-alt"></i> داشبورد مدیریت منابع</a></li>
+                    <div class="submenu-container collapsed" id="management-dashboards">
+                        {% if request.user.is_superuser or request.user.logistics_manager %}
+                        <li><a href="{% url 'fledger:logistics_dashboard' %}"><i class="fas fa-truck-loading"></i> داشبورد مدیریت منابع</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
+                        <li><a href="{% url 'fledger:fledger_dashboard' %}"><i class="fas fa-wallet"></i> داشبورد مالی</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser or request.user.is_staff %}
+                        <li><a href="http://192.168.100.56:3000"><i class="fas fa-chart-pie"></i> داشبورد هوش تجاری</a></li>
+                        {% endif %}
                     </div>
                 </div>
                 {% endif %}
@@ -277,37 +285,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته ششم: امور مالی -->
-                {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
-                <div class="menu-category">
-                    <div class="category-title" data-toggle="collapse" data-target="financial-management">
-                        <i class="fas fa-coins category-icon"></i>
-                        <span>امور مالی</span>
-                        <i class="fas fa-chevron-down category-arrow"></i>
-                    </div>
-                    
-                    <div class="submenu-container collapsed" id="financial-management">
-                        <li><a href="{% url 'fledger:fledger_dashboard' %}"><i class="fas fa-wallet"></i> داشبورد مالی</a></li>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- دسته هفتم: هوش تجاری -->
-                {% if request.user.is_superuser or request.user.is_staff %}
-                <div class="menu-category">
-                    <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
-                        <i class="fas fa-chart-line category-icon"></i>
-                        <span>هوش تجاری و گزارشات</span>
-                        <i class="fas fa-chevron-down category-arrow"></i>
-                    </div>
-                    
-                    <div class="submenu-container collapsed" id="business-intelligence">
-                        <li><a href="{% url 'bi:bi_dashboard' %}"><i class="fas fa-chart-pie"></i> داشبورد هوش تجاری</a></li>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- دسته هشتم: منابع انسانی -->
+                <!-- دسته ششم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
                         <i class="fas fa-user-tie category-icon"></i>
