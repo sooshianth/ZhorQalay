@@ -90,6 +90,79 @@
             min-width: 120px !important;
         }
     }
+    
+    /* Filter Styles */
+    .search-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 1px solid #cbd5e0;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .filter-btn {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    .filter-modal {
+        backdrop-filter: blur(5px);
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .filter-status-container .alert {
+        margin-bottom: 0;
+        border-radius: 8px;
+    }
+    
+    .table-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+    }
+    
+    /* Required fields styling */
+    .required-field {
+        background-color: #fef3f2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        padding: 8px;
+    }
+    
+    .required-field .form-check-label {
+        font-weight: 600;
+        color: #dc2626;
+    }
 </style>
 {% endblock %}
 
@@ -145,18 +218,42 @@
         </div>
     </div>
 
+    <!-- فیلتر سریع جستجو -->
+    <div class="search-container animate-slide-up mb-4" style="animation-delay: 0.2s;">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-search text-primary"></i>
+            <h3 class="h5 mb-0 fw-semibold">جستجوی هوشمند</h3>
+        </div>
+        <div class="position-relative">
+            <input type="text" name="search" id="real-time-search" 
+                   placeholder="شماره بارنامه، نام راننده، مشتری، محصول یا هر چیز دیگری را تایپ کنید..." 
+                   class="form-control form-control-lg">
+            <div class="search-icon position-absolute top-50 end-0 translate-middle-y me-3">
+                <i class="fas fa-search text-muted"></i>
+            </div>
+            <div id="search-loading" class="search-loading position-absolute top-50 end-0 translate-middle-y me-3 d-none">
+                <i class="fas fa-spinner fa-spin text-primary"></i>
+            </div>
+        </div>
+        <div class="mt-2 small text-muted d-flex align-items-center gap-2">
+            <i class="fas fa-lightbulb text-warning"></i>
+            <span>نتایج به صورت لحظه‌ای بروزرسانی می‌شوند</span>
+        </div>
+    </div>
+
     <!-- جدول بارنامه‌ها -->
     <div class="table-container">
         <h5 class="mb-4">
             <i class="fas fa-list"></i> لیست بارنامه‌های خارج از بازارگاه
         </h5>
         
-        {% if barnamehs %}
             <div class="table-responsive" style="overflow-x: auto;">
-                <table class="table table-hover" id="barnamehsTable">
+            <table class="table table-hover" id="barnamehsTable"
+                   data-filter-url="{% url 'apply_non_bazargah_barnameh_filter' %}"
+                   data-column-values-url="{% url 'get_non_bazargah_barnameh_column_values' %}">
                     <thead>
                         <tr>
-                            <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
+                            <th data-column-id="select" data-column-type="select" style="min-width: 50px; display: {% if 'select' in visible_columns %}table-cell{% else %}none{% endif %};">
                                 <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" title="انتخاب همه">
                             </th>
                             <th data-column-id="number" data-column-type="text" style="min-width: 120px;">شماره بارنامه</th>
@@ -172,165 +269,30 @@
                             <th data-column-id="customer" data-column-type="text" style="min-width: 150px;">مشتری</th>
                             <th data-column-id="product" data-column-type="text" style="min-width: 150px;">محصول</th>
                             <th data-column-id="buyer_name" data-column-type="text" style="min-width: 120px;">نام خریدار</th>
-                            <th data-column-id="company_price" data-column-type="number" style="min-width: 120px; display: none;">فی خرید (ریال)</th>
-                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px; display: none;">فی فروش (ریال)</th>
-                            <th data-column-id="total_sales_amount" data-column-type="number" style="min-width: 120px; display: none;">مبلغ کل فروش</th>
-                            <th data-column-id="total_purchase_amount" data-column-type="number" style="min-width: 120px; display: none;">مبلغ کل خرید</th>
-                            <th data-column-id="origin" data-column-type="text" style="min-width: 120px; display: none;">مبدا</th>
-                            <th data-column-id="rent" data-column-type="number" style="min-width: 120px; display: none;">کرایه</th>
-                            <th data-column-id="empty_vehicle_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن خالی ماشین</th>
-                            <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن پر ماشین</th>
-                            <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px; display: none;">وزن نهایی تحویل</th>
-                            <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px; display: none;">زمان ورود ماشین</th>
-                            <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px; display: none;">زمان خروج از انبار</th>
-                            <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px; display: none;">زمان تحویل</th>
+                            <th data-column-id="company_price" data-column-type="number" style="min-width: 120px; display: {% if 'company_price' in visible_columns %}table-cell{% else %}none{% endif %};">فی خرید (ریال)</th>
+                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px; display: {% if 'customer_price' in visible_columns %}table-cell{% else %}none{% endif %};">فی فروش (ریال)</th>
+                            <th data-column-id="total_sales_amount" data-column-type="number" style="min-width: 120px; display: {% if 'total_sales_amount' in visible_columns %}table-cell{% else %}none{% endif %};">مبلغ کل فروش</th>
+                            <th data-column-id="total_purchase_amount" data-column-type="number" style="min-width: 120px; display: {% if 'total_purchase_amount' in visible_columns %}table-cell{% else %}none{% endif %};">مبلغ کل خرید</th>
+                            <th data-column-id="origin" data-column-type="text" style="min-width: 120px; display: {% if 'origin' in visible_columns %}table-cell{% else %}none{% endif %};">مبدا</th>
+                            <th data-column-id="rent" data-column-type="number" style="min-width: 120px; display: {% if 'rent' in visible_columns %}table-cell{% else %}none{% endif %};">کرایه</th>
+                            <th data-column-id="empty_vehicle_weight" data-column-type="number" style="min-width: 120px; display: {% if 'empty_vehicle_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن خالی ماشین</th>
+                            <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px; display: {% if 'loaded_vehicle_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن پر ماشین</th>
+                            <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px; display: {% if 'final_delivered_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن نهایی تحویل</th>
+                            <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px; display: {% if 'vehicle_arrival_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان ورود ماشین</th>
+                            <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px; display: {% if 'departure_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان خروج از انبار</th>
+                            <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px; display: {% if 'delivery_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان تحویل</th>
                             <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">عملیات</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for barnameh in barnamehs %}
-                            <tr>
-                                <td data-column="select">
-                                    <input type="checkbox" class="row-checkbox" data-id="{{ barnameh.id }}" value="{{ barnameh.id }}" title="انتخاب این بارنامه" onchange="toggleRowSelection(this)">
-                                </td>
-                                <td data-column="number">
-                                    <strong>{{ barnameh.number|default:"تعیین نشده" }}</strong>
-                                </td>
-                                <td data-column="serial">{{ barnameh.serial|default:"-" }}</td>
-                                <td data-column="tonnage">{{ barnameh.tonnage|default:"0" }}</td>
-                                <td data-column="driver_name">{{ barnameh.driver_name|default:"-" }}</td>
-                                <td data-column="driver_phone">{{ barnameh.driver_phone|default:"-" }}</td>
-                                <td data-column="vehicle_plate">{{ barnameh.vehicle_plate|default:"-" }}</td>
-                                <td data-column="receiver_name">{{ barnameh.receiver_name|default:"-" }}</td>
-                                <td data-column="destination">{{ barnameh.destination|default:"-" }}</td>
-                                <td data-column="barnameh_date">{{ barnameh.barnameh_date|default:"-" }}</td>
-                                <td data-column="purchase_number">
-                                    {% if barnameh.non_bazargah_purchase %}
-                                        <strong>{{ barnameh.non_bazargah_purchase.purchase_number|default:"تعیین نشده" }}</strong>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td data-column="customer">
-                                    {% if barnameh.non_bazargah_purchase and barnameh.non_bazargah_purchase.customer %}
-                                        {{ barnameh.non_bazargah_purchase.customer.name }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td data-column="product">
-                                    {% if barnameh.non_bazargah_purchase and barnameh.non_bazargah_purchase.product %}
-                                        {{ barnameh.non_bazargah_purchase.product.name }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td data-column="buyer_name">{{ barnameh.get_buyer_name|default:"-" }}</td>
-                                <td data-column="company_price" style="display: none;">{{ barnameh.get_company_price|intcomma|default:"0" }}</td>
-                                <td data-column="customer_price" style="display: none;">{{ barnameh.get_customer_price|intcomma|default:"0" }}</td>
-                                <td data-column="total_sales_amount" style="display: none;">
-                                    {% if barnameh.get_total_sales_amount %}
-                                        {{ barnameh.get_total_sales_amount|floatformat:0|intcomma }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td data-column="total_purchase_amount" style="display: none;">
-                                    {% if barnameh.get_total_purchase_amount %}
-                                        {{ barnameh.get_total_purchase_amount|floatformat:0|intcomma }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td data-column="origin" style="display: none;">{{ barnameh.origin|default:"-" }}</td>
-                                <td data-column="rent" style="display: none;">{{ barnameh.rent|intcomma|default:"0" }}</td>
-                                <td data-column="empty_vehicle_weight" style="display: none;">{{ barnameh.empty_vehicle_weight|default:"-" }}</td>
-                                <td data-column="loaded_vehicle_weight" style="display: none;">{{ barnameh.loaded_vehicle_weight|default:"-" }}</td>
-                                <td data-column="final_delivered_weight" style="display: none;">{{ barnameh.final_delivered_weight|default:"-" }}</td>
-                                <td data-column="vehicle_arrival_time" style="display: none;">{{ barnameh.vehicle_arrival_time|date:"Y/m/d H:i"|default:"-" }}</td>
-                                <td data-column="departure_time" style="display: none;">{{ barnameh.departure_time|date:"Y/m/d H:i"|default:"-" }}</td>
-                                <td data-column="delivery_time" style="display: none;">{{ barnameh.delivery_time|date:"Y/m/d H:i"|default:"-" }}</td>
-                                <td data-column="actions">
-                                    <div class="btn-group" style="display: flex; gap: 5px; flex-wrap: nowrap;">
-                                        <a href="{% url 'barnameh_detail' barnameh.id %}" 
-                                           class="btn btn-info btn-sm" 
-                                           title="مشاهده جزئیات">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        <a href="{% url 'barnameh_edit' barnameh.id %}" 
-                                           class="btn btn-warning btn-sm" 
-                                           title="ویرایش">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{% url 'barnameh_delete' barnameh.id %}" method="post" 
-                                              class="d-inline" 
-                                              onsubmit="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger btn-sm" 
-                                                    title="حذف">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        {% endfor %}
+                        <!-- داده‌ها از طریق JavaScript بارگذاری می‌شوند -->
                     </tbody>
                 </table>
             </div>
             
-            <!-- Pagination -->
-            {% if page_obj.paginator.num_pages > 1 %}
-                <nav aria-label="صفحه‌بندی">
-                    <ul class="pagination">
-                        {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page=1">
-                                    <i class="fas fa-angle-double-right"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
-                                    <i class="fas fa-angle-right"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-                        
-                        {% for page_num in page_obj.paginator.page_range %}
-                            {% if page_num == page_obj.number %}
-                                <li class="page-item active">
-                                    <span class="page-link">{{ page_num }}</span>
-                                </li>
-                            {% elif page_num > page_obj.number|add:'-3' and page_num < page_obj.number|add:'3' %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ page_num }}">{{ page_num }}</a>
-                                </li>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">
-                                    <i class="fas fa-angle-left"></i>
-                                </a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">
-                                    <i class="fas fa-angle-double-left"></i>
-                                </a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </nav>
-            {% endif %}
+            <!-- Pagination handled by JavaScript -->
             
-        {% else %}
-            <div class="empty-state">
-                <i class="fas fa-truck"></i>
-                <h5>هیچ بارنامه‌ای یافت نشد</h5>
-                <p>در حال حاضر هیچ بارنامه خارج از بازارگاهی در سیستم ثبت نشده است.</p>
             </div>
-        {% endif %}
     </div>
 </div>
 
@@ -370,6 +332,14 @@
                             </div>
                             <div class="section-body pt-2">
                                 <div class="row g-4">
+                                    <!-- ستون‌ها دینامیک از سرور بارگذاری می‌شوند -->
+                                    <div class="col-12 text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">در حال بارگذاری...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">در حال بارگذاری فیلدهای موجود...</p>
+                                    </div>
+                                    <!-- محتوای قدیمی موقتاً نگه داشته شده -->
                                     <!-- ستون انتخاب -->
                                     <div class="col-lg-4 col-md-6">
                                         <div class="column-checkbox">
@@ -711,8 +681,9 @@
     </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="{% static 'js/non_bazargah_barnameh_list.js' %}"></script>
 <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script src="{% static 'js/non_bazargah_barnameh_list.js' %}"></script>
+<script src="{% static 'js/non_bazargah_barnameh_server_filter.js' %}"></script>
 <script>
 function toggleRowSelection(checkbox) {
     // این تابع توسط bulk_edit.js مدیریت می‌شود
@@ -721,12 +692,283 @@ function toggleRowSelection(checkbox) {
 
 // Event listener برای select all checkbox
 document.addEventListener('DOMContentLoaded', function() {
+    // ابتدا BulkEditManager را راه‌اندازی کن
+    if (typeof BulkEditManager !== 'undefined') {
+        console.log('Initializing BulkEditManager for barnameh table...');
+        window.bulkEditManager = new BulkEditManager();
+        window.bulkEditManager.init();
+    }
+    
     const selectAllCheckbox = document.getElementById('selectAllCheckbox');
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function() {
             // این رویداد توسط bulk_edit.js مدیریت می‌شود
         });
     }
+    
+    // مدیریت ستون‌ها
+    setupColumnManagement();
 });
+
+function setupColumnManagement() {
+    const saveColumnsBtn = document.getElementById('saveColumnsBtn');
+    const selectAllColumnsBtn = document.getElementById('selectAllColumns');
+    const deselectAllColumnsBtn = document.getElementById('deselectAllColumns');
+    
+    // بارگذاری فیلدهای موجود از سرور
+    loadAvailableFields();
+    
+    if (selectAllColumnsBtn) {
+        selectAllColumnsBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+    }
+    
+    if (deselectAllColumnsBtn) {
+        deselectAllColumnsBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                // ستون‌های الزامی را انتخاب شده نگه دار
+                if (!cb.disabled) {
+                    cb.checked = false;
+                }
+            });
+        });
+    }
+    
+    if (saveColumnsBtn) {
+        saveColumnsBtn.addEventListener('click', function() {
+            const selectedColumns = [];
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]:checked');
+            
+            // ایجاد mapping برای visibility
+            const columnVisibilityMap = {};
+            
+            // ابتدا همه ستون‌ها را مخفی کن
+            const allCheckboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            allCheckboxes.forEach(cb => {
+                columnVisibilityMap[cb.value] = false;
+            });
+            
+            // سپس ستون‌های انتخاب شده را نمایش ده
+            checkboxes.forEach(cb => {
+                selectedColumns.push(cb.value);
+                columnVisibilityMap[cb.value] = true;
+            });
+            
+            console.log('Selected columns:', selectedColumns);
+            console.log('Column visibility map:', columnVisibilityMap);
+            
+            // ذخیره تنظیمات در سرور
+            saveColumnSettings(selectedColumns).then(() => {
+                // اعمال تغییرات روی جدول
+                applyColumnVisibility(columnVisibilityMap);
+                
+                // بستن مودال
+                const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // نمایش پیام موفقیت
+                showToast('تنظیمات ستون‌ها ذخیره شد', 'success');
+                
+                // همگام‌سازی با فیلتر سرور
+                if (window.nonBazargahBarnamehServerFilter) {
+                    window.nonBazargahBarnamehServerFilter.updateColumnVisibility(columnVisibilityMap);
+                }
+            }).catch(error => {
+                console.error('خطا در ذخیره تنظیمات:', error);
+                showToast('خطا در ذخیره تنظیمات', 'error');
+            });
+        });
+    }
+}
+
+async function loadAvailableFields() {
+    try {
+        const response = await fetch('{% url "get_available_barnameh_fields" %}');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            updateColumnsModal(data.fields);
+        }
+    } catch (error) {
+        console.error('خطا در بارگذاری فیلدها:', error);
+    }
+}
+
+function updateColumnsModal(fields) {
+    const sectionBody = document.querySelector('#columnsForm .section-body .row');
+    if (!sectionBody) return;
+    
+    // پاک کردن محتوای فعلی
+    sectionBody.innerHTML = '';
+    
+    // دریافت ستون‌های فعلی کاربر از template
+    const visibleColumns = {{ visible_columns|safe }};
+    
+    // اضافه کردن فیلدها
+    fields.forEach(field => {
+        const isChecked = field.required || visibleColumns.includes(field.id);
+        
+        const columnDiv = document.createElement('div');
+        columnDiv.className = 'col-lg-4 col-md-6';
+        
+        // تعیین کلاس اضافی برای فیلدهای الزامی
+        const requiredClass = field.required ? ' required-field' : '';
+        
+        columnDiv.innerHTML = `
+            <div class="column-checkbox${requiredClass}">
+                <input class="form-check-input" type="checkbox" 
+                    id="col-${field.id}" name="columns[]" 
+                    value="${field.id}" ${isChecked ? 'checked' : ''} ${field.required ? 'disabled' : ''}>
+                <label class="form-check-label" for="col-${field.id}">
+                    ${field.name} ${field.is_model_field ? '<small class="text-muted">(فیلد مدل)</small>' : ''}
+                    ${field.required ? '<small class="text-danger">(الزامی)</small>' : ''}
+                </label>
+            </div>
+        `;
+        
+        sectionBody.appendChild(columnDiv);
+    });
+    
+    console.log('updateColumnsModal: Fields loaded, visible columns:', visibleColumns);
+    console.log('updateColumnsModal: Total fields:', fields.length);
+    
+    // Debug: بررسی اینکه آیا ستون select وجود دارد
+    const selectField = fields.find(f => f.id === 'select');
+    console.log('updateColumnsModal: Select field found:', selectField);
+}
+
+async function saveColumnSettings(selectedColumns) {
+    const formData = new FormData();
+    formData.append('visible_columns', JSON.stringify(selectedColumns));
+    formData.append('csrfmiddlewaretoken', getCSRFToken());
+    
+    const response = await fetch('{% url "update_barnameh_table_columns" %}', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.status !== 'success') {
+        throw new Error(data.message || 'خطا در ذخیره تنظیمات');
+    }
+    
+    return data;
+}
+
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+
+function updateBulkEditPanel() {
+    // شمارش تعداد ردیف‌های انتخاب شده
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectedCount = selectedCheckboxes.length;
+    
+    console.log('updateBulkEditPanel: Selected count =', selectedCount);
+    
+    // پیدا کردن پنل bulk edit
+    const bulkEditPanel = document.querySelector('.bulk-edit-controls');
+    const countElement = document.querySelector('.bulk-edit-controls .count');
+    
+    if (bulkEditPanel && countElement) {
+        // بروزرسانی شمارنده
+        countElement.textContent = selectedCount;
+        
+        // نمایش/مخفی کردن پنل
+        if (selectedCount > 0) {
+            bulkEditPanel.style.display = 'block';
+            console.log('updateBulkEditPanel: Showing bulk edit panel');
+        } else {
+            bulkEditPanel.style.display = 'none';
+            console.log('updateBulkEditPanel: Hiding bulk edit panel');
+        }
+        
+        // فعال/غیرفعال کردن دکمه‌های bulk edit
+        const bulkEditButtons = document.querySelectorAll('.bulk-edit-btn, .bulk-edit-excel-btn, .download-template-btn');
+        bulkEditButtons.forEach(btn => {
+            btn.disabled = selectedCount === 0;
+        });
+        
+        // بروزرسانی دکمه export excel در header
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        if (exportExcelBtn) {
+            exportExcelBtn.disabled = selectedCount === 0;
+        }
+    }
+}
+
+// تابع سازگاری با bulk_edit.js
+function toggleRowSelection(checkbox) {
+    console.log('toggleRowSelection called with:', checkbox);
+    
+    // اگر bulk_edit.js موجود است، از آن استفاده کن
+    if (window.originalToggleRowSelection) {
+        window.originalToggleRowSelection(checkbox);
+    }
+    
+    // بروزرسانی پنل bulk edit
+    updateBulkEditPanel();
+}
+
+function applyColumnVisibility(columnVisibilityMap) {
+    console.log('Applying column visibility:', columnVisibilityMap);
+    
+    // ستون‌های الزامی که نباید مخفی شوند
+    const requiredColumns = ['select', 'actions'];
+    
+    // تغییر visibility ستون‌های header
+    for (const [columnId, isVisible] of Object.entries(columnVisibilityMap)) {
+        const header = document.querySelector(`th[data-column-id="${columnId}"]`);
+        if (header) {
+            // اگر ستون الزامی است، همیشه نمایش ده
+            const finalVisibility = requiredColumns.includes(columnId) ? true : isVisible;
+            header.style.display = finalVisibility ? 'table-cell' : 'none';
+            console.log(`Header ${columnId}: ${finalVisibility ? 'visible' : 'hidden'} (required: ${requiredColumns.includes(columnId)})`);
+        }
+        
+        // تغییر visibility سلول‌های موجود
+        const cells = document.querySelectorAll(`td[data-column="${columnId}"]`);
+        cells.forEach(cell => {
+            // اگر ستون الزامی است، همیشه نمایش ده
+            const finalVisibility = requiredColumns.includes(columnId) ? true : isVisible;
+            cell.style.display = finalVisibility ? 'table-cell' : 'none';
+        });
+        console.log(`Cells for ${columnId}: ${cells.length} updated`);
+    }
+}
+
+function showToast(message, type = 'info') {
+    // نمایش toast notification
+    const toastContainer = document.querySelector('.toast-container') || document.body;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+    toast.setAttribute('role', 'alert');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // حذف خودکار بعد از 5 ثانیه
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
 </script>
 {% endblock %}

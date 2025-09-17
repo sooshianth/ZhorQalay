@@ -25,6 +25,7 @@ class BulkEditManager {
             this.controlPanels = {
                 active: document.querySelector('.bulk-edit-controls')
             };
+            console.log(`🔍 تشخیص نوع جدول: ${tableType}, Panel موجود: ${this.controlPanels.active ? 'بله' : 'خیر'}`);
         }
         
         // حذف control panelهای null
@@ -192,6 +193,13 @@ class BulkEditManager {
         // گوش دادن به رویداد فیلتر جدول
         document.addEventListener('tableFilterApplied', (e) => {
             console.log('🔄 فیلتر جدول اعمال شد، بروزرسانی panel کنترل...');
+            this.detectCurrentSection();
+            this.updateAllControlPanels();
+        });
+        
+        // گوش دادن به رویداد بروزرسانی محتوای جدول (برای فیلتر سمت سرور)
+        document.addEventListener('tableContentUpdated', (e) => {
+            console.log('🔄 محتوای جدول بروزرسانی شد، بروزرسانی panel کنترل...');
             this.detectCurrentSection();
             this.updateAllControlPanels();
         });
