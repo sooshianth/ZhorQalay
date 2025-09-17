@@ -1,5 +1,7 @@
 from django.shortcuts import render, redirect
 from core._models import CargoProduct, VaredKonandeh, Barbary
+from major.models.NonBazargahProduct import NonBazargahProduct
+from major.models.Product import Product
 from django.contrib.auth.decorators import login_required
 from core.decorators.decorators import role_required
 from django.http import JsonResponse
@@ -50,8 +52,9 @@ def cargo_product_crud_panel(request, product_id=None):
     product = None
     if request.method == 'POST':
         data = request.POST
-        # فقط ایجاد محصول جدید
-        # Create new product
+        product_category = data.get('product_category')  # بازارگاهی یا خارج از بازارگاه
+        
+        # دریافت اطلاعات مشترک
         vared_konandeh = None
         if data.get('vared_konandeh'):
             vared_konandeh = VaredKonandeh.objects.get(id=data.get('vared_konandeh'))
@@ -59,22 +62,35 @@ def cargo_product_crud_panel(request, product_id=None):
         barbary = None
         if data.get('barbary'):
             barbary = Barbary.objects.get(id=data.get('barbary'))
-            
-        CargoProduct.objects.create(
-            type=data.get('type'),
-            cottage=data.get('cottage'),
-            company_price=data.get('company_price'),
-            customer_price=data.get('customer_price'),
-            product_type=data.get('product_type'),
-            country=data.get('country'),
-            vared_konandeh=vared_konandeh,
-            barbary=barbary,
-            port=data.get('port'),
-            loading_time=data.get('loading_time'),
-            description=data.get('description'),
-            weight=data.get('weight'),
-            status=data.get('status') == 'on'
-        )
+        
+        # ایجاد محصول بر اساس نوع انتخاب شده
+        if product_category == 'bazargah':
+            # ایجاد محصول بازارگاهی (CargoProduct)
+            CargoProduct.objects.create(
+                cottage=data.get('cottage'),
+                company_price=int(data.get('company_price', 0)),
+                customer_price=int(data.get('customer_price', 0)),
+                product_type=data.get('product_type'),
+                country=data.get('country'),
+                vared_konandeh=vared_konandeh,
+                barbary=barbary,
+                port=data.get('port'),
+                loading_time=data.get('loading_time'),
+                description=data.get('description'),
+                weight=int(data.get('weight', 100000)),
+                status=data.get('status') == 'on',
+                name=data.get('product_name', '')
+            )
+        elif product_category == 'non_bazargah':
+            # ایجاد محصول خارج از بازارگاه (NonBazargahProduct)
+            NonBazargahProduct.objects.create(
+                name=data.get('product_name', ''),
+                description=data.get('description'),
+                purchase_price=int(data.get('purchase_price', 0)),
+                vared_konandeh=vared_konandeh,
+                status=data.get('status') == 'on'
+            )
+        
         return redirect('cargo_product_list')
     
     # Get all vared_konandeh and barbary for dropdown
