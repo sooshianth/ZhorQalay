@@ -184,7 +184,7 @@
   </div>
 
   <!-- فرم ویرایش -->
-  <form method="post" enctype="multipart/form-data" class="purchase-form">
+  <!-- <form method="post" enctype="multipart/form-data" class="purchase-form"> -->
     {% csrf_token %}
     
     <!-- Hidden inputs برای فیلدهای readonly -->
@@ -230,6 +230,30 @@
           </div>
           {% endif %}
         {% endfor %}
+        
+        <!-- نمایش وزن کل محاسبه شده -->
+        {% if purchase.quantity %}
+        <div class="form-group readonly">
+          <label>
+            <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+            <i class="fas fa-weight"></i> وزن کل محاسبه شده
+          </label>
+          <div class="input-container">
+            <div class="calculated-weight-display">
+              {% if purchase.unit == 'Ton' %}
+                {{ purchase.quantity|mul:1000|floatformat:0 }} کیلوگرم
+              {% elif purchase.unit == 'Kiseh' and purchase.bag_weight %}
+                 {{ purchase.quantity|mul:purchase.bag_weight|floatformat:0 }} کیلوگرم
+              {% else %}
+                {{ purchase.quantity|floatformat:0 }} کیلوگرم
+              {% endif %}
+            </div>
+          </div>
+          <small class="form-helptext">
+            <i class="fas fa-info-circle"></i> این مقدار بر اساس واحد و مقدار خرید محاسبه می‌شود
+          </small>
+        </div>
+        {% endif %}
         </div>
       </div>
     </div>
@@ -503,6 +527,7 @@
                   <ul>
                     <li>فایل اکسل باید شامل ستون‌های زیر باشد:</li>
                     <li><strong>شناسه تخصیص</strong> - شماره تخصیص موجود (از لیست زیر)</li>
+                    <li><strong>شماره بارنامه</strong> - (اختیاری) شماره بارنامه دلخواه</li>
                     <li><strong>نام راننده</strong> - نام کامل راننده</li>
                     <li><strong>شماره تلفن راننده</strong> - شماره تماس راننده</li>
                     <li><strong>پلاک خودرو</strong> - پلاک ماشین</li>
@@ -596,6 +621,20 @@
                 <input type="hidden" name="barnameh_id" value="{{ barnameh.id }}">
                 
                 <div class="barnameh-info-grid">
+                  <!-- اطلاعات بارنامه -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-file-invoice"></i> اطلاعات بارنامه</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>شماره بارنامه:</label>
+                        <input type="text" name="number" value="{{ barnameh.number|default:'' }}" 
+                               class="form-control" placeholder="شماره بارنامه"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                        <small class="form-text text-muted">شماره بارنامه (قابل ویرایش در مراحل اولیه)</small>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <!-- اطلاعات ماشین -->
                   <div class="barnameh-section">
                     <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
@@ -691,6 +730,18 @@
               <input type="hidden" name="allocation_id" value="{{ item.allocation.id }}">
               
               <div class="barnameh-info-grid">
+                <!-- اطلاعات بارنامه -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-file-invoice"></i> اطلاعات بارنامه</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>شماره بارنامه:</label>
+                      <input type="text" name="number" class="form-control" placeholder="شماره بارنامه (اختیاری - در صورت خالی بودن خودکار تولید می‌شود)">
+                      <small class="form-text text-muted">اگر خالی بگذارید، شماره خودکار تولید خواهد شد</small>
+                    </div>
+                  </div>
+                </div>
+                
                 <!-- اطلاعات ماشین -->
                 <div class="barnameh-section">
                   <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
@@ -756,7 +807,7 @@
     </div>
     {% endif %}
 
-    <!-- اطلاعات لجستیک و حمل -->
+    <!-- اطلاعات لجستیک و حمل
     <div class="form-section">
       <h3 class="section-title" onclick="toggleSection(this)">
         <span>
@@ -790,7 +841,7 @@
         {% endfor %}
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- اطلاعات وزن‌گیری -->
     <div class="form-section">
@@ -824,7 +875,7 @@
       </div>
     </div>
 
-    <!-- اطلاعات اضافی -->
+    <!-- اطلاعات اضافی
     <div class="form-section">
       <h3 class="section-title" onclick="toggleSection(this)">
         <span>
@@ -857,7 +908,7 @@
         {% endfor %}
         </div>
       </div>
-    </div>
+    </div> -->
 
     <!-- دکمه‌های اکشن -->
     <div class="form-actions">

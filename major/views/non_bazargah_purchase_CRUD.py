@@ -154,6 +154,7 @@ def process_barnameh_excel(file, purchase):
                 driver_name = str(row.get('نام راننده', '')).strip()
                 driver_phone = str(row.get('شماره تلفن راننده', '')).strip()
                 vehicle_plate = str(row.get('پلاک خودرو', '')).strip()
+                barnameh_number = str(row.get('شماره بارنامه', '')).strip() or None
                 empty_weight = clean_numeric_value(row.get('وزن خالی', 0))
                 loaded_weight = clean_numeric_value(row.get('وزن پر', 0))
                 delivered_weight = clean_numeric_value(row.get('وزن تحویلی', 0))
@@ -196,6 +197,7 @@ def process_barnameh_excel(file, purchase):
                     'driver_name': driver_name,
                     'driver_phone': driver_phone,
                     'vehicle_plate': vehicle_plate,
+                    'barnameh_number': barnameh_number,
                     'empty_weight': empty_weight,
                     'loaded_weight': loaded_weight,
                     'delivered_weight': delivered_weight,
@@ -242,11 +244,14 @@ def process_barnameh_excel(file, purchase):
         
         for row_data in valid_rows:
             try:
-                # تولید شماره بارنامه ترکیبی
+                # تولید شماره بارنامه: اگر شماره دستی وارد نشده، شماره خودکار بساز
                 allocation = row_data['allocation']
-                barnameh_count = allocation.barnamehs.count() + 1
-                allocation_number = allocation.allocation_number or allocation.id
-                barnameh_number = f"{allocation_number}-{barnameh_count}"
+                barnameh_number = row_data['barnameh_number']
+                
+                if not barnameh_number:
+                    barnameh_count = allocation.barnamehs.count() + 1
+                    allocation_number = allocation.allocation_number or allocation.id
+                    barnameh_number = f"{allocation_number}-{barnameh_count}"
                 
                 barnameh = Barnameh.objects.create(
                     non_bazargah_allocation=allocation,
@@ -616,11 +621,12 @@ class BarnamehForm(forms.ModelForm):
     class Meta:
         model = Barnameh
         fields = [
-            'driver_name', 'driver_phone', 'vehicle_plate', 
+            'number', 'driver_name', 'driver_phone', 'vehicle_plate', 
             'empty_vehicle_weight', 'loaded_vehicle_weight',
             'final_delivered_weight', 'tonnage'
         ]
         widgets = {
+            'number': forms.TextInput(attrs={'placeholder': 'شماره بارنامه'}),
             'driver_name': forms.TextInput(attrs={'placeholder': 'نام راننده'}),
             'driver_phone': forms.TextInput(attrs={'placeholder': 'شماره تماس راننده'}),
             'vehicle_plate': forms.TextInput(attrs={'placeholder': 'پلاک ماشین'}),
@@ -630,6 +636,7 @@ class BarnamehForm(forms.ModelForm):
             'tonnage': forms.NumberInput(attrs={'placeholder': 'وزن (تن)', 'step': '0.01'}),
         }
         labels = {
+            'number': 'شماره بارنامه',
             'driver_name': 'نام راننده',
             'driver_phone': 'شماره راننده', 
             'vehicle_plate': 'پلاک ماشین',
@@ -1148,10 +1155,11 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                         barnameh.non_bazargah_purchase = purchase
                         barnameh.type = 'Non_Bazargah'
                         
-                        # تولید شماره بارنامه ترکیبی
-                        barnameh_count = allocation.barnamehs.count() + 1
-                        allocation_number = allocation.allocation_number or allocation.id
-                        barnameh.number = f"{allocation_number}-{barnameh_count}"
+                        # تولید شماره بارنامه: اگر شماره دستی وارد نشده، شماره خودکار بساز
+                        if not barnameh.number:
+                            barnameh_count = allocation.barnamehs.count() + 1
+                            allocation_number = allocation.allocation_number or allocation.id
+                            barnameh.number = f"{allocation_number}-{barnameh_count}"
                         
                         barnameh.save()
                         messages.success(request, f'بارنامه جدید #{barnameh.number} برای تخصیص {allocation.id} اضافه شد')
@@ -1329,9 +1337,9 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                     # نمایش اطلاعات محاسبه شده
                                     if weight_difference and weight_difference != 0:
                                         if weight_difference > 0:
-                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: +{weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {weight_difference_amount:,} ریال')
+                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: +{weight_difference:.2f} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {weight_difference_amount:,.0f} ریال')
                                         else:
-                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: {weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(weight_difference_amount):,} ریال')
+                                            messages.success(request, f'بارنامه صادر شد. اختلاف وزن: {weight_difference:.2f} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(weight_difference_amount):,.0f} ریال')
                                     else:
                                         messages.success(request, 'بارنامه صادر شد. وزن تحویل دقیقاً مطابق سفارش است.')
                                         
@@ -1362,10 +1370,10 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                 if purchase.weight_difference and purchase.weight_difference != 0:
                                     if purchase.weight_difference > 0:
                                         wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{purchase.weight_difference} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {purchase.weight_difference_amount:,} ریال{wallet_msg}')
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{purchase.weight_difference:.2f} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {purchase.weight_difference_amount:,.0f} ریال{wallet_msg}')
                                     else:
                                         wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {purchase.weight_difference} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(purchase.weight_difference_amount):,} ریال{wallet_msg}')
+                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {purchase.weight_difference:.2f} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(purchase.weight_difference_amount):,.0f} ریال{wallet_msg}')
                                 else:
                                     messages.success(request, 'خرید بسته شد. وزن تحویل دقیقاً مطابق سفارش است.')
                                     
@@ -1667,17 +1675,18 @@ def download_barnameh_excel_template(request):
     
     # تنظیم عرض ستون‌ها
     worksheet.set_column('A:A', 15)  # شناسه تخصیص
-    worksheet.set_column('B:B', 25)  # نام راننده
-    worksheet.set_column('C:C', 20)  # شماره تلفن راننده
-    worksheet.set_column('D:D', 15)  # پلاک خودرو
-    worksheet.set_column('E:E', 15)  # وزن خالی
-    worksheet.set_column('F:F', 15)  # وزن پر
-    worksheet.set_column('G:G', 15)  # وزن تحویلی
-    worksheet.set_column('H:H', 30)  # توضیحات
+    worksheet.set_column('B:B', 20)  # شماره بارنامه
+    worksheet.set_column('C:C', 25)  # نام راننده
+    worksheet.set_column('D:D', 20)  # شماره تلفن راننده
+    worksheet.set_column('E:E', 15)  # پلاک خودرو
+    worksheet.set_column('F:F', 15)  # وزن خالی
+    worksheet.set_column('G:G', 15)  # وزن پر
+    worksheet.set_column('H:H', 15)  # وزن تحویلی
+    worksheet.set_column('I:I', 30)  # توضیحات
     
     # نوشتن هدرها
     headers = [
-        'شناسه تخصیص', 'نام راننده', 'شماره تلفن راننده', 
+        'شناسه تخصیص', 'شماره بارنامه', 'نام راننده', 'شماره تلفن راننده', 
         'پلاک خودرو', 'وزن خالی', 'وزن پر', 'وزن تحویلی', 'توضیحات'
     ]
     
@@ -1688,6 +1697,7 @@ def download_barnameh_excel_template(request):
     sample_data = [
         [
             'A001',  # شماره تخصیص
+            'B-001',  # شماره بارنامه
             'احمد محمدی',
             '09123456789',
             '12ب12345',
@@ -1698,6 +1708,7 @@ def download_barnameh_excel_template(request):
         ],
         [
             'A002',  # شماره تخصیص
+            'B-002',  # شماره بارنامه
             'علی رضایی',
             '09987654321',
             '34ج67890',

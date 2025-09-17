@@ -72,14 +72,14 @@ class NonBazargahPurchase(BasePurchase):
         """محاسبه اختلاف وزن بین درخواستی و وزن خالص تحویلی"""
         if self.delivered_weight and self.empty_weight and self.quantity:
             # تبدیل واحد بر اساس نوع واحد
-            requested_weight_in_kg = self.quantity
+            requested_weight_in_kg = float(self.quantity)
             if self.unit == 'Ton':
-                requested_weight_in_kg = self.quantity * 1000
+                requested_weight_in_kg = float(self.quantity) * 1000
             elif self.unit == 'Kiseh' and self.bag_weight:
-                requested_weight_in_kg = self.quantity * self.bag_weight
+                requested_weight_in_kg = float(self.quantity) * float(self.bag_weight)
             
             # وزن خالص تحویلی = وزن تحویلی - وزن خالی
-            net_delivered_weight = self.delivered_weight - self.empty_weight
+            net_delivered_weight = float(self.delivered_weight) - float(self.empty_weight)
             
             # اختلاف وزن = وزن خالص تحویلی - وزن سفارش
             return net_delivered_weight - requested_weight_in_kg
@@ -89,14 +89,14 @@ class NonBazargahPurchase(BasePurchase):
         """محاسبه اختلاف وزن خالص (وزن تحویلی - وزن خالی - وزن سفارش)"""
         if self.delivered_weight and self.empty_weight and self.quantity:
             # تبدیل واحد بر اساس نوع واحد
-            requested_weight_in_kg = self.quantity
+            requested_weight_in_kg = float(self.quantity)
             if self.unit == 'Ton':
-                requested_weight_in_kg = self.quantity * 1000
+                requested_weight_in_kg = float(self.quantity) * 1000
             elif self.unit == 'Kiseh' and self.bag_weight:
-                requested_weight_in_kg = self.quantity * self.bag_weight
+                requested_weight_in_kg = float(self.quantity) * float(self.bag_weight)
             
             # وزن خالص تحویلی = وزن تحویلی - وزن خالی
-            net_delivered_weight = self.delivered_weight - self.empty_weight
+            net_delivered_weight = float(self.delivered_weight) - float(self.empty_weight)
             
             # اختلاف وزن خالص = وزن خالص تحویلی - وزن سفارش
             return net_delivered_weight - requested_weight_in_kg
@@ -106,7 +106,7 @@ class NonBazargahPurchase(BasePurchase):
         """محاسبه مبلغ اختلاف وزن بر اساس فی خرید"""
         weight_difference = self.calculate_net_weight_difference()
         if weight_difference is not None and self.company_price:
-            return int(weight_difference * self.company_price)
+            return float(weight_difference) * float(self.company_price)
         return None
     
     def add_weight_difference_to_customer_wallet(self):
@@ -144,7 +144,7 @@ class NonBazargahPurchase(BasePurchase):
             transaction = Transaction.objects.create(
                 wallet=wallet,
                 transaction_type=transaction_type,
-                amount=abs(weight_difference_amount),  # مقدار مثبت
+                amount=abs(float(weight_difference_amount)),  # مقدار مثبت
                 description=description,
                 status='approved',  # تایید خودکار
                 created_by=None,  # سیستم
@@ -173,11 +173,11 @@ class NonBazargahPurchase(BasePurchase):
         """محاسبه مبلغ کل بر اساس مقدار و فی فروش"""
         if self.quantity and self.customer_price:
             # تبدیل واحد به کیلوگرم برای محاسبه
-            quantity_in_kg = self.quantity
+            quantity_in_kg = float(self.quantity)
             if self.unit == 'Ton':
-                quantity_in_kg = self.quantity * 1000
+                quantity_in_kg = float(self.quantity) * 1000
             elif self.unit == 'Kiseh' and self.bag_weight:
-                quantity_in_kg = self.quantity * self.bag_weight
+                quantity_in_kg = float(self.quantity) * float(self.bag_weight)
             
             return quantity_in_kg * self.customer_price
         return None
@@ -197,11 +197,11 @@ class NonBazargahPurchase(BasePurchase):
             return 0
         
         # تبدیل وزن درخواستی به کیلوگرم
-        requested_weight_kg = self.quantity
+        requested_weight_kg = float(self.quantity)
         if self.unit == 'Ton':
-            requested_weight_kg = self.quantity * 1000
+            requested_weight_kg = float(self.quantity) * 1000
         elif self.unit == 'Kiseh' and self.bag_weight:
-            requested_weight_kg = self.quantity * self.bag_weight
+            requested_weight_kg = float(self.quantity) * float(self.bag_weight)
         
         # اطمینان از اینکه هر دو مقدار عدد هستند
         if requested_weight_kg is None:
