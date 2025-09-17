@@ -269,15 +269,15 @@ class Barnameh(models.Model):
         if self.final_delivered_weight:
             if self.non_bazargah_purchase and self.non_bazargah_purchase.quantity:
                 # تبدیل واحد بر اساس نوع واحد خرید خارج بازارگاه
-                ordered_weight_in_kg = self.non_bazargah_purchase.quantity
+                ordered_weight_in_kg = float(self.non_bazargah_purchase.quantity)
                 if self.non_bazargah_purchase.unit == 'Ton':
-                    ordered_weight_in_kg = self.non_bazargah_purchase.quantity * 1000
+                    ordered_weight_in_kg = float(self.non_bazargah_purchase.quantity) * 1000
                 elif self.non_bazargah_purchase.unit == 'Kiseh' and self.non_bazargah_purchase.bag_weight:
-                    ordered_weight_in_kg = self.non_bazargah_purchase.quantity * self.non_bazargah_purchase.bag_weight
+                    ordered_weight_in_kg = float(self.non_bazargah_purchase.quantity) * float(self.non_bazargah_purchase.bag_weight)
                 
                 return float(self.final_delivered_weight) - ordered_weight_in_kg
             elif self.purchase and self.purchase.order_weight:
-                return float(self.final_delivered_weight) - self.purchase.order_weight
+                return float(self.final_delivered_weight) - float(self.purchase.order_weight)
         return None
     
     def get_loading_duration(self):
