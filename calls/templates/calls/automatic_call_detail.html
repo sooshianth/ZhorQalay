@@ -440,6 +440,23 @@
                         <i class="fas fa-times"></i>
                         لغو تماس
                     </button>
+                {% elif call.status == 'completed' or call.status == 'failed' or call.status == 'cancelled' %}
+                    <!-- دکمه تکرار تماس برای تماس‌های تکمیل شده، ناموفق یا لغو شده -->
+                    {% if not has_active_calls %}
+                    <form method="post" action="{% url 'calls:retry_automatic_call' call.id %}" style="display: inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success" 
+                                onclick="return confirm('آیا می‌خواهید این تماس را با همان تنظیمات دوباره شروع کنید؟')">
+                            <i class="fas fa-redo"></i>
+                            تکرار تماس
+                        </button>
+                    </form>
+                    {% else %}
+                    <span class="btn btn-secondary" style="cursor: not-allowed;" title="تماس دیگری در حال انجام است. لطفاً منتظر اتمام آن باشید">
+                        <i class="fas fa-redo"></i>
+                        تکرار تماس
+                    </span>
+                    {% endif %}
                 {% endif %}
                 
                 <a href="{% url 'calls:automatic_calls_list' %}" class="btn btn-outline">

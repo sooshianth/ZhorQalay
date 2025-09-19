@@ -238,6 +238,10 @@
         background-color: var(--danger-color);
     }
 
+    .action-btn.retry {
+        background-color: var(--warning-color);
+    }
+
     .action-btn.disabled {
         background-color: #9CA3AF;
         cursor: not-allowed;
@@ -559,6 +563,20 @@
                                         <button type="button" class="action-btn" style="background-color: var(--warning-color);" title="لغو تماس" onclick="cancelCall({{ call.id }})">
                                             <i class="fas fa-times"></i>
                                         </button>
+                                    {% elif call.status == 'completed' or call.status == 'failed' or call.status == 'cancelled' %}
+                                        {% if not has_active_calls %}
+                                            <form method="post" action="{% url 'calls:retry_automatic_call' call.id %}" style="display: inline;">
+                                                {% csrf_token %}
+                                                <button type="submit" class="action-btn retry" title="تکرار تماس"
+                                                        onclick="return confirm('آیا می‌خواهید این تماس را با همان تنظیمات دوباره شروع کنید؟')">
+                                                    <i class="fas fa-redo"></i>
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <span class="action-btn disabled" title="تماس دیگری در حال انجام است. لطفاً منتظر اتمام آن باشید">
+                                                <i class="fas fa-redo"></i>
+                                            </span>
+                                        {% endif %}
                                     {% endif %}
                                     
                                     <a href="{% url 'calls:delete_automatic_call' call.id %}" 

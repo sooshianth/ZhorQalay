@@ -153,7 +153,7 @@ class AutomaticCall(models.Model):
             'scheduled_time': self.scheduled_time.isoformat(),
             'priority': self.priority,
             'message_template': self.message_template,
-            'calls_per_minute': self.calls_per_minute
+            'cpm': self.calls_per_minute
         }
         
         # اضافه کردن محصولات برای تماس‌های بازاریابی

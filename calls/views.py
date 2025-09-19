@@ -130,7 +130,7 @@ def create_automatic_call(request):
             message_template = request.POST.get('message_template', '')
             asterisk_api_url = request.POST.get('asterisk_api_url', 'http://192.168.100.128:5000/api/start-dialer')
             asterisk_api_key = request.POST.get('asterisk_api_key', '')
-            calls_per_minute = request.POST.get('calls_per_minute', 10)
+            cpm = request.POST.get('cpm', 10)
             
             # پردازش محصولات انتخاب شده برای تماس‌های بازاریابی
             selected_products = []
@@ -150,7 +150,7 @@ def create_automatic_call(request):
                     selected_products = []
             
             # اعتبارسنجی
-            if not all([title, call_type, scheduled_time, calls_per_minute]):
+            if not all([title, call_type, scheduled_time, cpm]):
                 messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
                 return redirect('calls:create_automatic_call')
             
@@ -190,7 +190,7 @@ def create_automatic_call(request):
                     asterisk_api_key=asterisk_api_key,
                     queue_session_id=session_id,
                     created_by=request.user,
-                    calls_per_minute=int(calls_per_minute),
+                    calls_per_minute=int(cpm),
                     selected_products=selected_products
                 )
                 
@@ -312,7 +312,7 @@ def edit_automatic_call(request, call_id):
             message_template = request.POST.get('message_template', '')
             asterisk_api_url = request.POST.get('asterisk_api_url', 'http://192.168.100.128:5000/api/start-dialer')
             asterisk_api_key = request.POST.get('asterisk_api_key', '')
-            calls_per_minute = request.POST.get('calls_per_minute', 10)
+            cpm = request.POST.get('cpm', 10)
             
             # پردازش محصولات انتخاب شده برای تماس‌های بازاریابی
             selected_products = []
@@ -332,7 +332,7 @@ def edit_automatic_call(request, call_id):
                     selected_products = []
             
             # اعتبارسنجی
-            if not all([title, call_type, scheduled_time, calls_per_minute]):
+            if not all([title, call_type, scheduled_time, cpm]):
                 messages.error(request, 'لطفا تمام فیلدهای ضروری را پر کنید.')
                 return redirect('calls:edit_automatic_call', call_id=call.id)
             
@@ -373,7 +373,7 @@ def edit_automatic_call(request, call_id):
                 call.message_template = message_template
                 call.asterisk_api_url = asterisk_api_url
                 call.asterisk_api_key = asterisk_api_key
-                call.calls_per_minute = int(calls_per_minute)
+                call.calls_per_minute = int(cpm)
                 call.selected_products = selected_products
                 
                 # برای mid-call editing، وضعیت را تغییر نده و از API Asterisk استفاده کن
@@ -1571,3 +1571,91 @@ def edit_mid_call(request, call_id):
     request.session['original_call_status'] = call.status
     
     return redirect('calls:edit_automatic_call', call_id=call.id)
+
+@login_required
+@require_POST
+def retry_automatic_call(request, call_id):
+    """
+    تکرار تماس اتوماتیک - ایجاد تماس جدید با تنظیمات مشابه اما session ID متفاوت
+    """
+    original_call = get_object_or_404(AutomaticCall, id=call_id)
+    
+    # بررسی وضعیت تماس - فقط تماس‌های تکمیل شده، لغو شده یا ناموفق قابل تکرار هستند
+    if original_call.status not in ['completed', 'cancelled', 'failed']:
+        messages.error(request, 'فقط تماس‌های تکمیل شده، لغو شده یا ناموفق قابل تکرار هستند.')
+        return redirect('calls:automatic_call_detail', call_id=call_id)
+    
+    # بررسی وجود تماس فعال
+    active_calls = AutomaticCall.objects.filter(status__in=['in_progress', 'paused'])
+    if active_calls.exists():
+        active_call_titles = ', '.join([active_call.title for active_call in active_calls[:3]])
+        if active_calls.count() > 3:
+            active_call_titles += f' و {active_calls.count() - 3} تماس دیگر'
+        messages.error(request, f'تماس دیگری در حال انجام یا متوقف شده است: {active_call_titles}. لطفاً منتظر اتمام آن باشید.')
+        return redirect('calls:automatic_call_detail', call_id=call_id)
+    
+    try:
+        # ایجاد session ID جدید
+        new_session_id = str(uuid.uuid4())
+        
+        # کپی کردن شماره‌های قدیمی به session جدید
+        if original_call.queue_session_id:
+            old_queue_numbers = CallQueue.objects.filter(session_id=original_call.queue_session_id)
+            copied_count = 0
+            
+            for old_queue_item in old_queue_numbers:
+                # ایجاد شماره جدید در صف جدید
+                CallQueue.objects.create(
+                    session_id=new_session_id,
+                    phone_number=old_queue_item.phone_number,
+                    customer=old_queue_item.customer,
+                    source=old_queue_item.source,
+                    added_by=request.user,
+                    status='waiting'  # همه شماره‌ها در وضعیت انتظار
+                )
+                copied_count += 1
+            
+            if copied_count == 0:
+                messages.error(request, 'هیچ شماره‌ای برای کپی کردن یافت نشد.')
+                return redirect('calls:automatic_call_detail', call_id=call_id)
+        else:
+            messages.error(request, 'تماس اصلی فاقد شماره‌های صف است.')
+            return redirect('calls:automatic_call_detail', call_id=call_id)
+        
+        # ایجاد تماس جدید با تنظیمات مشابه
+        new_call = AutomaticCall.objects.create(
+            title=f"{original_call.title} (تکرار)",
+            description=original_call.description,
+            call_type=original_call.call_type,
+            scheduled_time=timezone.now(),  # زمان فعلی
+            priority=original_call.priority,
+            message_template=original_call.message_template,
+            asterisk_api_url=original_call.asterisk_api_url,
+            asterisk_api_key=original_call.asterisk_api_key,
+            queue_session_id=new_session_id,
+            created_by=request.user,
+            calls_per_minute=original_call.calls_per_minute,
+            selected_products=original_call.selected_products,
+            status='pending'  # وضعیت در انتظار
+        )
+        
+        # ثبت لاگ برای تماس جدید
+        CallLog.objects.create(
+            call=new_call,
+            event_type='retried',
+            message=f'تماس از "{original_call.title}" (ID: {original_call.id}) تکرار شد با {copied_count} شماره.'
+        )
+        
+        # ثبت لاگ برای تماس اصلی
+        CallLog.objects.create(
+            call=original_call,
+            event_type='retry_created',
+            message=f'تماس جدید با ID {new_call.id} از این تماس ایجاد شد.'
+        )
+        
+        messages.success(request, f'تماس با موفقیت تکرار شد. تماس جدید با {copied_count} شماره ایجاد شد.')
+        return redirect('calls:automatic_call_detail', call_id=new_call.id)
+        
+    except Exception as e:
+        messages.error(request, f'خطا در تکرار تماس: {str(e)}')
+        return redirect('calls:automatic_call_detail', call_id=call_id)
