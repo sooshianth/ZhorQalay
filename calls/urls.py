@@ -35,8 +35,7 @@ urlpatterns = [
     path('api/resume-call/<int:call_id>/', views.resume_call_api, name='resume_call_api'),
     path('api/cancel-call/<int:call_id>/', views.cancel_call_api, name='cancel_call_api'),
 
-    # Asterisk Webhook API endpoints
-    path('api/asterisk/call-start/', views.asterisk_webhook_call_start, name='asterisk_webhook_call_start'),
-    path('api/asterisk/call-end/', views.asterisk_webhook_call_end, name='asterisk_webhook_call_end'),
+    # Asterisk Webhook API endpoint
+    path('api/asterisk/call-event/', views.asterisk_call_event_webhook, name='asterisk_call_event_webhook'),
     path('api/call/<int:call_id>/queue-status/', views.get_call_queue_status, name='get_call_queue_status'),
 ]

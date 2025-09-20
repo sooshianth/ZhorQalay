@@ -21,10 +21,14 @@ class CallQueue(models.Model):
     STATUS_CHOICES = [
         ('waiting', 'در انتظار'),
         ('calling', 'در حال تماس'),
+        ('answered', 'پاسخ داد'),
         ('not_answered', 'پاسخ داده نشد'),
         ('answered_no_ivr', 'پاسخ داد اما وارد IVR نشد'),
         ('answered_ivr', 'پاسخ داد و وارد IVR شد'),
         ('busy', 'مشغول'),
+        ('failed', 'ناموفق'),
+        ('in_queue', 'در صف'),
+        ('hung_up_in_queue', 'قطع در صف'),
     ]
     
     session_id = models.CharField(max_length=100, verbose_name='شناسه جلسه', help_text='برای گروه‌بندی شماره‌ها در یک جلسه کاری')
@@ -147,6 +151,7 @@ class AutomaticCall(models.Model):
 
         data = {
             'numbers': list(queue_numbers),
+            'session_id': self.queue_session_id,  # Send session ID to Asterisk
             'title': self.title,
             'description': self.description,
             'call_type': self.call_type,

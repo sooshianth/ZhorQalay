@@ -13,10 +13,14 @@ import json
 import uuid
 import pandas as pd
 import requests
+import logging
 from datetime import datetime
 from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
+
+# Set up logger for webhook events
+logger = logging.getLogger('calls_webhook')
 
 
 @login_required
@@ -394,8 +398,8 @@ def edit_automatic_call(request, call_id):
                         # آماده‌سازی داده‌ها برای Asterisk API
                         api_data = {
                             'numbers': numbers_list,  # Required field for edit-call API
-                            'session_id': call.queue_session_id,
-                            'call_id': call.id,
+                            'session_id': call.queue_session_id,  # Use queue_session_id as the unique identifier
+                            # Removing call.id since we'll consistently use queue_session_id as the unique identifier
                             'title': call.title,
                             'description': call.description,
                             'call_type': call.call_type,
@@ -1056,161 +1060,304 @@ from django.utils.dateparse import parse_datetime
 
 @csrf_exempt
 @require_POST
-def asterisk_webhook_call_start(request):
+def asterisk_call_event_webhook(request):
     """
-    Webhook for Asterisk to notify when a call starts
-    Expected data:
+    Webhook for Asterisk to notify about various call events
+    
+    Expected data format from Asterisk API Notifier:
     {
-        "session_id": "uuid",
-        "phone_number": "09123456789",
-        "agent_id": 123,
-        "timestamp": "2025-09-15T10:30:00Z"
+        "event_type": "call_initiated|customer_answer|customer_hung_up_pre_ivr|customer_dtmf|
+                       customer_entered_queue|customer_hung_up_in_queue|agent_answer|call_end|
+                       customer_busy|customer_no_answer|call_rejected|call_failed",
+        "timestamp": 1600000000,
+        "call_data": {
+            "uniqueid": "unique-call-id",
+            "customer_number": "09123456789",
+            "agent_number": "1001",             # Only for some events
+            "digit_pressed": "1",               # Only for DTMF events
+            "queue_extension": "2000",          # Only for queue events
+            "duration": "45",                   # Only for call_end and hung up events
+            "call_direction": "inbound|outbound" # Only for call_initiated
+        }
     }
     """
+    logger.warning("Webhook called with method: %s, content_type: %s", request.method, request.content_type)
+    
     try:
+        # Parse incoming JSON data
         data = json.loads(request.body)
-        session_id = data.get('session_id')
-        phone_number = data.get('phone_number')
-        agent_id = data.get('agent_id')
+        event_type = data.get('event_type')
         timestamp = data.get('timestamp')
+        call_data = data.get('call_data', {})
         
-        if not all([session_id, phone_number]):
-            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
+        # Log received data
+        logger.info("Received webhook event: %s for call %s", 
+                   event_type, call_data.get('uniqueid', 'unknown'))
+        
+        # Get required fields
+        uniqueid = call_data.get('uniqueid')
+        customer_number = call_data.get('customer_number')
+        
+        # Validate basic required fields
+        if not all([event_type, uniqueid, customer_number]):
+            error_msg = "Missing required fields in webhook data"
+            logger.error(error_msg + ": %s", data)
+            return JsonResponse({'success': False, 'error': error_msg}, status=400)
+        
+        # Convert timestamp if needed
+        event_time = datetime.fromtimestamp(timestamp) if timestamp else timezone.now()
         
         # Find the queue item
         try:
-            queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
-        except CallQueue.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Queue item not found'}, status=404)
+            # Use uniqueid as session_id to find the call
+            call = AutomaticCall.objects.get(queue_session_id=uniqueid)
+            # Find the queue item
+            queue_item = CallQueue.objects.filter(
+                session_id=uniqueid, 
+                phone_number=customer_number
+            ).first()
+            
+            if not queue_item:
+                error_msg = f"Queue item not found for call {uniqueid}, customer {customer_number}"
+                logger.error(error_msg)
+                return JsonResponse({'success': False, 'error': error_msg}, status=404)
+                
+        except AutomaticCall.DoesNotExist:
+            error_msg = f"Call not found with session_id {uniqueid}"
+            logger.error(error_msg)
+            return JsonResponse({'success': False, 'error': error_msg}, status=404)
         
-        # Update queue item status
-        queue_item.status = 'calling'
-        if timestamp:
-            queue_item.call_started_at = parse_datetime(timestamp)
-        else:
-            queue_item.call_started_at = timezone.now()
+        # Log processing information
+        logger.info("Processing %s event for call %s, customer %s", 
+                   event_type, uniqueid, customer_number)
         
-        # Assign agent if provided
-        if agent_id:
-            try:
-                agent = User.objects.get(id=agent_id)
-                queue_item.assigned_agent = agent
-            except User.DoesNotExist:
-                pass
-        
-        queue_item.save()
-        
-        # Log the event
-        try:
-            call = AutomaticCall.objects.get(queue_session_id=session_id)
+        # Process different event types
+        if event_type == 'call_initiated':
+            logger.info("Call initiated for %s, setting status to 'calling'", customer_number)
+            queue_item.status = 'calling'
+            queue_item.call_started_at = event_time
+            queue_item.save()
+            
+            # Log event
             CallLog.objects.create(
                 call=call,
-                event_type='call_start',
-                message=f'تماس با {phone_number} شروع شد',
+                event_type='call_initiated',
+                message=f'تماس با {customer_number} شروع شد',
                 details=data
             )
-        except AutomaticCall.DoesNotExist:
-            pass
-        
-        return JsonResponse({'success': True, 'message': 'Call start recorded'})
-        
-    except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
-
-
-@csrf_exempt
-@require_POST
-def asterisk_webhook_call_end(request):
-    """
-    Webhook for Asterisk to notify when a call ends
-    Expected data:
-    {
-        "session_id": "uuid",
-        "phone_number": "09123456789",
-        "status": "answered_ivr|answered_no_ivr|not_answered|busy",
-        "duration": 45,
-        "timestamp": "2025-09-15T10:32:30Z"
-    }
-    Note: 
-    - answered_ivr: Call was answered and customer went through IVR (call ended)
-    - answered_no_ivr: Call was answered but customer did not go through IVR (call ended)
-    - not_answered: Call was not answered
-    - busy: Line was busy
-    """
-    try:
-        data = json.loads(request.body)
-        session_id = data.get('session_id')
-        phone_number = data.get('phone_number')
-        status = data.get('status')
-        duration = data.get('duration')
-        timestamp = data.get('timestamp')
-        
-        if not all([session_id, phone_number, status]):
-            return JsonResponse({'success': False, 'error': 'Missing required fields'}, status=400)
-        
-        # Validate status
-        valid_statuses = ['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy']
-        if status not in valid_statuses:
-            return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
-        
-        # Find the queue item
-        try:
-            queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
-        except CallQueue.DoesNotExist:
-            return JsonResponse({'success': False, 'error': 'Queue item not found'}, status=404)
-        
-        # Update queue item
-        queue_item.status = status
-        if duration is not None:
-            queue_item.call_duration = duration
-        if timestamp:
-            queue_item.call_ended_at = parse_datetime(timestamp)
-        else:
-            queue_item.call_ended_at = timezone.now()
-        
-        queue_item.save()
-        
-        # Update AutomaticCall statistics
-        try:
-            call = AutomaticCall.objects.get(queue_session_id=session_id)
             
-            # Update counters based on status
-            if status in ['answered_ivr', 'answered_no_ivr']:
-                call.successful_calls += 1
-            elif status in ['not_answered', 'busy']:
-                call.failed_calls += 1
+        elif event_type == 'customer_answer':
+            logger.info("Customer %s answered the call, setting status to 'answered'", customer_number)
+            queue_item.status = 'answered'
+            queue_item.call_started_at = event_time  # Update call start time
+            queue_item.save()
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='customer_answer',
+                message=f'مشتری {customer_number} به تماس پاسخ داد',
+                details=data
+            )
+            
+        elif event_type == 'customer_hung_up_pre_ivr':
+            queue_item.status = 'answered_no_ivr'
+            queue_item.call_ended_at = event_time
+            queue_item.save()
+            
+            # Update call statistics
+            call.successful_calls += 1
+            call.save()
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='customer_hung_up_pre_ivr',
+                message=f'مشتری {customer_number} قبل از IVR قطع کرد',
+                details=data
+            )
+            
+        elif event_type == 'customer_dtmf':
+            digit = call_data.get('digit_pressed', 'نامشخص')
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='customer_dtmf',
+                message=f'مشتری {customer_number} کلید {digit} را فشرد',
+                details=data
+            )
+            
+        elif event_type == 'customer_entered_queue':
+            queue_extension = call_data.get('queue_extension', 'نامشخص')
+            
+            logger.info("Customer %s entered queue %s", customer_number, queue_extension)
+            
+            # Update status to in_queue
+            queue_item.status = 'in_queue'
+            queue_item.save()
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='customer_entered_queue',
+                message=f'مشتری {customer_number} وارد صف {queue_extension} شد',
+                details=data
+            )
+            
+        elif event_type == 'customer_hung_up_in_queue':
+            duration = call_data.get('duration')
+            
+            queue_item.status = 'hung_up_in_queue'
+            if duration:
+                queue_item.call_duration = duration
+            queue_item.call_ended_at = event_time
+            queue_item.save()
+            
+            # Update call statistics
+            call.successful_calls += 1
+            call.save()
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='customer_hung_up_in_queue',
+                message=f'مشتری {customer_number} در صف قطع کرد',
+                details=data
+            )
+            
+        elif event_type == 'agent_answer':
+            agent_number = call_data.get('agent_number')
+            
+            # Try to find the agent by extension
+            if agent_number:
+                # This is an example - you would need to map agent_number to actual User
+                # For example if you store extension in user profile or other field
+                try:
+                    # This is a placeholder - implement based on your actual User model
+                    # For example: agent = User.objects.get(profile__extension=agent_number)
+                    # Or using filter + first() if it's not unique
+                    agent = None
+                    if agent:
+                        queue_item.assigned_agent = agent
+                        queue_item.save()
+                except Exception:
+                    pass
+            
+            # Log event
+            CallLog.objects.create(
+                call=call,
+                event_type='agent_answer',
+                message=f'کارشناس با شماره {agent_number} به تماس با {customer_number} پاسخ داد',
+                details=data
+            )
+            
+        elif event_type == 'call_end':
+            agent_number = call_data.get('agent_number')
+            duration = call_data.get('duration')
+            
+            queue_item.status = 'answered_ivr'  # Assuming full call completion
+            if duration:
+                queue_item.call_duration = duration
+            queue_item.call_ended_at = event_time
+            queue_item.save()
+            
+            # Update call statistics
+            call.successful_calls += 1
             
             # Check if all calls are completed
-            total_queue_items = CallQueue.objects.filter(session_id=session_id).count()
+            total_queue_items = CallQueue.objects.filter(session_id=uniqueid).count()
             completed_items = CallQueue.objects.filter(
-                session_id=session_id, 
-                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy']
+                session_id=uniqueid, 
+                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'hung_up_in_queue']
             ).count()
             
             if completed_items >= total_queue_items:
                 call.status = 'completed'
-                call.end_time = timezone.now()
+                call.end_time = event_time
             
             call.save()
             
-            # Log the event
+            # Log event
             CallLog.objects.create(
                 call=call,
                 event_type='call_end',
-                message=f'تماس با {phone_number} به پایان رسید. وضعیت: {status}',
+                message=f'تماس با {customer_number} پایان یافت. مدت: {duration} ثانیه',
                 details=data
             )
             
-        except AutomaticCall.DoesNotExist:
-            pass
+        # Handle failure cases
+        elif event_type in ['customer_busy', 'customer_no_answer', 'call_rejected', 'call_failed']:
+            # Map event types to queue statuses
+            status_map = {
+                'customer_busy': 'busy',
+                'customer_no_answer': 'not_answered',
+                'call_rejected': 'failed',
+                'call_failed': 'failed'
+            }
+            
+            logger.info("Call failure event: %s for customer %s", event_type, customer_number)
+            
+            # Set call start time if not already set
+            if not queue_item.call_started_at:
+                queue_item.call_started_at = event_time
+            
+            queue_item.status = status_map.get(event_type, 'failed')
+            queue_item.call_ended_at = event_time
+            queue_item.save()
+            
+            # Update call statistics
+            call.failed_calls += 1
+            
+            # Check if all calls are completed
+            total_queue_items = CallQueue.objects.filter(session_id=uniqueid).count()
+            completed_items = CallQueue.objects.filter(
+                session_id=uniqueid, 
+                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'hung_up_in_queue']
+            ).count()
+            
+            if completed_items >= total_queue_items:
+                call.status = 'completed'
+                call.end_time = event_time
+            
+            call.save()
+            
+            # Log event
+            message_map = {
+                'customer_busy': f'مشتری {customer_number} مشغول بود',
+                'customer_no_answer': f'مشتری {customer_number} پاسخ نداد',
+                'call_rejected': f'تماس با {customer_number} رد شد',
+                'call_failed': f'تماس با {customer_number} با خطا مواجه شد'
+            }
+            
+            CallLog.objects.create(
+                call=call,
+                event_type=event_type,
+                message=message_map.get(event_type, f'تماس با {customer_number} ناموفق بود'),
+                details=data
+            )
         
-        return JsonResponse({'success': True, 'message': 'Call end recorded'})
+        else:
+            # Unknown event type
+            logger.warning("Unknown event type '%s' received for call %s, customer %s", 
+                          event_type, uniqueid, customer_number)
+            
+            CallLog.objects.create(
+                call=call,
+                event_type='unknown_event',
+                message=f'رویداد ناشناخته {event_type} برای تماس با {customer_number}',
+                details=data
+            )
+        
+        logger.info("Successfully processed %s event for call %s", event_type, uniqueid)
+        return JsonResponse({'success': True, 'message': f'{event_type} event processed'})
         
     except json.JSONDecodeError:
-        return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+        error_msg = "Invalid JSON in webhook request"
+        logger.error("%s: %s", error_msg, request.body)
+        return JsonResponse({'success': False, 'error': error_msg}, status=400)
     except Exception as e:
+        logger.exception("Webhook processing error: %s", str(e))
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
@@ -1292,7 +1439,7 @@ def pause_call_api(request, call_id):
             headers['X-API-KEY'] = call.asterisk_api_key
             
         data = {
-            'call_id': call.id,
+            'session_id': call.queue_session_id,  # Use queue_session_id instead of call.id for consistency
             'title': call.title
         }
         
@@ -1373,7 +1520,7 @@ def resume_call_api(request, call_id):
             headers['X-API-KEY'] = call.asterisk_api_key
             
         data = {
-            'call_id': call.id,
+            'session_id': call.queue_session_id,  # Use queue_session_id instead of call.id for consistency
             'title': call.title
         }
         
@@ -1439,7 +1586,7 @@ def cancel_call_api(request, call_id):
             headers['X-API-KEY'] = call.asterisk_api_key
             
         data = {
-            'call_id': call.id,
+            'session_id': call.queue_session_id,  # Use queue_session_id instead of call.id for consistency
             'title': call.title
         }
         
@@ -1534,7 +1681,7 @@ def edit_mid_call(request, call_id):
                 headers['X-API-KEY'] = call.asterisk_api_key
                 
             data = {
-                'call_id': call.id,
+                'session_id': call.queue_session_id,  # Use queue_session_id instead of call.id for consistency
                 'title': call.title
             }
             
