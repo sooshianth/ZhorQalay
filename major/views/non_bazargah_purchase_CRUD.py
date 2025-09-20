@@ -113,6 +113,51 @@ def clean_postal_code(postal_code):
     return cleaned
 
 
+def clean_datetime_value(datetime_value):
+    """پاکسازی و تبدیل مقادیر زمانی از فایل اکسل"""
+    if pd.isna(datetime_value) or datetime_value is None:
+        return None
+    
+    try:
+        # اگر مقدار از نوع datetime است، مستقیماً برگردان
+        if isinstance(datetime_value, pd.Timestamp):
+            return datetime_value.to_pydatetime()
+        
+        # اگر رشته است، سعی کن پارس کنی
+        if isinstance(datetime_value, str):
+            datetime_value = datetime_value.strip()
+            if not datetime_value:
+                return None
+            
+            # فرمت‌های مختلف تاریخ و زمان
+            datetime_formats = [
+                '%Y-%m-%d %H:%M:%S',
+                '%Y-%m-%d %H:%M',
+                '%Y/%m/%d %H:%M:%S',
+                '%Y/%m/%d %H:%M',
+                '%d/%m/%Y %H:%M:%S',
+                '%d/%m/%Y %H:%M',
+                '%d-%m-%Y %H:%M:%S',
+                '%d-%m-%Y %H:%M',
+                # فرمت‌های جلالی
+                '%Y/%m/%d %H:%M',
+                '%Y-%m-%d %H:%M',
+            ]
+            
+            from datetime import datetime
+            for fmt in datetime_formats:
+                try:
+                    return datetime.strptime(datetime_value, fmt)
+                except ValueError:
+                    continue
+        
+        # اگر هیچ فرمتی کار نکرد، None برگردان
+        return None
+        
+    except Exception:
+        return None
+
+
 def process_barnameh_excel(file, purchase):
     """پردازش فایل اکسل و ایجاد بارنامه‌ها"""
     try:
@@ -160,6 +205,13 @@ def process_barnameh_excel(file, purchase):
                 delivered_weight = clean_numeric_value(row.get('وزن تحویلی', 0))
                 notes = str(row.get('توضیحات', '')).strip() or None
                 
+                # استخراج زمان‌های اختیاری از اکسل
+                vehicle_arrival_time = clean_datetime_value(row.get('زمان ورود ماشین', None))
+                empty_weigh_time = clean_datetime_value(row.get('زمان وزن خالی', None))
+                loaded_weigh_time = clean_datetime_value(row.get('زمان وزن پر', None))
+                departure_time = clean_datetime_value(row.get('زمان خروج از انبار', None))
+                delivery_time = clean_datetime_value(row.get('زمان تحویل', None))
+                
                 # اعتبارسنجی داده‌ها
                 if not allocation_number:
                     validation_errors.append(f'ردیف {index + 2}: شماره تخصیص نمی‌تواند خالی باشد')
@@ -202,6 +254,11 @@ def process_barnameh_excel(file, purchase):
                     'loaded_weight': loaded_weight,
                     'delivered_weight': delivered_weight,
                     'notes': notes,
+                    'vehicle_arrival_time': vehicle_arrival_time,
+                    'empty_weigh_time': empty_weigh_time,
+                    'loaded_weigh_time': loaded_weigh_time,
+                    'departure_time': departure_time,
+                    'delivery_time': delivery_time,
                     'row_number': index + 2
                 })
                 
@@ -253,6 +310,11 @@ def process_barnameh_excel(file, purchase):
                     allocation_number = allocation.allocation_number or allocation.id
                     barnameh_number = f"{allocation_number}-{barnameh_count}"
                 
+                # تعیین تاریخ بارنامه بر اساس مرحله نهایی
+                barnameh_date = None
+                if max_stage in ['loaded_weighed', 'barnameh_issued', 'delivered']:
+                    barnameh_date = timezone.now().date()
+                
                 barnameh = Barnameh.objects.create(
                     non_bazargah_allocation=allocation,
                     non_bazargah_purchase=purchase,
@@ -263,7 +325,13 @@ def process_barnameh_excel(file, purchase):
                     vehicle_plate=row_data['vehicle_plate'],
                     empty_vehicle_weight=row_data['empty_weight'],
                     loaded_vehicle_weight=row_data['loaded_weight'],
-                    final_delivered_weight=row_data['delivered_weight']
+                    final_delivered_weight=row_data['delivered_weight'],
+                    vehicle_arrival_time=row_data.get('vehicle_arrival_time'),
+                    empty_weigh_time=row_data.get('empty_weigh_time'),
+                    loaded_weigh_time=row_data.get('loaded_weigh_time'),
+                    departure_time=row_data.get('departure_time'),
+                    delivery_time=row_data.get('delivery_time'),
+                    barnameh_date=barnameh_date
                 )
                 created_barnamehs += 1
                 
@@ -618,12 +686,46 @@ class NonBazargahAllocationForm(forms.ModelForm):
 class BarnamehForm(forms.ModelForm):
     """فرم مدیریت بارنامه‌ها"""
     
+    # تعریف فیلدهای datetime به صورت جداگانه
+    vehicle_arrival_time = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control time-input'}),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        label='زمان ورود ماشین'
+    )
+    empty_weigh_time = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control time-input'}),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        label='زمان وزن‌گیری خالی'
+    )
+    loaded_weigh_time = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control time-input'}),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        label='زمان وزن‌گیری پر'
+    )
+    departure_time = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control time-input'}),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        label='زمان خروج از انبار'
+    )
+    delivery_time = forms.DateTimeField(
+        required=False,
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control time-input'}),
+        input_formats=['%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d %H:%M'],
+        label='زمان تحویل'
+    )
+    
     class Meta:
         model = Barnameh
         fields = [
             'number', 'driver_name', 'driver_phone', 'vehicle_plate', 
             'empty_vehicle_weight', 'loaded_vehicle_weight',
-            'final_delivered_weight', 'tonnage'
+            'final_delivered_weight', 'tonnage', 'barnameh_date',
+            'vehicle_arrival_time', 'empty_weigh_time', 'loaded_weigh_time',
+            'departure_time', 'delivery_time'
         ]
         widgets = {
             'number': forms.TextInput(attrs={'placeholder': 'شماره بارنامه'}),
@@ -634,6 +736,7 @@ class BarnamehForm(forms.ModelForm):
             'loaded_vehicle_weight': forms.NumberInput(attrs={'placeholder': 'وزن پر (کیلوگرم)', 'step': '0.01'}),
             'final_delivered_weight': forms.NumberInput(attrs={'placeholder': 'وزن نهایی تحویل (کیلوگرم)', 'step': '0.01'}),
             'tonnage': forms.NumberInput(attrs={'placeholder': 'وزن (تن)', 'step': '0.01'}),
+            'barnameh_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
         labels = {
             'number': 'شماره بارنامه',
@@ -644,6 +747,7 @@ class BarnamehForm(forms.ModelForm):
             'loaded_vehicle_weight': 'وزن پر',
             'final_delivered_weight': 'وزن تحویلی',
             'tonnage': 'وزن (تن)',
+            'barnameh_date': 'تاریخ بارنامه',
         }
     
     def clean_empty_vehicle_weight(self):
@@ -1147,27 +1251,58 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             if allocation_id:
                 try:
                     allocation = NonBazargahAllocation.objects.get(id=allocation_id, purchase=purchase)
-                    # ایجاد بارنامه با اطلاعات اولیه
-                    barnameh_form = BarnamehForm(request.POST)
-                    if barnameh_form.is_valid():
-                        barnameh = barnameh_form.save(commit=False)
-                        barnameh.non_bazargah_allocation = allocation
-                        barnameh.non_bazargah_purchase = purchase
-                        barnameh.type = 'Non_Bazargah'
+                    # ایجاد بارنامه با اطلاعات اولیه - پردازش دستی به دلیل محدودیت فرم
+                    try:
+                        from datetime import datetime
+                        # دریافت اطلاعات پایه
+                        number = request.POST.get('number', '').strip()
+                        driver_name = request.POST.get('driver_name', '').strip()
+                        driver_phone = request.POST.get('driver_phone', '').strip()
+                        vehicle_plate = request.POST.get('vehicle_plate', '').strip()
+                        vehicle_arrival_time = request.POST.get('vehicle_arrival_time', '').strip()
                         
-                        # تولید شماره بارنامه: اگر شماره دستی وارد نشده، شماره خودکار بساز
-                        if not barnameh.number:
+                        # اعتبارسنجی فیلدهای ضروری
+                        if not driver_name:
+                            messages.error(request, 'نام راننده الزامی است')
+                            return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                        if not driver_phone:
+                            messages.error(request, 'شماره تلفن راننده الزامی است')
+                            return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                        if not vehicle_plate:
+                            messages.error(request, 'پلاک ماشین الزامی است')
+                            return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                        
+                        # ایجاد بارنامه
+                        barnameh = Barnameh(
+                            non_bazargah_allocation=allocation,
+                            non_bazargah_purchase=purchase,
+                            type='Non_Bazargah',
+                            driver_name=driver_name,
+                            driver_phone=driver_phone,
+                            vehicle_plate=vehicle_plate
+                        )
+                        
+                        # تنظیم شماره بارنامه
+                        if number:
+                            barnameh.number = number
+                        else:
                             barnameh_count = allocation.barnamehs.count() + 1
                             allocation_number = allocation.allocation_number or allocation.id
                             barnameh.number = f"{allocation_number}-{barnameh_count}"
                         
+                        # تنظیم زمان ورود ماشین (اگر وارد شده باشد)
+                        if vehicle_arrival_time:
+                            try:
+                                barnameh.vehicle_arrival_time = datetime.fromisoformat(vehicle_arrival_time)
+                            except (ValueError, TypeError):
+                                pass  # اگر فرمت نادرست باشد، خالی بگذار
+                        
                         barnameh.save()
                         messages.success(request, f'بارنامه جدید #{barnameh.number} برای تخصیص {allocation.id} اضافه شد')
                         return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
-                    else:
-                        for field, errors in barnameh_form.errors.items():
-                            for error in errors:
-                                messages.error(request, f'{field}: {error}')
+                        
+                    except Exception as e:
+                        messages.error(request, f'خطا در ایجاد بارنامه: {str(e)}')
                         return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
                 except NonBazargahAllocation.DoesNotExist:
                     messages.error(request, 'تخصیص مورد نظر یافت نشد')
@@ -1182,7 +1317,12 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     if barnameh.non_bazargah_allocation and barnameh.non_bazargah_allocation.purchase == purchase:
                         barnameh_form = BarnamehForm(request.POST, instance=barnameh)
                         if barnameh_form.is_valid():
-                            barnameh_form.save()
+                            barnameh_updated = barnameh_form.save(commit=False)
+                            
+                            # فیلدهای زمانی حالا توسط فرم به درستی پردازش می‌شوند
+                            # نیازی به پردازش دستی نیست
+                            
+                            barnameh_updated.save()
                             messages.success(request, 'اطلاعات بارنامه بروزرسانی شد')
                         else:
                             for field, errors in barnameh_form.errors.items():
@@ -1286,8 +1426,17 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                 messages.error(request, 'برای تایید ورود ماشین، ابتدا باید برای همه تخصیص‌ها حداقل یک بارنامه اضافه کنید')
                             else:
                                 purchase.state = 'vehicle_arrived'
+                                
+                                # ثبت زمان ورود ماشین در همه بارنامه‌ها
+                                current_time = timezone.now()
+                                all_barnamehs = purchase.get_all_barnamehs()
+                                for barnameh in all_barnamehs:
+                                    if not barnameh.vehicle_arrival_time:
+                                        barnameh.vehicle_arrival_time = current_time
+                                        barnameh.save(update_fields=['vehicle_arrival_time'])
+                                
                                 action_taken = True
-                                messages.success(request, 'ورود ماشین تایید شد')
+                                messages.success(request, 'ورود ماشین تایید شد و زمان ورود ثبت گردید')
                         
                         elif purchase.state == 'vehicle_arrived' and 'record_empty_weight' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها اطلاعات ماشین کامل دارند
@@ -1298,8 +1447,17 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                 messages.error(request, 'برای ثبت وزن خالی، ابتدا باید وزن خالی برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
                                 purchase.state = 'empty_weighed'
+                                
+                                # ثبت زمان وزن‌گیری خالی در همه بارنامه‌ها
+                                current_time = timezone.now()
+                                all_barnamehs = purchase.get_all_barnamehs()
+                                for barnameh in all_barnamehs:
+                                    if not barnameh.empty_weigh_time and barnameh.empty_vehicle_weight:
+                                        barnameh.empty_weigh_time = current_time
+                                        barnameh.save(update_fields=['empty_weigh_time'])
+                                
                                 action_taken = True
-                                messages.success(request, 'وزن خالی ثبت شد')
+                                messages.success(request, 'وزن خالی ثبت شد و زمان وزن‌گیری ثبت گردید')
                         
                         elif purchase.state == 'empty_weighed' and 'record_loaded_weight' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها وزن خالی دارند
@@ -1310,8 +1468,17 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                 messages.error(request, 'برای ثبت وزن پر، ابتدا باید وزن پر برای همه بارنامه‌ها ثبت شده باشد (مقدار بیشتر از صفر)')
                             else:
                                 purchase.state = 'loaded_weighed'
+                                
+                                # ثبت زمان وزن‌گیری پر در همه بارنامه‌ها
+                                current_time = timezone.now()
+                                all_barnamehs = purchase.get_all_barnamehs()
+                                for barnameh in all_barnamehs:
+                                    if not barnameh.loaded_weigh_time and barnameh.loaded_vehicle_weight:
+                                        barnameh.loaded_weigh_time = current_time
+                                        barnameh.save(update_fields=['loaded_weigh_time'])
+                                
                                 action_taken = True
-                                messages.success(request, 'وزن پر ثبت شد')
+                                messages.success(request, 'وزن پر ثبت شد و زمان وزن‌گیری ثبت گردید')
                         
                         elif purchase.state == 'loaded_weighed' and 'issue_barnameh' in request.POST:
                             # بررسی اینکه همه بارنامه‌ها وزن پر دارند
@@ -1348,12 +1515,37 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                                     messages.warning(request, f'بارنامه صادر شد اما خطا در محاسبه وزن‌ها: {str(e)}')
                                 
                                 purchase.state = 'barnameh_issued'
+                                
+                                # ثبت زمان خروج از انبار و تاریخ بارنامه در همه بارنامه‌ها
+                                current_time = timezone.now()
+                                current_date = current_time.date()
+                                all_barnamehs = purchase.get_all_barnamehs()
+                                for barnameh in all_barnamehs:
+                                    # ثبت زمان خروج از انبار
+                                    if not barnameh.departure_time and barnameh.loaded_vehicle_weight:
+                                        barnameh.departure_time = current_time
+                                    
+                                    # ثبت تاریخ بارنامه (مهم برای گزارش‌گیری)
+                                    if not barnameh.barnameh_date:
+                                        barnameh.barnameh_date = current_date
+                                    
+                                    barnameh.save(update_fields=['departure_time', 'barnameh_date'])
+                                
                                 action_taken = True
                         
                         elif purchase.state == 'barnameh_issued' and 'confirm_delivery' in request.POST:
                             purchase.state = 'delivered'
+                            
+                            # ثبت زمان تحویل در همه بارنامه‌ها
+                            current_time = timezone.now()
+                            all_barnamehs = purchase.get_all_barnamehs()
+                            for barnameh in all_barnamehs:
+                                if not barnameh.delivery_time:
+                                    barnameh.delivery_time = current_time
+                                    barnameh.save(update_fields=['delivery_time'])
+                            
                             action_taken = True
-                            messages.success(request, 'تحویل به مشتری تایید شد')
+                            messages.success(request, 'تحویل به مشتری تایید شد و زمان تحویل ثبت گردید')
                         
                         elif purchase.state == 'delivered' and 'close_purchase' in request.POST:
                             # اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری (اگر قبلاً محاسبه نشده باشد)
@@ -1682,12 +1874,18 @@ def download_barnameh_excel_template(request):
     worksheet.set_column('F:F', 15)  # وزن خالی
     worksheet.set_column('G:G', 15)  # وزن پر
     worksheet.set_column('H:H', 15)  # وزن تحویلی
-    worksheet.set_column('I:I', 30)  # توضیحات
+    worksheet.set_column('I:I', 20)  # زمان ورود ماشین
+    worksheet.set_column('J:J', 20)  # زمان وزن خالی
+    worksheet.set_column('K:K', 20)  # زمان وزن پر
+    worksheet.set_column('L:L', 20)  # زمان خروج از انبار
+    worksheet.set_column('M:M', 20)  # زمان تحویل
+    worksheet.set_column('N:N', 30)  # توضیحات
     
     # نوشتن هدرها
     headers = [
         'شناسه تخصیص', 'شماره بارنامه', 'نام راننده', 'شماره تلفن راننده', 
-        'پلاک خودرو', 'وزن خالی', 'وزن پر', 'وزن تحویلی', 'توضیحات'
+        'پلاک خودرو', 'وزن خالی', 'وزن پر', 'وزن تحویلی', 
+        'زمان ورود ماشین', 'زمان وزن خالی', 'زمان وزن پر', 'زمان خروج از انبار', 'زمان تحویل', 'توضیحات'
     ]
     
     for col, header in enumerate(headers):
@@ -1704,6 +1902,11 @@ def download_barnameh_excel_template(request):
             15000,  # وزن خالی
             20000,  # وزن پر
             19000,  # وزن تحویلی
+            '1403/06/15 08:30',  # زمان ورود ماشین
+            '1403/06/15 09:00',  # زمان وزن خالی
+            '1403/06/15 11:30',  # زمان وزن پر
+            '1403/06/15 12:00',  # زمان خروج از انبار
+            '1403/06/15 16:30',  # زمان تحویل
             'تحویل در صبح - تماس قبل از رسیدن'
         ],
         [
@@ -1715,6 +1918,11 @@ def download_barnameh_excel_template(request):
             12000,  # وزن خالی
             17000,  # وزن پر
             16500,  # وزن تحویلی
+            '1403/06/16 10:00',  # زمان ورود ماشین
+            '1403/06/16 10:30',  # زمان وزن خالی
+            '1403/06/16 13:00',  # زمان وزن پر
+            '1403/06/16 13:30',  # زمان خروج از انبار
+            '1403/06/16 18:00',  # زمان تحویل
             'تحویل در عصر'
         ]
     ]

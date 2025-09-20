@@ -388,7 +388,7 @@ def apply_non_bazargah_barnameh_filter(request):
             'non_bazargah_purchase__unique_sales_agent', 'non_bazargah_purchase__product'
         ).prefetch_related(
             'non_bazargah_purchase__allocations'
-        ).order_by('-barnameh_created_at')
+        ).order_by('-barnameh_date', '-barnameh_created_at')
         
         # اگر کاربر کارشناس فروش است، فقط بارنامه‌های مربوطه را ببیند
         if user_role == 'sales_agent':
@@ -658,7 +658,7 @@ def apply_non_bazargah_barnameh_filter(request):
                 base_queryset = base_queryset.order_by(sort_field)
             except Exception as e:
                 logger.warning(f"خطا در مرتب‌سازی: {e}")
-                base_queryset = base_queryset.order_by('-barnameh_created_at')
+                base_queryset = base_queryset.order_by('-barnameh_date', '-barnameh_created_at')
         else:
             base_queryset = base_queryset.order_by('-barnameh_created_at')
         
@@ -809,7 +809,7 @@ def get_non_bazargah_barnameh_column_values(request):
             'non_bazargah_purchase__unique_sales_agent', 'non_bazargah_purchase__product'
         ).prefetch_related(
             'non_bazargah_purchase__allocations'
-        )
+        ).order_by('-barnameh_date', '-barnameh_created_at')
         
         # اگر کاربر کارشناس فروش است، فقط بارنامه‌های مربوطه را ببیند
         if user_role == 'sales_agent':
@@ -1129,7 +1129,7 @@ def export_full_non_bazargah_barnameh_excel(request):
             else:
                 base_queryset = Barnameh.objects.none()
         
-        # اعمال فیلتر تاریخ اگر مشخص شده باشد
+        # اعمال فیلتر تاریخ اگر مشخص شده باشد - بر اساس barnameh_date
         if export_type == 'date_range' and (from_date or to_date):
             
             if from_date:
@@ -1137,9 +1137,9 @@ def export_full_non_bazargah_barnameh_excel(request):
                     # تبدیل تاریخ شمسی به میلادی
                     from_date_obj = jalali_to_gregorian_date(from_date)
                     if from_date_obj:
-                        # فیلتر روی barnameh_created_at (تاریخ ایجاد بارنامه)
-                        base_queryset = base_queryset.filter(barnameh_created_at__date__gte=from_date_obj)
-                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
+                        # فیلتر روی barnameh_date (تاریخ بارنامه) - مهم‌تر از تاریخ ایجاد
+                        base_queryset = base_queryset.filter(barnameh_date__gte=from_date_obj)
+                        logger.info(f"فیلتر از تاریخ بارنامه شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
                 except ValueError as e:
                     logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
                     return JsonResponse({
@@ -1152,9 +1152,9 @@ def export_full_non_bazargah_barnameh_excel(request):
                     # تبدیل تاریخ شمسی به میلادی
                     to_date_obj = jalali_to_gregorian_date(to_date)
                     if to_date_obj:
-                        # فیلتر روی barnameh_created_at (تاریخ ایجاد بارنامه)
-                        base_queryset = base_queryset.filter(barnameh_created_at__date__lte=to_date_obj)
-                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
+                        # فیلتر روی barnameh_date (تاریخ بارنامه) - مهم‌تر از تاریخ ایجاد
+                        base_queryset = base_queryset.filter(barnameh_date__lte=to_date_obj)
+                        logger.info(f"فیلتر تا تاریخ بارنامه شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
                 except ValueError as e:
                     logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
                     return JsonResponse({
@@ -1438,73 +1438,47 @@ def fast_non_bazargah_barnameh_report_pdf(request):
         
         logger.info(f"گزارش بارنامه‌های سریع خارج بازارگاه از {seven_days_ago} تا {now}")
         
-        # یافتن خریدهای خارج بازارگاه 7 روز اخیر که دارای بارنامه هستند
-        base_queryset = NonBazargahPurchase.objects.filter(
-            created_at__gte=seven_days_ago
-        ).prefetch_related(
-            'allocations__barnamehs',
-            'unique_sales_agent',
-            'customer',
-            'product'
+        # یافتن بارنامه‌های خارج بازارگاه 7 روز اخیر بر اساس barnameh_date
+        recent_barnamehs = Barnameh.objects.filter(
+            type='Non_Bazargah',
+            barnameh_date__gte=seven_days_ago.date()
+        ).select_related(
+            'non_bazargah_purchase', 'non_bazargah_purchase__customer', 
+            'non_bazargah_purchase__unique_sales_agent', 'non_bazargah_purchase__product',
+            'non_bazargah_allocation'
         )
         
-        # اگر کاربر کارشناس فروش است، فقط خریدهای مربوطه را ببیند
+        # اگر کاربر کارشناس فروش است، فقط بارنامه‌های مربوطه را ببیند
         if user_role == 'sales_agent':
             if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
-                base_queryset = base_queryset.filter(
-                    unique_sales_agent=request.user.sales_agent
+                recent_barnamehs = recent_barnamehs.filter(
+                    non_bazargah_purchase__unique_sales_agent=request.user.sales_agent
                 )
             else:
-                base_queryset = NonBazargahPurchase.objects.none()
+                recent_barnamehs = Barnameh.objects.none()
         
-        # یافتن بارنامه‌های سریع (کمتر از 3 روز)
+        # یافتن بارنامه‌های سریع (کمتر از 3 روز) بر اساس barnameh_date
         fast_purchases = []
         
-        # بررسی بارنامه‌های مستقیم (بدون تخصیص)
-        direct_barnamehs = Barnameh.objects.filter(
-            non_bazargah_purchase__in=base_queryset,
-            barnameh_created_at__gte=seven_days_ago,
-            type='Non_Bazargah'
-        ).select_related('non_bazargah_purchase', 'non_bazargah_purchase__customer', 'non_bazargah_purchase__unique_sales_agent')
-        
-        for barnameh in direct_barnamehs:
-            if barnameh.barnameh_created_at and barnameh.non_bazargah_purchase:
-                # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
-                time_diff = barnameh.barnameh_created_at - barnameh.non_bazargah_purchase.created_at
-                if time_diff.days <= 3:  # کمتر از 3 روز
-                    # محاسبه دقیق تفاوت روز
-                    purchase_date = barnameh.non_bazargah_purchase.created_at.date()
-                    barnameh_date = barnameh.barnameh_created_at.date()
-                    actual_days_diff = (barnameh_date - purchase_date).days
+        for barnameh in recent_barnamehs:
+            if barnameh.barnameh_date and barnameh.non_bazargah_purchase:
+                # محاسبه تفاوت زمان بین ثبت خرید و تاریخ بارنامه
+                purchase_date = barnameh.non_bazargah_purchase.created_at.date()
+                barnameh_date = barnameh.barnameh_date
+                
+                # محاسبه تفاوت روز
+                actual_days_diff = (barnameh_date - purchase_date).days
+                
+                if actual_days_diff <= 3:  # کمتر از 3 روز
+                    # تشخیص نوع ارتباط (مستقیم یا از طریق تخصیص)
+                    allocation = barnameh.non_bazargah_allocation
                     
                     fast_purchases.append({
                         'purchase': barnameh.non_bazargah_purchase,
                         'barnameh': barnameh,
                         'days_diff': actual_days_diff,
-                        'hours_diff': time_diff.total_seconds() / 3600,
-                        'allocation': None  # بارنامه مستقیم
+                        'allocation': allocation
                     })
-        
-        # بررسی بارنامه‌های از طریق تخصیص
-        for purchase in base_queryset:
-            for allocation in purchase.allocations.all():
-                for barnameh in allocation.barnamehs.all():
-                    if barnameh.barnameh_created_at and barnameh.barnameh_created_at >= seven_days_ago:
-                        # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
-                        time_diff = barnameh.barnameh_created_at - purchase.created_at
-                        if time_diff.days <= 3:  # کمتر از 3 روز
-                            # محاسبه دقیق تفاوت روز
-                            purchase_date = purchase.created_at.date()
-                            barnameh_date = barnameh.barnameh_created_at.date()
-                            actual_days_diff = (barnameh_date - purchase_date).days
-                            
-                            fast_purchases.append({
-                                'purchase': purchase,
-                                'barnameh': barnameh,
-                                'days_diff': actual_days_diff,
-                                'hours_diff': time_diff.total_seconds() / 3600,
-                                'allocation': allocation
-                            })
         
         # گروه‌بندی بر اساس کارشناس فروش
         sales_agent_groups = {}

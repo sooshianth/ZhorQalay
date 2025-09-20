@@ -632,6 +632,17 @@
                                {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                         <small class="form-text text-muted">شماره بارنامه (قابل ویرایش در مراحل اولیه)</small>
                       </div>
+                      <!-- فیلد تاریخ بارنامه - فقط در مراحل پایانی نمایش داده می‌شود -->
+                      {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> تاریخ بارنامه:</label>
+                        <input type="date" name="barnameh_date" 
+                               value="{% if barnameh.barnameh_date %}{{ barnameh.barnameh_date|date:'Y-m-d' }}{% endif %}" 
+                               class="form-control"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                        <small class="form-text text-muted">تاریخ رسمی صدور بارنامه (مهم برای گزارش‌گیری)</small>
+                      </div>
+                      {% endif %}
                     </div>
                   </div>
                   
@@ -688,6 +699,67 @@
                         <div class="calculated-weight" id="net-weight-{{ barnameh.id }}">
                           محاسبه خودکار پس از ذخیره
                         </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  
+                  <!-- اطلاعات زمانی -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-clock"></i> اطلاعات زمانی</h6>
+                    <div class="barnameh-time-fields">
+                      <!-- زمان ورود ماشین - فقط در مرحله vehicle_arrived و بعد از آن -->
+                      {% if purchase.state in 'vehicle_arrived,empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-car"></i> زمان ورود ماشین:</label>
+                        <input type="datetime-local" name="vehicle_arrival_time" 
+                               value="{% if barnameh.vehicle_arrival_time %}{{ barnameh.vehicle_arrival_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان وزن خالی - فقط در مرحله empty_weighed و بعد از آن -->
+                      {% if purchase.state in 'empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-weight-hanging"></i> زمان وزن خالی:</label>
+                        <input type="datetime-local" name="empty_weigh_time" 
+                               value="{% if barnameh.empty_weigh_time %}{{ barnameh.empty_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان وزن پر - فقط در مرحله loaded_weighed و بعد از آن -->
+                      {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-balance-scale"></i> زمان وزن پر:</label>
+                        <input type="datetime-local" name="loaded_weigh_time" 
+                               value="{% if barnameh.loaded_weigh_time %}{{ barnameh.loaded_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان خروج از انبار - فقط در مرحله barnameh_issued و بعد از آن -->
+                      {% if purchase.state in 'barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-truck-loading"></i> زمان خروج از انبار:</label>
+                        <input type="datetime-local" name="departure_time" 
+                               value="{% if barnameh.departure_time %}{{ barnameh.departure_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان تحویل - فقط در مرحله delivered و بعد از آن -->
+                      {% if purchase.state in 'delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-handshake"></i> زمان تحویل:</label>
+                        <input type="datetime-local" name="delivery_time" 
+                               value="{% if barnameh.delivery_time %}{{ barnameh.delivery_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}
                     </div>
@@ -779,6 +851,25 @@
                       <label>وزن تحویلی (کیلوگرم):</label>
                       <input type="number" name="final_delivered_weight" class="form-control" step="0.01" placeholder="وزن تحویلی" readonly>
                       <small class="form-text text-muted">این فیلد در مراحل بعدی قابل ویرایش خواهد بود</small>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- اطلاعات زمانی - فقط فیلدهای مربوط به مرحله فعلی نمایش داده می‌شوند -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-clock"></i> اطلاعات زمانی</h6>
+                  <div class="barnameh-time-fields">
+                    <!-- در مرحله carrier_notified فقط زمان ورود ماشین قابل تنظیم است -->
+                    <div class="time-field-group">
+                      <label><i class="fas fa-car"></i> زمان ورود ماشین:</label>
+                      <input type="datetime-local" name="vehicle_arrival_time" class="form-control time-input" step="60">
+                    </div>
+                    
+                    <div class="time-field-note">
+                      <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        سایر زمان‌ها بعد از ایجاد بارنامه و در مراحل مربوطه قابل تنظیم خواهند بود
+                      </small>
                     </div>
                   </div>
                 </div>

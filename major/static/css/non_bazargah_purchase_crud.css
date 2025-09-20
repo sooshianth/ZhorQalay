@@ -3,6 +3,96 @@
   box-sizing: border-box;
 }
 
+/* استایل‌های فیلدهای زمانی */
+.barnameh-time-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.time-field-group {
+  flex: 1;
+  min-width: 250px;
+  display: flex;
+  flex-direction: column;
+  background: rgba(248, 249, 250, 0.8);
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.time-field-group:hover {
+  background: rgba(248, 249, 250, 1);
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.15);
+}
+
+.time-field-group label {
+  font-size: 0.9em;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.time-field-group label i {
+  color: #007bff;
+  font-size: 0.9em;
+}
+
+.time-input {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.9em;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background: white;
+}
+
+.time-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+.time-input[readonly] {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+}
+
+.time-field-note {
+  grid-column: 1 / -1;
+  margin-top: 10px;
+  padding: 10px;
+  background: rgba(23, 162, 184, 0.1);
+  border-radius: 6px;
+  border-left: 4px solid #17a2b8;
+}
+
+.time-field-note small {
+  color: #0c5460;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* تنظیمات ریسپانسیو */
+@media (max-width: 768px) {
+  .barnameh-time-fields {
+    flex-direction: column;
+  }
+  
+  .time-field-group {
+    min-width: 100%;
+  }
+}
+
 /* استایل‌های مخصوص آپلود اکسل */
 .excel-upload-form {
   background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
