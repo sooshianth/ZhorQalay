@@ -1,15 +1,19 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.forms import ValidationError
 from django_jalali.db import models as jmodels
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
+from bki_barnameh.models.BarnamehModel import Barnameh
 from core.CargoProductModel import CargoProduct, VaredKonandeh, Barbary
 from django.db.models import Sum, Q, F
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
+from major.models import Hazinah
 
 class Wallet(models.Model):
-    varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'))
+    varedkonandeh = models.ForeignKey(VaredKonandeh, on_delete=models.CASCADE, related_name='wallet', verbose_name=_('وارد کننده'), null=True, blank=True)
+    customer = models.ForeignKey('core.Customer', on_delete=models.CASCADE, related_name='wallet_customer', verbose_name=_('مشتری'), null=True, blank=True)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     balance = models.BigIntegerField(_('موجودی (ریال)'), default=0)
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
@@ -19,8 +23,23 @@ class Wallet(models.Model):
         verbose_name = _('کیف پول')
         verbose_name_plural = _('کیف پول ها')
 
+    def clean(self):
+        """اعتبارسنجی: هر کیف پول باید فقط یک نوع owner داشته باشد"""
+        super().clean()
+        
+        if not self.varedkonandeh and not self.customer:
+            raise ValidationError('کیف پول باید متعلق به یک واردکننده یا مشتری باشد.')
+        
+        if self.varedkonandeh and self.customer:
+            raise ValidationError('کیف پول نمی‌تواند همزمان متعلق به واردکننده و مشتری باشد.')
+
     def __str__(self):
-        return f"{self.varedkonandeh.name} - {self.balance:,} ریال"
+        if self.varedkonandeh:
+            return f"{self.varedkonandeh.name} - {self.balance:,} ریال"
+        elif self.customer:
+            return f"{self.customer.name} (مشتری) - {self.balance:,} ریال"
+        else:
+            return f"کیف پول ناشناس - {self.balance:,} ریال"
 
     def calculate_balance(self):
         """
@@ -30,27 +49,32 @@ class Wallet(models.Model):
         
         total_debt = 0
         
-        # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
-        purchases = Purchase.objects.filter(
-            cargo__vared_konandeh=self.varedkonandeh,
-            is_canceled=False,
-            is_archived=False,
-            is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
-        )
-        
-        for purchase in purchases:
-            # تعیین وزن بر اساس wallet_index
-            if purchase.wallet_index == '0':
-                weight = purchase.order_weight or 0
-            else:  # wallet_index == '1'
-                weight = purchase.delivered_weight or 0
+        # اگر کیف پول متعلق به واردکننده است
+        if self.varedkonandeh:
+            # تمام خریدهایی که کارگو آنها متعلق به این واردکننده است و آدرس ارسال شده باشد
+            purchases = Purchase.objects.filter(
+                cargo__vared_konandeh=self.varedkonandeh,
+                is_canceled=False,
+                is_archived=False,
+                is_address_sent__in=['1', 'True']  # پشتیبانی از هر دو فرمت برای backward compatibility
+            )
             
-            # محاسبه مبلغ: وزن × فی خرید
-            if weight > 0 and purchase.company_price > 0:
-                amount = weight * purchase.company_price
-                total_debt += amount
+            for purchase in purchases:
+                # تعیین وزن بر اساس wallet_index
+                if purchase.wallet_index == '0':
+                    weight = purchase.order_weight or 0
+                else:  # wallet_index == '1'
+                    weight = purchase.delivered_weight or 0
+                
+                # محاسبه مبلغ: وزن × فی خرید
+                if weight > 0 and purchase.company_price > 0:
+                    amount = weight * purchase.company_price
+                    total_debt += amount
         
-        # محاسبه تراکنش‌های دستی
+        # اگر کیف پول متعلق به مشتری است، بدهی صفر است
+        # (مشتری‌ها بدهی خرید ندارند، فقط تراکنش‌های مالی دارند)
+        
+        # محاسبه تراکنش‌های دستی (شامل هزینه‌ها و درآمدها)
         manual_transactions = self.transactions.filter(status='approved')
         manual_total = manual_transactions.aggregate(
             total=Sum('amount')
@@ -121,20 +145,26 @@ class Wallet(models.Model):
 
 class Transaction(models.Model):
     TRANSACTION_TYPES = [
-        ('deposit', _('واریز')),
-        ('withdrawal', _('برداشت')),
-        ('adjustment', _('تعدیل')),
-        ('purchase_debt', _('بدهی خرید')),
+        ('Hazinah', _('هزینه')),
+        ('Income', _('درآمد'))
     ]
     
     STATUS_CHOICES = [
-        ('pending', _('در انتظار تایید')),
-        ('approved', _('تایید شده')),
-        ('rejected', _('لغو شده')),
+        ('paid', _('پرداخت شده')),
+        ('unpaid', _('پرداخت نشده')),
+        ('patially_paid', _('پرداخت جزیی'))
     ]
 
-    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions', verbose_name=_('کیف پول'))
-    transaction_type = models.CharField(_('نوع تراکنش'), max_length=20, choices=TRANSACTION_TYPES, default='deposit')
+    PAYMENT_METHOD = [
+        ('cash', _('نقدی')),
+        ('bank_transfer', _('انتقال بانکی')),
+        ('check', _('چک')),
+        ('card', _('کارت')),
+        ('other', _('سایر'))
+    ]
+
+    wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions', verbose_name=_('کیف پول'), null=True, blank=True)
+    transaction_type = models.CharField(_('نوع تراکنش'), max_length=20, choices=TRANSACTION_TYPES)
     amount = models.BigIntegerField(_('مقدار (ریال)'), default=0)
     description = models.TextField(_('توضیحات'), blank=True, null=True)
     file = models.FileField(_('فایل پیوست'), upload_to='fledger_transactions/', blank=True, null=True)
@@ -146,19 +176,80 @@ class Transaction(models.Model):
     created_at = jmodels.jDateTimeField(_('تاریخ ایجاد'), auto_now_add=True)
     updated_at = jmodels.jDateTimeField(_('تاریخ بروزرسانی'), auto_now=True)
 
+    hazinah = models.ForeignKey(Hazinah, on_delete=models.CASCADE,
+                                related_name='transactions', verbose_name=_('هزینه'),
+                                 null=True, blank=True)
+
+    income = models.ForeignKey(Barnameh, on_delete=models.CASCADE,
+                                related_name='transactions', verbose_name=_('درآمد'),
+                                null=True, blank=True)
+
+    payment_method = models.CharField(_('روش پرداخت'), max_length=20, choices=PAYMENT_METHOD, null=True , blank=True)
+
     class Meta:
         verbose_name = _('تراکنش')
         verbose_name_plural = _('تراکنش ها')
         ordering = ['-created_at']
 
+    def clean(self):
+        super().clean()
+    
+        if self.transaction_type == 'Hazinah' and not self.hazinah:
+            raise ValidationError(_('لطفا هزینه را مشخص کنید.'))
+        
+        if self.transaction_type == 'Income' and not self.income and not self.hazinah:
+            raise ValidationError(_('لطفا درآمد یا هزینه را مشخص کنید.'))
+        
+        # اجازه می‌دهیم که تراکنش‌های Income برای هزینه‌های تخصیص مشتری با hazinah مرتبط باشند
+        # اما اگر همزمان income و hazinah انتخاب شده باشند، خطا می‌دهیم
+        if self.income and self.hazinah and not (self.hazinah.cost_type == 'customer_allocation' and self.transaction_type == 'Income'):
+            raise ValidationError(_('لطفا فقط یکی از هزینه و درآمد را مشخص کنید.'))
+
     def __str__(self):
-        return f"{self.wallet.varedkonandeh.name} - {self.get_transaction_type_display()} - {self.amount:,} ریال"
+        return f"{self.get_transaction_type_display()} - {self.amount:,} ریال"
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
-        # هنگام تایید تراکنش، کیف پول را بروزرسانی کن
-        if self.status == 'approved':
+        # هنگام تایید تراکنش، در صورت وجود کیف پول آن را بروزرسانی کن
+        if self.status == 'approved' and self.wallet:
             self.wallet.calculate_balance()
+
+    def get_transaction_type_display(self):
+        return dict(self.TRANSACTION_TYPES).get(self.transaction_type, _('نامشخص'))
+
+    def approve(self, approved_by_user):
+        """تأیید تراکنش"""
+        if self.status == 'pending':
+            self.status = 'approved'
+            self.approved_by = approved_by_user
+            from django.utils import timezone
+            self.approved_at = timezone.now()
+            self.save()
+            return True
+        return False
+    
+    def reject(self, rejected_by_user):
+        """رد تراکنش"""
+        if self.status == 'pending':
+            self.status = 'rejected'
+            self.approved_by = rejected_by_user
+            from django.utils import timezone
+            self.approved_at = timezone.now()
+            self.save()
+            return True
+        return False
+    
+    def cancel(self):
+        """لغو تراکنش"""
+        if self.status in ['pending', 'approved']:
+            self.status = 'cancelled'
+            self.save()
+            # بروزرسانی کیف پول
+            self.wallet.calculate_balance()
+            return True
+        return False
+
+    
 
 
 class LedgerEntry(models.Model):

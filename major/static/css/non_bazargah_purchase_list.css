@@ -1,0 +1,513 @@
+/**
+ * استایل‌های لیست خریدهای خارج از بازارگاه
+ * شامل responsive table و modal مدیریت ستون‌ها
+ */
+
+/* تنظیمات کلی صفحه */
+.container-fluid {
+    padding: 20px;
+    background-color: #f8f9fa;
+}
+
+.page-header {
+    background: #064E3B;
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.page-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.page-header p {
+    margin: 10px 0 0 0;
+    opacity: 0.9;
+    font-size: 1rem;
+}
+
+/* دکمه‌های مدیریت */
+.d-flex.gap-3 {
+    gap: 15px !important;
+}
+
+.btn-info {
+    background: #4299e1;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-info:hover {
+    background: #3182ce;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+}
+
+.btn-info i {
+    margin-right: 6px;
+}
+
+/* جدول */
+.table-container {
+    background: white;
+    border-radius: 15px;
+    padding: 25px;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    border: none;
+    overflow-x: auto;
+}
+
+.table-container h5 {
+    color: #495057;
+    font-weight: 600;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.table-responsive {
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #dee2e6;
+}
+
+.table {
+    margin-bottom: 0;
+    min-width: 1200px;
+    width: 100%;
+}
+
+.table thead th {
+    background: #064E3B;
+    color: white;
+    border: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+    padding: 15px 12px;
+    font-size: 0.95rem;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.table thead th:last-child {
+    border-right: none;
+}
+
+.table tbody tr {
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.table tbody tr:hover {
+    background-color: #f7fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.table tbody tr:nth-child(odd) {
+    background-color: white;
+}
+
+/* سطرهای انتخاب شده */
+.table tbody tr.selected-row {
+    background-color: #e3f2fd !important;
+    border-left: 4px solid #2196f3 !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.2) !important;
+    transform: translateY(-1px) !important;
+}
+
+.table tbody tr.selected-row:hover {
+    background-color: #bbdefb !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px rgba(33, 150, 243, 0.3) !important;
+}
+
+.table tbody tr.selected-row td {
+    color: #1565c0 !important;
+    font-weight: 500 !important;
+}
+
+/* Checkbox های انتخاب */
+.row-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2196f3;
+}
+
+.row-checkbox:checked {
+    background-color: #2196f3;
+    border-color: #2196f3;
+}
+
+#selectAllCheckbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #2196f3;
+}
+
+/* دکمه‌های انتخاب */
+.btn-success {
+    background: #28a745;
+    border: none;
+    color: white;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-success:disabled {
+    background: #6c757d;
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-outline-primary.btn-sm {
+    border: 1px solid #064E3B;
+    color: #064E3B;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-outline-primary.btn-sm:hover {
+    background: #064E3B;
+    border-color: #064E3B;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.3);
+}
+
+.btn-outline-secondary.btn-sm {
+    border: 1px solid #6c757d;
+    color: #6c757d;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+}
+
+.btn-outline-secondary.btn-sm:hover {
+    background: #6c757d;
+    border-color: #6c757d;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3);
+}
+
+.table tbody td {
+    padding: 15px 12px;
+    vertical-align: middle;
+    text-align: center;
+    border: none;
+    border-right: 1px solid #e2e8f0;
+    font-size: 0.9rem;
+    color: #2d3748;
+    white-space: nowrap;
+}
+
+.table tbody td:last-child {
+    border-right: none;
+}
+
+/* وضعیت‌ها */
+.badge {
+    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.badge.bg-primary {
+    background: #2d5016 !important;
+}
+
+.badge.bg-success {
+    background: #38a169 !important;
+}
+
+.badge.bg-warning {
+    background: #ed8936 !important;
+    color: white !important;
+}
+
+.badge.bg-info {
+    background: #4299e1 !important;
+}
+
+.badge.bg-danger {
+    background: #f56565 !important;
+}
+
+.badge.bg-secondary {
+    background: #6c757d !important;
+}
+
+/* رنگ‌های جدید برای وضعیت‌های مختلف */
+.badge.bg-purple {
+    background: #9c27b0 !important;
+    color: white !important;
+}
+
+.badge.bg-orange {
+    background: #ff9800 !important;
+    color: white !important;
+}
+
+.badge.bg-cyan {
+    background: #00bcd4 !important;
+    color: white !important;
+}
+
+.badge.bg-teal {
+    background: #009688 !important;
+    color: white !important;
+}
+
+.badge.bg-indigo {
+    background: #3f51b5 !important;
+    color: white !important;
+}
+
+.badge.bg-deep-purple {
+    background: #673ab7 !important;
+    color: white !important;
+}
+
+.badge.bg-green {
+    background: #4caf50 !important;
+    color: white !important;
+}
+
+.badge.bg-dark-green {
+    background: #2e7d32 !important;
+    color: white !important;
+}
+
+/* دکمه جزییات */
+.btn-outline-primary {
+    border: 1px solid #064E3B;
+    color: #064E3B;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: #064E3B;
+    border-color: #064E3B;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(6, 78, 59, 0.3);
+}
+
+/* Modal مدیریت ستون‌ها */
+.modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    border: 1px solid #bee5eb;
+    border-radius: 6px;
+    color: #0c5460;
+}
+
+.section-header {
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.section-header h6 {
+    color: #495057;
+    font-weight: 600;
+}
+
+.column-checkbox {
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.column-checkbox:hover {
+    background-color: #e9ecef;
+    border-color: #064E3B;
+}
+
+.column-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+}
+
+.column-checkbox label {
+    margin: 0;
+    font-weight: 500;
+    color: #495057;
+    cursor: pointer;
+    flex: 1;
+}
+
+.modal-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    padding: 15px 20px;
+}
+
+/* دکمه‌های modal */
+.btn-outline-primary,
+.btn-outline-secondary {
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+/* Pagination */
+.pagination {
+    margin-top: 25px;
+    justify-content: center;
+}
+
+.page-link {
+    border: 1px solid #064E3B;
+    color: #064E3B;
+    padding: 12px 18px;
+    margin: 0 3px;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+.page-link:hover {
+    background-color: #064E3B;
+    color: white;
+    border-color: #064E3B;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
+}
+
+.page-item.active .page-link {
+    background: #064E3B;
+    border-color: #064E3B;
+    color: white;
+    box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
+}
+
+/* Empty state */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h5 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #495057;
+}
+
+.empty-state p {
+    font-size: 1.1rem;
+    opacity: 0.7;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+    .table {
+        min-width: 1000px;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    .table-container {
+        padding: 15px;
+    }
+    
+    .table {
+        min-width: 800px;
+    }
+    
+    .table thead th,
+    .table tbody td {
+        padding: 10px 8px;
+        font-size: 0.85rem;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+    
+    .column-checkbox {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .table {
+        min-width: 600px;
+    }
+}

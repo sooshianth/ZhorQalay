@@ -1,0 +1,410 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .hazinah-hero {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(16, 185, 129, 0.3);
+    }
+
+    .hazinah-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .hazinah-form-container {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .form-section-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+        margin: 0;
+    }
+
+    .form-section-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-section-body {
+        padding: 2rem;
+    }
+
+    .info-banner {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border: 1px solid #60a5fa;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .info-banner i {
+        color: #1d4ed8;
+        font-size: 1.5rem;
+        margin-top: 0.25rem;
+    }
+
+    .info-content h4 {
+        color: #1d4ed8;
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+    }
+
+    .info-content p {
+        color: #1e40af;
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .form-actions-container {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #bbf7d0;
+    }
+
+    .breadcrumb-nav {
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .breadcrumb-nav a {
+        color: #10b981;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: #059669;
+        text-decoration: underline;
+    }
+
+    .breadcrumb-nav span {
+        color: #64748b;
+        margin: 0 0.5rem;
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'fledger:fledger_dashboard' %}">داشبورد</a>
+        <span>/</span>
+        <a href="{% url 'fledger:hazinah_list' %}">لیست هزینه‌ها</a>
+        <span>/</span>
+        <span>ثبت هزینه جدید</span>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="hazinah-hero">
+        <div class="hero-content">
+            <h1>
+                <i class="fas fa-plus-circle"></i>
+                {{ title }}
+            </h1>
+            <p>ایجاد هزینه جدید در سیستم مدیریت مالی</p>
+        </div>
+    </div>
+
+    <!-- Info Banner -->
+    <div class="info-banner">
+        <i class="fas fa-lightbulb"></i>
+        <div class="info-content">
+            <h4>راهنمای ثبت هزینه</h4>
+            <p>
+                برای هزینه‌های خرید محصول و تخصیص مشتری، پس از ثبت هزینه می‌توانید فاکتورهای مربوطه را اضافه کنید و مبلغ به صورت خودکار محاسبه خواهد شد.
+                برای سایر انواع هزینه‌ها، مبلغ را مستقیماً وارد کنید.
+            </p>
+        </div>
+    </div>
+
+    <div class="hazinah-form-container">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- اطلاعات اصلی هزینه -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-info-circle"></i>
+                    اطلاعات اصلی هزینه
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.title.label }}</label>
+                        {{ hazinah_form.title }}
+                        {% if hazinah_form.title.errors %}
+                            <div class="text-danger">{{ hazinah_form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.cost_type.label }}</label>
+                        {{ hazinah_form.cost_type }}
+                        {% if hazinah_form.cost_type.errors %}
+                            <div class="text-danger">{{ hazinah_form.cost_type.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ hazinah_form.description.label }}</label>
+                    {{ hazinah_form.description }}
+                    {% if hazinah_form.description.errors %}
+                        <div class="text-danger">{{ hazinah_form.description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- اطلاعات مالی -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-dollar-sign"></i>
+                    اطلاعات مالی
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.amount.label }}</label>
+                        {{ hazinah_form.amount }}
+                        {% if hazinah_form.amount.errors %}
+                            <div class="text-danger">{{ hazinah_form.amount.errors }}</div>
+                        {% endif %}
+                        <div class="fledger-form-help">
+                            اختیاری - در صورت خالی گذاشتن از فاکتورها محاسبه می‌شود
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.tax_amount.label }}</label>
+                        {{ hazinah_form.tax_amount }}
+                        {% if hazinah_form.tax_amount.errors %}
+                            <div class="text-danger">{{ hazinah_form.tax_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.discount_amount.label }}</label>
+                        {{ hazinah_form.discount_amount }}
+                        {% if hazinah_form.discount_amount.errors %}
+                            <div class="text-danger">{{ hazinah_form.discount_amount.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.priority.label }}</label>
+                        {{ hazinah_form.priority }}
+                        {% if hazinah_form.priority.errors %}
+                            <div class="text-danger">{{ hazinah_form.priority.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- اطلاعات زمانی -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-calendar"></i>
+                    اطلاعات زمانی
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.expense_date.label }}</label>
+                        {{ hazinah_form.expense_date }}
+                        {% if hazinah_form.expense_date.errors %}
+                            <div class="text-danger">{{ hazinah_form.expense_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.due_date.label }}</label>
+                        {{ hazinah_form.due_date }}
+                        {% if hazinah_form.due_date.errors %}
+                            <div class="text-danger">{{ hazinah_form.due_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- تنظیمات تکرار -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-redo"></i>
+                    تنظیمات تکرار
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <div class="fledger-checkbox">
+                            {{ hazinah_form.is_recurring }}
+                            <label for="{{ hazinah_form.is_recurring.id_for_label }}">{{ hazinah_form.is_recurring.label }}</label>
+                        </div>
+                        {% if hazinah_form.is_recurring.errors %}
+                            <div class="text-danger">{{ hazinah_form.is_recurring.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ hazinah_form.recurring_period.label }}</label>
+                        {{ hazinah_form.recurring_period }}
+                        {% if hazinah_form.recurring_period.errors %}
+                            <div class="text-danger">{{ hazinah_form.recurring_period.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- فایل پیوست هزینه -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-paperclip"></i>
+                    فایل پیوست
+                </h3>
+            </div>
+            <div class="form-section-body">
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ hazinah_form.attachment.label }}</label>
+                    {{ hazinah_form.attachment }}
+                    {% if hazinah_form.attachment.errors %}
+                        <div class="text-danger">{{ hazinah_form.attachment.errors }}</div>
+                    {% endif %}
+                    <div class="fledger-form-help">
+                        می‌توانید مدارک مربوط به هزینه را ضمیمه کنید.
+                    </div>
+                </div>
+            </div>
+
+            <!-- خطاهای کلی فرم -->
+            {% if hazinah_form.non_field_errors %}
+            <div class="fledger-form-errors">
+                {% for error in hazinah_form.non_field_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- دکمه‌های عملیات -->
+            <div class="form-actions-container">
+                <div class="fledger-form-actions">
+                    <a href="{% url 'fledger:hazinah_list' %}" class="btn-fledger btn-fledger-secondary">
+                        <i class="fas fa-times"></i>
+                        انصراف
+                    </a>
+                    <button type="submit" class="btn-fledger btn-fledger-success">
+                        <i class="fas fa-save"></i>
+                        ذخیره هزینه
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// نمایش/مخفی کردن فیلد دوره تکرار بر اساس انتخاب هزینه تکراری
+document.addEventListener('DOMContentLoaded', function() {
+    const isRecurringCheckbox = document.getElementById('{{ hazinah_form.is_recurring.id_for_label }}');
+    const recurringPeriodGroup = document.querySelector('[for="{{ hazinah_form.recurring_period.id_for_label }}"]').closest('.form-group-fledger');
+    
+    function toggleRecurringPeriod() {
+        if (isRecurringCheckbox && recurringPeriodGroup) {
+            if (isRecurringCheckbox.checked) {
+                recurringPeriodGroup.style.display = 'block';
+            } else {
+                recurringPeriodGroup.style.display = 'none';
+            }
+        }
+    }
+    
+    if (isRecurringCheckbox) {
+        isRecurringCheckbox.addEventListener('change', toggleRecurringPeriod);
+        toggleRecurringPeriod(); // اجرای اولیه
+    }
+
+    // تنظیم الزامی بودن مبلغ بر اساس نوع هزینه
+    const costTypeSelect = document.getElementById('{{ hazinah_form.cost_type.id_for_label }}');
+    const amountInput = document.getElementById('{{ hazinah_form.amount.id_for_label }}');
+    const amountGroup = amountInput ? amountInput.closest('.form-group-fledger') : null;
+    
+    function toggleAmountRequirement() {
+        if (costTypeSelect && amountInput && amountGroup) {
+            const isAmountOptional = costTypeSelect.value === 'product_purchase' || costTypeSelect.value === 'customer_allocation';
+            const label = amountGroup.querySelector('label');
+            
+            if (isAmountOptional) {
+                amountInput.removeAttribute('required');
+                if (label) {
+                    label.textContent = label.textContent.replace(' *', '');
+                    if (!label.textContent.includes('(اختیاری)')) {
+                        const optionalText = costTypeSelect.value === 'customer_allocation' 
+                            ? ' (اختیاری - از فاکتور مشتری محاسبه می‌شود)'
+                            : ' (اختیاری - از فاکتور محاسبه می‌شود)';
+                        label.textContent += optionalText;
+                    }
+                }
+                amountGroup.style.opacity = '0.7';
+            } else {
+                amountInput.setAttribute('required', 'required');
+                if (label) {
+                    label.textContent = label.textContent.replace(' (اختیاری - از فاکتور محاسبه می‌شود)', '');
+                    if (!label.textContent.includes(' *')) {
+                        label.textContent += ' *';
+                    }
+                }
+                amountGroup.style.opacity = '1';
+            }
+        }
+    }
+    
+    if (costTypeSelect) {
+        costTypeSelect.addEventListener('change', toggleAmountRequirement);
+        toggleAmountRequirement(); // اجرای اولیه
+    }
+});
+</script>
+{% endblock %}

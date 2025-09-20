@@ -58,6 +58,88 @@
         .datepicker-plot-area .datepicker-year-view {
             font-family: 'Vazir', sans-serif !important;
         }
+        
+        /* استایل زیرشاخه‌ها */
+        .submenu-item {
+            position: relative;
+        }
+        
+        .submenu-toggle {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: #ffffff;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-radius: 5px;
+            margin: 2px 0;
+        }
+        
+        .submenu-toggle i:first-child {
+            margin-left: 8px;
+        }
+        
+        .submenu-toggle span {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .submenu-arrow {
+            margin-right: 5px;
+        }
+        
+        .submenu-toggle:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        
+        .submenu-arrow {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        
+        .submenu-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        
+        .submenu-content.collapsed {
+            max-height: 0;
+        }
+        
+        .submenu-content:not(.collapsed) {
+            max-height: 200px;
+        }
+        
+        .submenu-content .submenu-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .submenu-content li {
+            margin: 0;
+        }
+        
+        .submenu-content li a {
+            padding: 6px 20px;
+            font-size: 12px;
+            color: #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+        
+        .submenu-content li a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+        }
+        
+        .submenu-content li a i {
+            margin-left: 8px;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
@@ -117,14 +199,31 @@
                     </div>
                     
                     <div class="submenu-container collapsed" id="purchase-management">
-                        <li><a href="{% url 'purchase_list' %}"><i class="fa-solid fa-cart-shopping"></i> خریدها</a></li>
+                        {% if request.user.is_superuser %}
+                        <li><a href="{% url 'create_purchase' %}"><i class="fas fa-plus-circle"></i> ایجاد خرید جدید</a></li>
+                        {% endif %}
+                        <li><a href="{% url 'purchase_list' %}"><i class="fas fa-store"></i> خریدها</a></li>
                         <li><a href="{% url 'cargo_product_list' %}"><i class="fas fa-box icon-products"></i> لیست کوتاژها</a></li>
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
+                        <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> بارنامه‌ها</a></li>
+                        {% endif %}
+                        
                         {% if request.user.is_superuser or request.user.is_staff %}
                         <li><a href="{% url 'bki_api:credentials' %}"><i class="fas fa-phone-alt"></i>تست وب سرویس بازارگاه</a></li>
                         {% endif %}
-                        {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
-                        <li><a href="{% url 'barnameh_list' %}"><i class="fas fa-truck"></i> ویرایش بارنامه‌ها</a></li>
-                        {% endif %}
+                        
+                        <!-- زیرشاخه خریدهای خارج بازارگاه -->
+                        <li class="submenu-item">
+                            <a href="#" class="submenu-toggle">
+                                <i class="fas fa-shopping-bag"></i>
+                                <span>خارج بازارگاه</span>
+                                <i class="fas fa-chevron-down submenu-arrow"></i>
+                            </a>
+                            <ul class="submenu-content collapsed">
+                                <li><a href="{% url 'non_bazargah_purchase_list' %}"><i class="fas fa-shopping-cart"></i> خریدهای خارج بازارگاه</a></li>
+                                <li><a href="{% url 'non_bazargah_barnameh_list' %}"><i class="fas fa-truck"></i> بارنامه‌های خارج بازارگاه</a></li>
+                            </ul>
+                        </li>
                     </div>
                 </div>
                 
@@ -148,7 +247,30 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته چهارم: مدیریت داده‌ها -->
+                <!-- دسته چهارم: داشبوردهای مدیریتی -->
+                {% if request.user.is_superuser or request.user.is_staff or request.user.logistics_manager or request.user.financial_manager %}
+                <div class="menu-category">
+                    <div class="category-title" data-toggle="collapse" data-target="management-dashboards">
+                        <i class="fas fa-tachometer-alt category-icon"></i>
+                        <span>داشبوردهای مدیریتی</span>
+                        <i class="fas fa-chevron-down category-arrow"></i>
+                    </div>
+                    
+                    <div class="submenu-container collapsed" id="management-dashboards">
+                        {% if request.user.is_superuser or request.user.logistics_manager %}
+                        <li><a href="{% url 'fledger:logistics_dashboard' %}"><i class="fas fa-truck-loading"></i> داشبورد مدیریت منابع</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
+                        <li><a href="{% url 'fledger:fledger_dashboard' %}"><i class="fas fa-wallet"></i> داشبورد مالی</a></li>
+                        {% endif %}
+                        {% if request.user.is_superuser or request.user.is_staff %}
+                        <li><a href="http://192.168.100.56:3000"><i class="fas fa-chart-pie"></i> داشبورد هوش تجاری</a></li>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- دسته پنجم: مدیریت داده‌ها -->
                 {% if request.user.is_superuser or request.user.logistics_manager %}
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="data-management">
@@ -163,37 +285,7 @@
                 </div>
                 {% endif %}
                 
-                <!-- دسته پنجم: امور مالی -->
-                {% if request.user.is_superuser or request.user.is_staff or request.user.financial_manager %}
-                <div class="menu-category">
-                    <div class="category-title" data-toggle="collapse" data-target="financial-management">
-                        <i class="fas fa-coins category-icon"></i>
-                        <span>امور مالی</span>
-                        <i class="fas fa-chevron-down category-arrow"></i>
-                    </div>
-                    
-                    <div class="submenu-container collapsed" id="financial-management">
-                        <li><a href="{% url 'fledger:fledger_dashboard' %}"><i class="fas fa-wallet"></i> داشبورد مالی</a></li>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- دسته ششم: هوش تجاری -->
-                {% if request.user.is_superuser or request.user.is_staff %}
-                <div class="menu-category">
-                    <div class="category-title" data-toggle="collapse" data-target="business-intelligence">
-                        <i class="fas fa-chart-line category-icon"></i>
-                        <span>هوش تجاری و گزارشات</span>
-                        <i class="fas fa-chevron-down category-arrow"></i>
-                    </div>
-                    
-                    <div class="submenu-container collapsed" id="business-intelligence">
-                        <li><a href="{% url 'bi:bi_dashboard' %}"><i class="fas fa-chart-pie"></i> داشبورد هوش تجاری</a></li>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <!-- دسته هفتم: منابع انسانی -->
+                <!-- دسته ششم: منابع انسانی -->
                 <div class="menu-category">
                     <div class="category-title" data-toggle="collapse" data-target="reports-management">
                         <i class="fas fa-user-tie category-icon"></i>
@@ -375,6 +467,26 @@
                             }
                         }
                     });
+                });
+            });
+            
+            // اضافه کردن عملکرد زیرشاخه‌ها
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+            submenuToggles.forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // پیدا کردن submenu مربوطه
+                    const submenu = this.nextElementSibling;
+                    
+                    // تغییر وضعیت فلش
+                    const arrow = this.querySelector('.submenu-arrow');
+                    if (arrow) {
+                        arrow.style.transform = submenu.classList.contains('collapsed') ? 'rotate(180deg)' : 'rotate(0)';
+                    }
+                    
+                    // تغییر وضعیت منو
+                    submenu.classList.toggle('collapsed');
                 });
             });
 

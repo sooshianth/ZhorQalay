@@ -1,0 +1,871 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}لیست هزینه‌ها{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    /* آمار مالی - کوچک‌تر و در یک خط */
+    .financial-stats {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .financial-stats::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .financial-stats h2 {
+        margin: 0 0 1.5rem 0;
+        color: #065f46;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        text-align: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .financial-stats h2::after {
+        content: '';
+        position: absolute;
+        bottom: -0.75rem;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80px;
+        height: 3px;
+        background: linear-gradient(90deg, #047857, #059669);
+        border-radius: 2px;
+    }
+
+    .financial-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 1rem;
+    }
+
+    .financial-stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 0.875rem;
+        padding: 1.25rem 1rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .financial-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 3px;
+        height: 100%;
+        background: #64748b;
+        transition: all 0.3s ease;
+    }
+
+    .financial-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .financial-stat-card.total::before { background: #8b5cf6; }
+    .financial-stat-card.pending::before { background: #f59e0b; }
+    .financial-stat-card.approved::before { background: #10b981; }
+    .financial-stat-card.paid::before { background: #3b82f6; }
+    .financial-stat-card.remaining::before { background: #ef4444; }
+
+    .financial-stat-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 0.75rem;
+        margin: 0 auto 0.75rem;
+        font-size: 1rem;
+    }
+
+    .financial-stat-card.total .financial-stat-icon {
+        background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+        color: white;
+    }
+
+    .financial-stat-card.pending .financial-stat-icon {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: white;
+    }
+
+    .financial-stat-card.approved .financial-stat-icon {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+    }
+
+    .financial-stat-card.paid .financial-stat-icon {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+    }
+
+    .financial-stat-card.remaining .financial-stat-icon {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
+    }
+
+    .financial-stat-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #1e293b;
+        direction: ltr;
+        text-align: center;
+    }
+
+    .financial-stat-content p {
+        margin: 0 0 0.25rem 0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.75rem;
+        text-align: center;
+    }
+
+    .financial-stat-content small {
+        color: #94a3b8;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-align: center;
+    }
+
+    /* فیلترهای بهبود یافته */
+    .fledger-filters {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-filters::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+
+    .fledger-filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .fledger-filter-group label {
+        font-weight: 600;
+        color: #065f46;
+        font-size: 0.875rem;
+    }
+
+    .form-control-fledger {
+        padding: 0.75rem 1rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+    }
+
+    .form-control-fledger:focus {
+        outline: none;
+        border-color: #047857;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+    }
+
+    .fledger-filter-actions {
+        display: flex;
+        gap: 1rem;
+        grid-column: 1 / -1;
+        justify-content: center;
+        margin-top: 1rem;
+    }
+
+    /* جدول بهبود یافته */
+    .fledger-table-container {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-table-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.875rem;
+    }
+
+    .fledger-table thead {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+
+    .fledger-table th {
+        padding: 1rem 1.5rem;
+        text-align: right;
+        font-weight: 600;
+        color: #065f46;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+    }
+
+    .fledger-table tbody tr {
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.3s ease;
+    }
+
+    .fledger-table tbody tr:nth-child(even) {
+        background-color: #f8fafc;
+    }
+
+    .fledger-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+    }
+
+    .fledger-table tbody tr:hover {
+        background-color: #e0f2fe !important;
+        transform: scale(1.01);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .fledger-table td {
+        padding: 1rem 1.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f5f9;
+    }
+
+    .fledger-link {
+        color: #065f46;
+        text-decoration: none;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .fledger-link:hover {
+        color: #047857;
+        text-decoration: none;
+    }
+
+    .fledger-amount {
+        font-weight: 700;
+        color: #1e293b;
+        direction: ltr;
+        text-align: right;
+    }
+
+    .fledger-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        display: inline-block;
+        text-align: center;
+        min-width: 80px;
+    }
+
+    .fledger-badge-pending {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+    }
+
+    .fledger-badge-approved {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .fledger-badge-rejected {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .fledger-badge-financial_approved {
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+        color: #1d4ed8;
+    }
+
+    .fledger-badge-paid {
+        background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+        color: #047857;
+    }
+
+    .fledger-badge-unpaid {
+        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+        color: #c53030;
+    }
+
+    .fledger-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .btn-fledger-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+        border-radius: 0.5rem;
+        min-width: 32px;
+        height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .fledger-empty {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #64748b;
+        font-size: 1rem;
+    }
+
+    .fledger-empty i {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        display: block;
+        color: #94a3b8;
+    }
+
+    /* صفحه‌بندی بهبود یافته */
+    .fledger-pagination {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .fledger-page-info {
+        color: #065f46;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        background: #f0fdf4;
+        border-radius: 0.5rem;
+        border: 1px solid #bbf7d0;
+    }
+
+    /* آمار کلی - در یک خط */
+    .fledger-stats {
+        background: white;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .fledger-stats::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #065f46, #047857, #059669, #10b981);
+        border-radius: 1.25rem 1.25rem 0 0;
+    }
+
+    .fledger-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .fledger-stat-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+        min-height: 120px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .fledger-stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #047857, #059669);
+    }
+
+    .fledger-stat-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .fledger-stat-icon {
+        width: 3rem;
+        height: 3rem;
+        border-radius: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+        font-size: 1.25rem;
+        color: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .fledger-stat-icon.pending {
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+    }
+
+    .fledger-stat-icon.approved {
+        background: linear-gradient(135deg, #10b981, #059669);
+    }
+
+    .fledger-stat-icon.financial-approved {
+        background: linear-gradient(135deg, #06b6d4, #0891b2);
+    }
+
+    .fledger-stat-icon.rejected {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+    }
+
+    .fledger-stat-content h3 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #1e293b;
+        direction: ltr;
+        text-align: center;
+    }
+
+    .fledger-stat-content p {
+        margin: 0;
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-align: center;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .financial-stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .financial-stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .fledger-filter-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .fledger-filter-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+        
+        .fledger-table {
+            font-size: 0.75rem;
+        }
+        
+        .fledger-table th,
+        .fledger-table td {
+            padding: 0.75rem 1rem;
+        }
+        
+        .fledger-actions {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .financial-stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .fledger-table-container {
+            padding: 1rem;
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-money-bill-wave"></i>
+            مدیریت هزینه‌ها
+        </h1>
+        <div class="fledger-header-actions">
+            <a href="{% url 'fledger:create_hazinah' %}" class="btn-fledger btn-fledger-success">
+                <i class="fas fa-plus"></i>
+                ثبت هزینه جدید
+            </a>
+        </div>
+    </div>
+
+    <!-- آمار کلی -->
+    <div class="fledger-stats">
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon">
+                <i class="fas fa-list"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ total_count }}</h3>
+                <p>کل هزینه‌ها</p>
+            </div>
+        </div>
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon pending">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ pending_count }}</h3>
+                <p>در انتظار تأیید</p>
+            </div>
+        </div>
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon approved">
+                <i class="fas fa-check"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ approved_count }}</h3>
+                <p>تأیید شده</p>
+            </div>
+        </div>
+        {% if financial_approved_count > 0 %}
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon financial-approved">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ financial_approved_count }}</h3>
+                <p>تأیید مدیر مالی</p>
+            </div>
+        </div>
+        {% endif %}
+        {% if rejected_count > 0 %}
+        <div class="fledger-stat-card">
+            <div class="fledger-stat-icon rejected">
+                <i class="fas fa-times"></i>
+            </div>
+            <div class="fledger-stat-content">
+                <h3>{{ rejected_count }}</h3>
+                <p>رد شده</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- آمار مالی -->
+    <div class="financial-stats">
+        <h2>
+            <i class="fas fa-chart-line"></i>
+            آمار مالی
+        </h2>
+        <div class="financial-stats-grid">
+            <div class="financial-stat-card total">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-coins"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ total_amount|floatformat:0 }}</h3>
+                    <p>کل مبلغ هزینه‌ها</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card pending">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-hourglass-half"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ pending_amount|floatformat:0 }}</h3>
+                    <p>در انتظار تأیید</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card approved">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ approved_amount|floatformat:0 }}</h3>
+                    <p>تأیید شده</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card paid">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ total_paid_transactions|floatformat:0 }}</h3>
+                    <p>پرداخت شده</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+            
+            <div class="financial-stat-card remaining">
+                <div class="financial-stat-icon">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div class="financial-stat-content">
+                    <h3>{{ remaining_amount|floatformat:0 }}</h3>
+                    <p>باقی‌مانده</p>
+                    <small>ریال</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلترها -->
+    <div class="fledger-filters">
+        <form method="get" class="fledger-filter-form">
+            <div class="fledger-filter-group">
+                <label>جستجو:</label>
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="جستجو در عنوان و توضیحات..." class="form-control-fledger">
+            </div>
+            
+            <div class="fledger-filter-group">
+                <label>نوع هزینه:</label>
+                <select name="cost_type" class="form-control-fledger">
+                    <option value="">همه انواع هزینه</option>
+                    {% for value, label in cost_type_choices %}
+                        <option value="{{ value }}" {% if cost_type_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="fledger-filter-group">
+                <label>وضعیت تأیید:</label>
+                <select name="approval_status" class="form-control-fledger">
+                    <option value="">همه وضعیت‌ها</option>
+                    {% for value, label in approval_status_choices %}
+                        <option value="{{ value }}" {% if approval_status_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="fledger-filter-actions">
+                <a type="submit" class="btn-fledger btn-fledger-primary">
+                    <i class="fas fa-search"></i>
+                    جستجو
+                </a>
+                <a href="{% url 'fledger:hazinah_list' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    پاک کردن
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- جدول هزینه‌ها -->
+    <div class="fledger-table-container">
+        <table class="fledger-table">
+            <thead>
+                <tr>
+                    <th>عنوان</th>
+                    <th>نوع هزینه</th>
+                    <th>مبلغ</th>
+                    <th>وضعیت تأیید</th>
+                    <th>وضعیت پرداخت</th>
+                    <th>تاریخ هزینه</th>
+                    <th>ثبت کننده</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for hazinah in hazinah_page %}
+                <tr>
+                    <td>
+                        <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" class="fledger-link">
+                            {{ hazinah.title }}
+                        </a>
+                    </td>
+                    <td>{{ hazinah.get_cost_type_display }}</td>
+                    <td class="fledger-amount">{{ hazinah.amount|floatformat:0 }} ریال</td>
+                    <td>
+                        <span class="fledger-badge fledger-badge-{{ hazinah.get_approval_status_display_color }}">
+                            {{ hazinah.get_approval_status_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="fledger-badge fledger-badge-{{ hazinah.get_payment_status_display_color }}">
+                            {{ hazinah.payment_status }}
+                        </span>
+                    </td>
+                    <td>{{ hazinah.expense_date }}</td>
+                    <td>{{ hazinah.created_by.get_full_name|default:hazinah.created_by.username }}</td>
+                    <td>
+                        <div class="fledger-actions">
+                            <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" 
+                               class="btn-fledger btn-fledger-info btn-fledger-sm" 
+                               title="مشاهده جزئیات">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            
+                            {% if hazinah.approval_status == 'pending' %}
+                                <a href="{% url 'fledger:edit_hazinah' hazinah.id %}" 
+                                   class="btn-fledger btn-fledger-warning btn-fledger-sm"
+                                   title="ویرایش">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                
+                                {% if hazinah.can_be_approved_by %}
+                                <form method="post" action="{% url 'fledger:approve_hazinah' hazinah.id %}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('آیا از تأیید این هزینه مطمئن هستید؟');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                            title="تأیید سریع">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if hazinah.approval_status == 'financial_approved' %}
+                                <span class="btn-fledger btn-fledger-info btn-fledger-sm" 
+                                      title="در انتظار تأیید ادمین">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </span>
+                                
+                                {% if user.role == 'admin' %}
+                                <form method="post" action="{% url 'fledger:approve_hazinah' hazinah.id %}" 
+                                      style="display: inline;" 
+                                      onsubmit="return confirm('آیا از تأیید نهایی این هزینه مطمئن هستید؟');">
+                                    {% csrf_token %}
+                                    <button type="submit" 
+                                            class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                            title="تأیید نهایی (ادمین)">
+                                        <i class="fas fa-check-double"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            {% endif %}
+                            
+                            {% if hazinah.approval_status in 'approved,auto_approved' and hazinah.remaining_amount > 0 %}
+                                <a href="{% url 'fledger:pay_hazinah' hazinah.id %}" 
+                                   class="btn-fledger btn-fledger-success btn-fledger-sm"
+                                   title="پرداخت">
+                                    <i class="fas fa-credit-card"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="fledger-empty">
+                        <i class="fas fa-inbox"></i>
+                        هیچ هزینه‌ای یافت نشد.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- صفحه‌بندی -->
+    {% if hazinah_page.has_other_pages %}
+    <div class="fledger-pagination">
+        {% if hazinah_page.has_previous %}
+            <a href="?page={{ hazinah_page.previous_page_number }}&search={{ search_query }}&cost_type={{ cost_type_filter }}&approval_status={{ approval_status_filter }}" 
+               class="btn-fledger btn-fledger-secondary">قبلی</a>
+        {% endif %}
+        
+        <span class="fledger-page-info">
+            صفحه {{ hazinah_page.number }} از {{ hazinah_page.paginator.num_pages }}
+        </span>
+        
+        {% if hazinah_page.has_next %}
+            <a href="?page={{ hazinah_page.next_page_number }}&search={{ search_query }}&cost_type={{ cost_type_filter }}&approval_status={{ approval_status_filter }}" 
+               class="btn-fledger btn-fledger-secondary">بعدی</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

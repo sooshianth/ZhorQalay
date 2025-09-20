@@ -324,7 +324,7 @@ def apply_barnameh_filter(request):
         # ایجاد QuerySet پایه
         base_queryset = Barnameh.objects.select_related(
             'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
-        )
+        ).filter(type='Bazargah')
         
         # اعمال فیلترها - فقط اگر فیلتر وجود داشته باشد
         if filters:
@@ -811,7 +811,7 @@ def get_barnameh_column_values(request):
         # ایجاد QuerySet پایه
         base_queryset = Barnameh.objects.select_related(
             'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
-        )
+        ).filter(type='Bazargah')
         
         # اعمال فیلترهای فعلی (بجز فیلتر ستون فعلی)
         if current_filters:
@@ -1543,7 +1543,7 @@ def barnameh_list(request):
     # ایجاد QuerySet پایه
     base_queryset = Barnameh.objects.select_related(
         'purchase', 'shenase_takhsis', 'purchase__cargo', 'purchase__cargo__vared_konandeh'
-    ).order_by('-barnameh_created_at')
+    ).filter(type='Bazargah').order_by('-barnameh_created_at')
     
     # اعمال فیلترهای پایه
     filters = Q()
@@ -2788,7 +2788,7 @@ def export_full_barnameh_excel(request):
             'shenase_takhsis',
             'purchase__cargo',
             'purchase__cargo__vared_konandeh'
-        ).order_by('-barnameh_created_at')
+        ).filter(type='Bazargah').order_by('-barnameh_created_at')
         
         # اعمال فیلتر تاریخ اگر مشخص شده باشد
         if from_date or to_date:

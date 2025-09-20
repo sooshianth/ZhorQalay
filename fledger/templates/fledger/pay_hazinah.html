@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}پرداخت هزینه - {{ hazinah.title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .fledger-info-banner {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        border: 1px solid #60a5fa;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .info-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
+        height: 2.5rem;
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border-radius: 50%;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+
+    .info-content h4 {
+        color: #1d4ed8;
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+    }
+
+    .info-content p {
+        color: #1e40af;
+        margin: 0;
+        line-height: 1.6;
+    }
+</style>
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-credit-card"></i>
+            پرداخت هزینه: {{ hazinah.title }}
+        </h1>
+    </div>
+
+    <!-- اطلاعات هزینه -->
+    <div class="fledger-detail-card">
+        <h2>
+            <i class="fas fa-info-circle"></i>
+            اطلاعات هزینه
+        </h2>
+        
+        <div class="fledger-detail-grid">
+            <div class="fledger-detail-item">
+                <label>عنوان:</label>
+                <span>{{ hazinah.title }}</span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>نوع هزینه:</label>
+                <span>{{ hazinah.get_cost_type_display }}</span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>مبلغ کل:</label>
+                <span class="fledger-amount">
+                    {% if hazinah.final_amount %}
+                        {{ hazinah.final_amount|floatformat:0 }}
+                    {% else %}
+                        {{ hazinah.amount|floatformat:0 }}
+                    {% endif %}
+                    ریال
+                </span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>مبلغ باقی‌مانده:</label>
+                <span class="fledger-amount highlight">
+                    {% if remaining_amount > 0 %}
+                        {{ remaining_amount|floatformat:0 }} ریال
+                    {% else %}
+                        <span style="color: #28a745; font-weight: bold;">پرداخت کامل شده</span>
+                    {% endif %}
+                </span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>تاریخ هزینه:</label>
+                <span>{{ hazinah.expense_date }}</span>
+            </div>
+            
+            {% if hazinah.due_date %}
+            <div class="fledger-detail-item">
+                <label>سررسید پرداخت:</label>
+                <span>{{ hazinah.due_date }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- اطلاع‌رسانی -->
+    <div class="fledger-info-banner">
+        <div class="info-icon">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="info-content">
+            <h4>نکته مهم</h4>
+            <p>پرداخت شما بلافاصله ثبت و اعمال می‌شود. لطفاً مبلغ و اطلاعات پرداخت را با دقت وارد کنید.</p>
+        </div>
+    </div>
+
+    <!-- فرم پرداخت -->
+    <div class="fledger-form">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="fledger-form-section">
+                <h2>اطلاعات پرداخت</h2>
+                
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ form.paid_at.label }}</label>
+                        {{ form.paid_at }}
+                        {% if form.paid_at.errors %}
+                            <div class="text-danger">{{ form.paid_at.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.amount.label }}</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}
+                        <div class="text-danger">{{ form.amount.errors }}</div>
+                    {% endif %}
+                    <div class="fledger-form-help">
+                        حداکثر مبلغ قابل پرداخت: {{ remaining_amount|floatformat:0 }} ریال
+                    </div>
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.description.label }}</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="text-danger">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.attachment.label }}</label>
+                    {{ form.attachment }}
+                    {% if form.attachment.errors %}
+                        <div class="text-danger">{{ form.attachment.errors }}</div>
+                    {% endif %}
+                    <div class="fledger-form-help">
+                        می‌توانید رسید پرداخت یا سایر مدارک مربوطه را ضمیمه کنید.
+                    </div>
+                </div>
+            </div>
+
+            <!-- خطاهای کلی فرم -->
+            {% if form.non_field_errors %}
+            <div class="fledger-form-errors">
+                {% for error in form.non_field_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- دکمه‌های عملیات -->
+            <div class="fledger-form-actions">
+                <a href="{% url 'fledger:hazinah_detail' hazinah.id %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-credit-card"></i>
+                    ثبت پرداخت
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- هشدار -->
+    <div class="fledger-warning-card">
+        <i class="fas fa-exclamation-triangle"></i>
+        <div>
+            <h3>توجه</h3>
+            <p>پس از ثبت پرداخت، تراکنش بلافاصله تأیید شده و سیستم بروزرسانی خواهد شد. مطمئن شوید که اطلاعات وارد شده صحیح است.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// محاسبه خودکار مبلغ باقی‌مانده پس از پرداخت
+document.addEventListener('DOMContentLoaded', function() {
+    const amountInput = document.getElementById('{{ form.amount.id_for_label }}');
+    const remainingAmount = {{ remaining_amount|default:0 }};
+    
+    if (amountInput && remainingAmount > 0) {
+        // تنظیم حداکثر مقدار برای input
+        amountInput.setAttribute('max', remainingAmount);
+        
+        amountInput.addEventListener('input', function() {
+            const paymentAmount = parseFloat(this.value) || 0;
+            
+            // محدود کردن مقدار ورودی
+            if (paymentAmount > remainingAmount) {
+                this.value = remainingAmount;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

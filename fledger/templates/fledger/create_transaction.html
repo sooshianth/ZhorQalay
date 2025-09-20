@@ -58,6 +58,37 @@
                 {% endif %}
             </div>
 
+            <!-- فیلدهای جدید -->
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.payment_method.label }}</label>
+                {{ form.payment_method }}
+                {% if form.payment_method.errors %}
+                    <div class="text-danger">{{ form.payment_method.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.hazinah.label }}</label>
+                {{ form.hazinah }}
+                {% if form.hazinah.errors %}
+                    <div class="text-danger">{{ form.hazinah.errors }}</div>
+                {% endif %}
+                <div style="font-size: 0.85em; color: #666; margin-top: 0.25rem;">
+                    در صورت انتخاب نوع تراکنش "هزینه"، هزینه مربوطه را انتخاب کنید.
+                </div>
+            </div>
+
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">{{ form.income.label }}</label>
+                {{ form.income }}
+                {% if form.income.errors %}
+                    <div class="text-danger">{{ form.income.errors }}</div>
+                {% endif %}
+                <div style="font-size: 0.85em; color: #666; margin-top: 0.25rem;">
+                    در صورت انتخاب نوع تراکنش "درآمد"، درآمد مربوطه را انتخاب کنید.
+                </div>
+            </div>
+
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 <a href="{% url 'fledger:fledger_dashboard' %}" class="btn-fledger btn-fledger-secondary">
                     <i class="fas fa-times"></i>

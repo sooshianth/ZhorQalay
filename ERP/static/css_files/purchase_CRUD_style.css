@@ -1106,3 +1106,447 @@
 .dark-mode .no-notifications {
     color: #ccc;
 }
+
+/* استایل‌های مخصوص خرید خارج بازارگاه */
+.non-bazargah-container {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 25px;
+  border-radius: 15px;
+  margin-bottom: 30px;
+  box-shadow: 0 10px 30px rgba(195, 207, 226, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.non-bazargah-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.non-bazargah-header {
+  color: #2c3e50;
+  border-bottom: 3px solid #3498db;
+  padding-bottom: 15px;
+  margin-bottom: 25px;
+  font-weight: bold;
+  font-size: 1.8rem;
+  position: relative;
+  z-index: 1;
+}
+
+.non-bazargah-badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 25px;
+  font-weight: bold;
+  margin-right: 15px;
+  font-size: 0.9rem;
+  box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+  display: inline-block;
+  position: relative;
+}
+
+/* تایم‌لاین مخصوص خرید خارج بازارگاه */
+.non-bazargah-timeline {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #3498db;
+  border-radius: 15px;
+  padding: 20px;
+  margin: 25px 0;
+  box-shadow: 0 8px 25px rgba(52, 152, 219, 0.15);
+}
+
+.non-bazargah-timeline .timeline-item {
+  background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+  border: 2px solid #e9ecef;
+  min-width: 140px;
+  padding: 20px 15px;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.non-bazargah-timeline .timeline-item.completed {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-color: #28a745;
+  transform: translateY(-2px);
+}
+
+.non-bazargah-timeline .timeline-item.pending {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-color: #ffc107;
+}
+
+.non-bazargah-timeline .timeline-icon {
+  width: 60px;
+  height: 60px;
+  font-size: 1.4rem;
+  margin-bottom: 12px;
+  border: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.non-bazargah-timeline .timeline-item.completed .timeline-icon {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border-color: #155724;
+  box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+}
+
+.non-bazargah-timeline .timeline-item.pending .timeline-icon {
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+  border-color: #856404;
+  box-shadow: 0 5px 20px rgba(255, 193, 7, 0.4);
+}
+
+.non-bazargah-timeline .timeline-item:hover {
+  transform: translateY(-8px) scale(1.05);
+  box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+  z-index: 10;
+  position: relative;
+}
+
+.non-bazargah-timeline .timeline-label {
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  color: #495057;
+}
+
+.non-bazargah-timeline .timeline-status {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* کارت‌های اطلاعات مخصوص خرید خارج بازارگاه */
+.non-bazargah-info-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #e9ecef;
+  border-radius: 15px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+}
+
+.non-bazargah-info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+}
+
+.non-bazargah-info-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+  border-color: #3498db;
+}
+
+.non-bazargah-info-card h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  border-bottom: 2px dashed #bdc3c7;
+  padding-bottom: 12px;
+}
+
+.non-bazargah-info-card h3 i {
+  margin-left: 10px;
+  color: #3498db;
+  font-size: 1.2rem;
+}
+
+.non-bazargah-info-card p {
+  margin-bottom: 12px;
+  font-size: 1.1rem;
+  color: #34495e;
+  line-height: 1.5;
+}
+
+.non-bazargah-info-card p:first-of-type {
+  font-weight: bold;
+  font-size: 1.3rem;
+  color: #2c3e50;
+}
+
+/* دکمه‌های اکشن مخصوص خرید خارج بازارگاه */
+.non-bazargah-action-btn {
+  background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-weight: bold;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 8px;
+  min-width: 200px;
+}
+
+.non-bazargah-action-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(52, 152, 219, 0.4);
+  background: linear-gradient(135deg, #2980b9 0%, #21618c 100%);
+}
+
+.non-bazargah-action-btn:active {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
+}
+
+.non-bazargah-action-btn.financial {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+}
+
+.non-bazargah-action-btn.financial:hover {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+  box-shadow: 0 10px 25px rgba(231, 76, 60, 0.4);
+}
+
+.non-bazargah-action-btn.logistics {
+  background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+  box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+}
+
+.non-bazargah-action-btn.logistics:hover {
+  background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+  box-shadow: 0 10px 25px rgba(39, 174, 96, 0.4);
+}
+
+.non-bazargah-action-btn.danger {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+}
+
+.non-bazargah-action-btn.danger:hover {
+  background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+  box-shadow: 0 10px 25px rgba(231, 76, 60, 0.4);
+}
+
+.non-bazargah-action-btn.warning {
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+  box-shadow: 0 5px 15px rgba(243, 156, 18, 0.3);
+}
+
+.non-bazargah-action-btn.warning:hover {
+  background: linear-gradient(135deg, #e67e22 0%, #d68910 100%);
+  box-shadow: 0 10px 25px rgba(243, 156, 18, 0.4);
+}
+
+/* فرم مخصوص خرید خارج بازارگاه */
+.non-bazargah-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 25px;
+  margin: 30px 0;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+  border: 2px solid #e9ecef;
+}
+
+.non-bazargah-form-group {
+  position: relative;
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.non-bazargah-form-group:hover {
+  transform: translateY(-3px);
+}
+
+.non-bazargah-form-group label {
+  display: block;
+  margin-bottom: 10px;
+  color: #2c3e50;
+  font-weight: bold;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.non-bazargah-form-group label i {
+  margin-left: 8px;
+  color: #3498db;
+  font-size: 1.1rem;
+}
+
+.non-bazargah-form-group input,
+.non-bazargah-form-group select,
+.non-bazargah-form-group textarea {
+  width: 100%;
+  padding: 15px 18px;
+  border: 2px solid #bdc3c7;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  background-color: white;
+  box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+  font-size: 1rem;
+}
+
+.non-bazargah-form-group input:focus,
+.non-bazargah-form-group select:focus,
+.non-bazargah-form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 4px rgba(52, 152, 219, 0.2);
+  transform: translateY(-2px);
+}
+
+.non-bazargah-form-group input[readonly],
+.non-bazargah-form-group select[disabled],
+.non-bazargah-form-group textarea[readonly] {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* بخش مدیریت اسناد مخصوص خرید خارج بازارگاه */
+.non-bazargah-document-section {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  border-radius: 15px;
+  padding: 30px;
+  margin-top: 40px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.non-bazargah-document-section .section-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #3498db;
+  display: flex;
+  align-items: center;
+}
+
+.non-bazargah-document-section .section-title i {
+  margin-left: 12px;
+  color: #3498db;
+  font-size: 1.4rem;
+}
+
+/* ریسپانسیو برای خرید خارج بازارگاه */
+@media (max-width: 768px) {
+  .non-bazargah-container {
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  
+  .non-bazargah-header {
+    font-size: 1.5rem;
+  }
+  
+  .non-bazargah-badge {
+    padding: 6px 15px;
+    font-size: 0.8rem;
+  }
+  
+  .non-bazargah-form-grid {
+    grid-template-columns: 1fr;
+    padding: 20px;
+  }
+  
+  .non-bazargah-action-btn {
+    width: 100%;
+    margin: 5px 0;
+    min-width: auto;
+  }
+  
+  .non-bazargah-timeline .timeline-item {
+    min-width: 100px;
+    padding: 15px 10px;
+  }
+  
+  .non-bazargah-timeline .timeline-icon {
+    width: 45px;
+    height: 45px;
+    font-size: 1.2rem;
+  }
+  
+  .non-bazargah-timeline .timeline-label {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .non-bazargah-info-card {
+    padding: 20px;
+  }
+  
+  .non-bazargah-info-card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .non-bazargah-document-section {
+    padding: 20px;
+  }
+  
+  .document-card {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+  
+  .document-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* انیمیشن‌های اضافی */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(52, 152, 219, 0.6);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.3);
+  }
+}
+
+.non-bazargah-container {
+  animation: slideInFromRight 0.6s ease-out;
+}
+
+.non-bazargah-action-btn:focus {
+  animation: pulseGlow 1s infinite;
+}

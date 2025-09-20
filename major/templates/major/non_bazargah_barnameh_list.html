@@ -1,0 +1,1221 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}لیست بارنامه‌های خارج از بازارگاه{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+<link href="{% static 'css/non_bazargah_barnameh_list.css' %}" rel="stylesheet">
+<style>
+    /* Bulk Edit Controls */
+    .bulk-edit-controls {
+        background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%) !important;
+        border: 2px solid #fc8181 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        margin-bottom: 20px !important;
+        box-shadow: 0 2px 8px rgba(252, 129, 129, 0.2) !important;
+    }
+    
+    .bulk-edit-toolbar {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+        gap: 15px !important;
+    }
+    
+    .selected-count {
+        display: flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        font-weight: 600 !important;
+        color: #dc2626 !important;
+        font-size: 1.1rem !important;
+    }
+    
+    .bulk-edit-actions {
+        display: flex !important;
+        gap: 10px !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .bulk-edit-actions .btn {
+        padding: 8px 16px !important;
+        font-size: 0.9rem !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease !important;
+    }
+    
+    .bulk-edit-actions .btn:hover {
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .bulk-edit-actions .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-info {
+        background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important;
+        border: none !important;
+    }
+    
+    .bulk-edit-actions .btn-secondary {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%) !important;
+        border: none !important;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .bulk-edit-toolbar {
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        
+        .bulk-edit-actions {
+            justify-content: center !important;
+        }
+        
+        .bulk-edit-actions .btn {
+            flex: 1 !important;
+            min-width: 120px !important;
+        }
+    }
+    
+    /* Filter Styles - استایل‌های جستجو از فایل CSS بارگذاری می‌شوند */
+    
+    .filter-btn {
+        font-size: 0.8rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+    }
+    
+    .filter-modal {
+        backdrop-filter: blur(5px);
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .filter-status-container .alert {
+        margin-bottom: 0;
+        border-radius: 8px;
+    }
+    
+    .table-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 8px;
+        padding: 20px;
+    }
+    
+    .animate-fade-in {
+        animation: fadeIn 0.3s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .animate-slide-up {
+        animation: slideUp 0.3s ease-out;
+    }
+    
+    @keyframes slideUp {
+        from { 
+            opacity: 0; 
+            transform: translateY(20px); 
+        }
+        to { 
+            opacity: 1; 
+            transform: translateY(0); 
+        }
+    }
+    
+    /* Required fields styling */
+    .required-field {
+        background-color: #fef3f2;
+        border: 1px solid #fecaca;
+        border-radius: 6px;
+        padding: 8px;
+    }
+    
+    .required-field .form-check-label {
+        font-weight: 600;
+        color: #dc2626;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- هدر صفحه -->
+    <div class="page-header">
+        <h1><i class="fas fa-truck"></i> لیست بارنامه‌های خارج از بازارگاه</h1>
+        <p>مدیریت و پیگیری بارنامه‌های خارج از سیستم بازارگاه</p>
+    </div>
+
+    <!-- دکمه‌های مدیریت -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#columnsModal">
+                <i class="fas fa-columns me-2"></i>مدیریت ستون‌ها
+            </button>
+            <button type="button" class="btn btn-success" id="exportExcelBtn" disabled>
+                <i class="fas fa-file-excel me-2"></i>خروجی اکسل
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullExportModal">
+                <i class="fas fa-download me-2"></i>خروجی اکسل کامل
+            </button>
+            <a href="{% url 'fast_non_bazargah_barnameh_report_pdf' %}" class="btn btn-danger" target="_blank">
+                <i class="fas fa-file-pdf me-2"></i>گزارش PDF بارنامه‌های سریع
+            </a>
+        </div>
+        <!-- <div class="d-flex gap-3 flex-wrap">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllRowsBtn">
+                <i class="fas fa-check-square me-2"></i>انتخاب همه
+            </button>
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllRowsBtn">
+                <i class="fas fa-square me-2"></i>لغو انتخاب همه
+            </button>
+        </div> -->
+    </div>
+
+    <!-- Bulk Edit Controls Panel -->
+    <div class="bulk-edit-controls" style="display: none;">
+        <div class="bulk-edit-toolbar">
+            <div class="selected-count">
+                <i class="fas fa-check-square"></i>
+                <span class="count">0</span> مورد انتخاب شده
+            </div>
+            <div class="bulk-edit-actions">
+                <button class="btn btn-primary bulk-edit-btn" data-action="edit">
+                    <i class="fas fa-edit"></i> ویرایش گروهی
+                </button>
+                <button class="btn btn-success bulk-edit-excel-btn" data-action="excel">
+                    <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                </button>
+                <button class="btn btn-info download-template-btn" data-action="template">
+                    <i class="fas fa-download"></i> دانلود قالب اکسل
+                </button>
+                <button class="btn btn-secondary clear-selection-btn" data-action="clear">
+                    <i class="fas fa-times"></i> پاک کردن انتخاب
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- فیلتر سریع جستجو -->
+    <div class="search-container animate-slide-up mb-4" style="animation-delay: 0.2s;">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-search" style="color: #16a34a;"></i>
+            <h3 class="h5 mb-0 fw-semibold">جستجوی هوشمند</h3>
+        </div>
+        <div class="position-relative">
+            <input type="text" name="search" id="real-time-search" 
+                   placeholder="جستجو در شماره بارنامه، راننده، مشتری، محصول..." 
+                   class="form-control">
+            <div class="search-icon position-absolute top-50 end-0 translate-middle-y me-3">
+                <i class="fas fa-search text-muted"></i>
+            </div>
+            <div id="search-loading" class="search-loading position-absolute top-50 end-0 translate-middle-y me-3 d-none">
+                <i class="fas fa-spinner fa-spin text-primary"></i>
+            </div>
+        </div>
+        <div class="mt-2 small text-muted d-flex align-items-center gap-2">
+            <i class="fas fa-lightbulb text-warning"></i>
+            <span>جستجوی لحظه‌ای در تمام فیلدها</span>
+        </div>
+    </div>
+
+    <!-- جدول بارنامه‌ها -->
+    <div class="table-container">
+        <h5 class="mb-4">
+            <i class="fas fa-list"></i> لیست بارنامه‌های خارج از بازارگاه
+        </h5>
+        
+            <div class="table-responsive" style="overflow-x: auto;">
+            <table class="table table-hover" id="barnamehsTable"
+                   data-filter-url="{% url 'apply_non_bazargah_barnameh_filter' %}"
+                   data-column-values-url="{% url 'get_non_bazargah_barnameh_column_values' %}">
+                    <thead>
+                        <tr>
+                            <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
+                                <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" title="انتخاب همه">
+                            </th>
+                            <th data-column-id="number" data-column-type="text" style="min-width: 120px;">شماره بارنامه</th>
+                            <th data-column-id="serial" data-column-type="text" style="min-width: 100px;">سریال</th>
+                            <th data-column-id="tonnage" data-column-type="number" style="min-width: 120px;">وزن (کیلوگرم)</th>
+                            <th data-column-id="driver_name" data-column-type="text" style="min-width: 120px;">نام راننده</th>
+                            <th data-column-id="driver_phone" data-column-type="text" style="min-width: 120px;">شماره راننده</th>
+                            <th data-column-id="vehicle_plate" data-column-type="text" style="min-width: 120px;">پلاک خودرو</th>
+                            <th data-column-id="receiver_name" data-column-type="text" style="min-width: 120px;">نام گیرنده</th>
+                            <th data-column-id="destination" data-column-type="text" style="min-width: 150px;">مقصد</th>
+                            <th data-column-id="barnameh_date" data-column-type="text" style="min-width: 120px;">تاریخ بارنامه</th>
+                            <th data-column-id="purchase_number" data-column-type="text" style="min-width: 120px;">شماره خرید</th>
+                            <th data-column-id="customer" data-column-type="text" style="min-width: 150px;">مشتری</th>
+                            <th data-column-id="product" data-column-type="text" style="min-width: 150px;">محصول</th>
+                            <th data-column-id="buyer_name" data-column-type="text" style="min-width: 120px;">نام خریدار</th>
+                            <th data-column-id="company_price" data-column-type="number" style="min-width: 120px;">فی خرید (ریال)</th>
+                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px;">فی فروش (ریال)</th>
+                            <th data-column-id="total_sales_amount" data-column-type="number" style="min-width: 120px;">مبلغ کل فروش</th>
+                            <th data-column-id="total_purchase_amount" data-column-type="number" style="min-width: 120px;">مبلغ کل خرید</th>
+                            <th data-column-id="origin" data-column-type="text" style="min-width: 120px;">مبدا</th>
+                            <th data-column-id="rent" data-column-type="number" style="min-width: 120px;">کرایه</th>
+                            <th data-column-id="empty_vehicle_weight" data-column-type="number" style="min-width: 120px;">وزن خالی ماشین</th>
+                            <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px;">وزن پر ماشین</th>
+                            <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px;">وزن نهایی تحویل</th>
+                            <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px;">زمان ورود ماشین</th>
+                            <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px;">زمان خروج از انبار</th>
+                            <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px;">زمان تحویل</th>
+                            <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- داده‌ها از طریق JavaScript بارگذاری می‌شوند -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination handled by JavaScript -->
+            
+            </div>
+    </div>
+</div>
+
+    <!-- مدال مدیریت ستون‌ها -->
+    <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-lg">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-white border-bottom">
+                    <h5 class="modal-title fw-bold text-primary">
+                        <i class="fas fa-columns me-2"></i>مدیریت ستون‌های جدول بارنامه‌های خارج از بازارگاه
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-0 py-1">
+                            <i class="fas fa-info-circle me-2"></i>
+                            ستون‌های مورد نظر خود را برای نمایش در جدول انتخاب کنید.
+                        </p>
+                    </div>
+                    
+                    <form id="columnsForm" class="px-3">
+                        {% csrf_token %}
+                        <div class="section-container pb-4">
+                            <div class="section-header d-flex justify-content-between align-items-center mb-4">
+                                <h6 class="mb-0 fw-bold text-primary fs-5">
+                                    <i class="fas fa-table me-2"></i>ستون‌های قابل انتخاب
+                                </h6>
+                                <div class="d-flex gap-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary px-3 py-2" id="selectAllColumns">
+                                        <i class="fas fa-check-square me-2"></i>انتخاب همه
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary px-3 py-2" id="deselectAllColumns">
+                                        <i class="fas fa-square me-2"></i>هیچکدام
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="section-body pt-2">
+                                <div class="row g-4" id="columnsContainer">
+                                    <!-- ستون‌ها دینامیک از سرور بارگذاری می‌شوند -->
+                                    <div class="col-12 text-center" id="loadingSpinner">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">در حال بارگذاری...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">در حال بارگذاری فیلدهای موجود...</p>
+                                    </div>
+                                    <!-- محتوای قدیمی به عنوان fallback نگه داشته شده -->
+                                    <!-- ستون انتخاب -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-select" name="columns[]" 
+                                                value="select" checked>
+                                            <label class="form-check-label" for="col-select">
+                                                انتخاب
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شماره بارنامه -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-number" name="columns[]" 
+                                                value="number" checked>
+                                            <label class="form-check-label" for="col-number">
+                                                شماره بارنامه
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون سریال -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-serial" name="columns[]" 
+                                                value="serial" checked>
+                                            <label class="form-check-label" for="col-serial">
+                                                سریال
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-tonnage" name="columns[]" 
+                                                value="tonnage" checked>
+                                            <label class="form-check-label" for="col-tonnage">
+                                                وزن (کیلوگرم)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون نام راننده -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-driver_name" name="columns[]" 
+                                                value="driver_name" checked>
+                                            <label class="form-check-label" for="col-driver_name">
+                                                نام راننده
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شماره راننده -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-driver_phone" name="columns[]" 
+                                                value="driver_phone" checked>
+                                            <label class="form-check-label" for="col-driver_phone">
+                                                شماره راننده
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون پلاک خودرو -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-vehicle_plate" name="columns[]" 
+                                                value="vehicle_plate" checked>
+                                            <label class="form-check-label" for="col-vehicle_plate">
+                                                پلاک خودرو
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون نام گیرنده -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-receiver_name" name="columns[]" 
+                                                value="receiver_name" checked>
+                                            <label class="form-check-label" for="col-receiver_name">
+                                                نام گیرنده
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مقصد -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-destination" name="columns[]" 
+                                                value="destination" checked>
+                                            <label class="form-check-label" for="col-destination">
+                                                مقصد
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تاریخ بارنامه -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-barnameh_date" name="columns[]" 
+                                                value="barnameh_date" checked>
+                                            <label class="form-check-label" for="col-barnameh_date">
+                                                تاریخ بارنامه
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شماره خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-purchase_number" name="columns[]" 
+                                                value="purchase_number" checked>
+                                            <label class="form-check-label" for="col-purchase_number">
+                                                شماره خرید
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مشتری -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-customer" name="columns[]" 
+                                                value="customer" checked>
+                                            <label class="form-check-label" for="col-customer">
+                                                مشتری
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون محصول -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-product" name="columns[]" 
+                                                value="product" checked>
+                                            <label class="form-check-label" for="col-product">
+                                                محصول
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون نام خریدار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-buyer_name" name="columns[]" 
+                                                value="buyer_name" checked>
+                                            <label class="form-check-label" for="col-buyer_name">
+                                                نام خریدار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون فی خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-company_price" name="columns[]" 
+                                                value="company_price">
+                                            <label class="form-check-label" for="col-company_price">
+                                                فی خرید (ریال)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون فی فروش -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-customer_price" name="columns[]" 
+                                                value="customer_price">
+                                            <label class="form-check-label" for="col-customer_price">
+                                                فی فروش (ریال)
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مبلغ کل فروش -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-total_sales_amount" name="columns[]" 
+                                                value="total_sales_amount">
+                                            <label class="form-check-label" for="col-total_sales_amount">
+                                                مبلغ کل فروش
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مبلغ کل خرید -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-total_purchase_amount" name="columns[]" 
+                                                value="total_purchase_amount">
+                                            <label class="form-check-label" for="col-total_purchase_amount">
+                                                مبلغ کل خرید
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مبدا -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-origin" name="columns[]" 
+                                                value="origin">
+                                            <label class="form-check-label" for="col-origin">
+                                                مبدا
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون کرایه -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-rent" name="columns[]" 
+                                                value="rent">
+                                            <label class="form-check-label" for="col-rent">
+                                                کرایه
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن خالی ماشین -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-empty_vehicle_weight" name="columns[]" 
+                                                value="empty_vehicle_weight">
+                                            <label class="form-check-label" for="col-empty_vehicle_weight">
+                                                وزن خالی ماشین
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن پر ماشین -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-loaded_vehicle_weight" name="columns[]" 
+                                                value="loaded_vehicle_weight">
+                                            <label class="form-check-label" for="col-loaded_vehicle_weight">
+                                                وزن پر ماشین
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون وزن نهایی تحویل -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-final_delivered_weight" name="columns[]" 
+                                                value="final_delivered_weight">
+                                            <label class="form-check-label" for="col-final_delivered_weight">
+                                                وزن نهایی تحویل
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان ورود ماشین -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-vehicle_arrival_time" name="columns[]" 
+                                                value="vehicle_arrival_time">
+                                            <label class="form-check-label" for="col-vehicle_arrival_time">
+                                                زمان ورود ماشین
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان خروج از انبار -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-departure_time" name="columns[]" 
+                                                value="departure_time">
+                                            <label class="form-check-label" for="col-departure_time">
+                                                زمان خروج از انبار
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان تحویل -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-delivery_time" name="columns[]" 
+                                                value="delivery_time">
+                                            <label class="form-check-label" for="col-delivery_time">
+                                                زمان تحویل
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون عملیات -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-actions" name="columns[]" 
+                                                value="actions" checked>
+                                            <label class="form-check-label" for="col-actions">
+                                                عملیات
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="saveColumnsBtn">
+                        <i class="fas fa-save me-2"></i>ذخیره تغییرات
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مودال خروجی اکسل کامل -->
+    <div class="modal fade" id="fullExportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-download me-2"></i>خروجی اکسل کامل بارنامه‌های خارج بازارگاه
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            این گزینه تمام بارنامه‌های خارج بازارگاه را با همه ستون‌های موجود خروجی می‌گیرد.
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            <strong>توجه:</strong> خروجی گرفتن از تعداد زیاد بارنامه ممکن است زمان‌بر باشد.
+                        </p>
+                    </div>
+                    
+                    <form id="fullExportForm">
+                        {% csrf_token %}
+                        
+                        <!-- انتخاب نوع خروجی -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list me-2"></i>نوع خروجی
+                            </h6>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="export_type" id="export_all" value="all" checked>
+                                <label class="form-check-label fw-semibold" for="export_all">
+                                    <i class="fas fa-globe me-2 text-success"></i>
+                                    همه بارنامه‌های خارج بازارگاه
+                                </label>
+                                <div class="small text-muted mt-1 me-4">تمام بارنامه‌های خارج بازارگاه بدون محدودیت تاریخی</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="export_type" id="export_date_range" value="date_range">
+                                <label class="form-check-label fw-semibold" for="export_date_range">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    بازه تاریخی مشخص
+                                </label>
+                                <div class="small text-muted mt-1 me-4">انتخاب بارنامه‌ها بر اساس تاریخ ایجاد</div>
+                            </div>
+                        </div>
+                        
+                        <!-- بازه تاریخی -->
+                        <div id="dateRangeSection" class="mb-4" style="display: none;">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-calendar-range me-2"></i>انتخاب بازه تاریخی
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="from_date" class="form-label">از تاریخ:</label>
+                                    <input type="text" class="form-control" id="from_date" name="from_date" 
+                                           placeholder="مثال: 1403/01/01" 
+                                           pattern="^\d{4}\/\d{1,2}\/\d{1,2}$">
+                                    <div class="form-text">فرمت: سال/ماه/روز (شمسی)</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="to_date" class="form-label">تا تاریخ:</label>
+                                    <input type="text" class="form-control" id="to_date" name="to_date" 
+                                           placeholder="مثال: 1403/12/29"
+                                           pattern="^\d{4}\/\d{1,2}\/\d{1,2}$">
+                                    <div class="form-text">فرمت: سال/ماه/روز (شمسی)</div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>نکته مهم:</strong> فیلتر بر اساس تاریخ ایجاد بارنامه انجام می‌شود.
+                            </div>
+                        </div>
+                        
+                        <!-- اطلاعات تکمیلی -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-table me-2"></i>اطلاعات خروجی
+                            </h6>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>تمام ستون‌های موجود شامل می‌شود</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>فرمت فایل: Excel (.xlsx)</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>ترتیب: جدیدترین به قدیمی‌ترین</li>
+                                <li class="mb-0"><i class="fas fa-check text-success me-2"></i>شامل اطلاعات کامل مشتری، محصول، و راننده</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="startFullExportBtn">
+                        <i class="fas fa-download me-2"></i>شروع خروجی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script src="{% static 'js/non_bazargah_barnameh_list.js' %}"></script>
+<script src="{% static 'js/non_bazargah_barnameh_server_filter.js' %}"></script>
+<script>
+function toggleRowSelection(checkbox) {
+    // این تابع توسط bulk_edit.js مدیریت می‌شود
+    // فقط برای سازگاری با کد موجود اضافه شده
+}
+
+// Event listener برای select all checkbox
+document.addEventListener('DOMContentLoaded', function() {
+    // ابتدا BulkEditManager را راه‌اندازی کن
+    if (typeof BulkEditManager !== 'undefined') {
+        console.log('Initializing BulkEditManager for barnameh table...');
+        window.bulkEditManager = new BulkEditManager();
+        window.bulkEditManager.init();
+    }
+    
+    const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            // این رویداد توسط bulk_edit.js مدیریت می‌شود
+        });
+    }
+    
+    // مدیریت ستون‌ها
+    setupColumnManagement();
+    
+    // مدیریت خروجی اکسل کامل
+    setupFullExportModal();
+});
+
+function setupColumnManagement() {
+    const saveColumnsBtn = document.getElementById('saveColumnsBtn');
+    const selectAllColumnsBtn = document.getElementById('selectAllColumns');
+    const deselectAllColumnsBtn = document.getElementById('deselectAllColumns');
+    
+    // بارگذاری فیلدهای موجود از سرور
+    loadAvailableFields();
+    
+    if (selectAllColumnsBtn) {
+        selectAllColumnsBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            checkboxes.forEach(cb => cb.checked = true);
+        });
+    }
+    
+    if (deselectAllColumnsBtn) {
+        deselectAllColumnsBtn.addEventListener('click', function() {
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            checkboxes.forEach(cb => {
+                // ستون‌های الزامی را انتخاب شده نگه دار
+                if (!cb.disabled) {
+                    cb.checked = false;
+                }
+            });
+        });
+    }
+    
+    if (saveColumnsBtn) {
+        saveColumnsBtn.addEventListener('click', function() {
+            const selectedColumns = [];
+            const checkboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]:checked');
+            
+            // ایجاد mapping برای visibility
+            const columnVisibilityMap = {};
+            
+            // ابتدا همه ستون‌ها را مخفی کن
+            const allCheckboxes = document.querySelectorAll('#columnsForm input[type="checkbox"]');
+            allCheckboxes.forEach(cb => {
+                columnVisibilityMap[cb.value] = false;
+            });
+            
+            // سپس ستون‌های انتخاب شده را نمایش ده
+            checkboxes.forEach(cb => {
+                selectedColumns.push(cb.value);
+                columnVisibilityMap[cb.value] = true;
+            });
+            
+            console.log('Selected columns:', selectedColumns);
+            console.log('Column visibility map:', columnVisibilityMap);
+            
+            // ذخیره تنظیمات در سرور
+            saveColumnSettings(selectedColumns).then(() => {
+                // اعمال تغییرات روی جدول
+                applyColumnVisibility(columnVisibilityMap);
+                
+                // بستن مودال
+                const modal = bootstrap.Modal.getInstance(document.getElementById('columnsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // نمایش پیام موفقیت
+                showToast('تنظیمات ستون‌ها ذخیره شد', 'success');
+                
+                // همگام‌سازی با فیلتر سرور
+                if (window.nonBazargahBarnamehServerFilter) {
+                    window.nonBazargahBarnamehServerFilter.updateColumnVisibility(columnVisibilityMap);
+                }
+            }).catch(error => {
+                console.error('خطا در ذخیره تنظیمات:', error);
+                showToast('خطا در ذخیره تنظیمات', 'error');
+            });
+        });
+    }
+}
+
+async function loadAvailableFields() {
+    try {
+        console.log('loadAvailableFields: Starting to load fields from server...');
+        const response = await fetch('{% url "get_available_barnameh_fields" %}');
+        const data = await response.json();
+        
+        console.log('loadAvailableFields: Server response:', data);
+        
+        if (data.status === 'success') {
+            updateColumnsModal(data.fields);
+        } else {
+            console.error('loadAvailableFields: Server returned error:', data.message);
+            // در صورت خطا از فیلدهای fallback استفاده کن
+            updateColumnsModal(null);
+        }
+    } catch (error) {
+        console.error('loadAvailableFields: خطا در بارگذاری فیلدها:', error);
+        // در صورت خطا از فیلدهای fallback استفاده کن
+        updateColumnsModal(null);
+    }
+}
+
+function updateColumnsModal(fields) {
+    const columnsContainer = document.getElementById('columnsContainer');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    
+    if (!columnsContainer) {
+        console.error('columnsContainer not found!');
+        return;
+    }
+    
+    // حذف loading spinner
+    if (loadingSpinner) {
+        loadingSpinner.remove();
+    }
+    
+    // پاک کردن محتوای فعلی (بجز فیلدهای fallback که قبلاً وجود داشتند)
+    const existingFields = columnsContainer.querySelectorAll('.col-lg-4, .col-md-6');
+    existingFields.forEach(field => {
+        if (!field.querySelector('.column-checkbox')) {
+            field.remove(); // فقط فیلدهایی که fallback نیستند را حذف کن
+        }
+    });
+    
+    // دریافت ستون‌های فعلی کاربر از template
+    const visibleColumns = JSON.parse('{{ visible_columns|safe|escapejs }}');
+    
+    console.log('updateColumnsModal: Loading fields from server, visible columns:', visibleColumns);
+    console.log('updateColumnsModal: Total fields from server:', fields.length);
+    
+    // اگر فیلدهای سرور موجود باشند، از آنها استفاده کن
+    if (fields && fields.length > 0) {
+        // پاک کردن تمام فیلدهای fallback
+        const allFallbackFields = columnsContainer.querySelectorAll('.col-lg-4, .col-md-6');
+        allFallbackFields.forEach(field => field.remove());
+        
+        // اضافه کردن فیلدهای جدید از سرور
+        fields.forEach(field => {
+            const isChecked = field.required || visibleColumns.includes(field.id);
+            
+            const columnDiv = document.createElement('div');
+            columnDiv.className = 'col-lg-4 col-md-6';
+            
+            // تعیین کلاس اضافی برای فیلدهای الزامی
+            const requiredClass = field.required ? ' required-field' : '';
+            
+            columnDiv.innerHTML = `
+                <div class="column-checkbox${requiredClass}">
+                    <input class="form-check-input" type="checkbox" 
+                        id="col-${field.id}" name="columns[]" 
+                        value="${field.id}" ${isChecked ? 'checked' : ''} ${field.required ? 'disabled' : ''}>
+                    <label class="form-check-label" for="col-${field.id}">
+                        ${field.name} ${field.is_model_field ? '<small class="text-muted">(فیلد مدل)</small>' : ''}
+                        ${field.required ? '<small class="text-danger">(الزامی)</small>' : ''}
+                    </label>
+                </div>
+            `;
+            
+            columnsContainer.appendChild(columnDiv);
+        });
+        
+        console.log('updateColumnsModal: Dynamic fields loaded successfully');
+    } else {
+        // اگر فیلدهای سرور موجود نباشند، از فیلدهای fallback استفاده کن
+        console.log('updateColumnsModal: Using fallback fields');
+        
+        // بروزرسانی وضعیت checked برای فیلدهای fallback
+        const fallbackCheckboxes = columnsContainer.querySelectorAll('input[type="checkbox"]');
+        fallbackCheckboxes.forEach(checkbox => {
+            const fieldId = checkbox.value;
+            checkbox.checked = visibleColumns.includes(fieldId);
+        });
+    }
+    
+    // Debug: بررسی اینکه آیا ستون select وجود دارد
+    const selectField = fields ? fields.find(f => f.id === 'select') : null;
+    console.log('updateColumnsModal: Select field found:', selectField);
+}
+
+async function saveColumnSettings(selectedColumns) {
+    const formData = new FormData();
+    formData.append('visible_columns', JSON.stringify(selectedColumns));
+    formData.append('csrfmiddlewaretoken', getCSRFToken());
+    
+    const response = await fetch('{% url "update_barnameh_table_columns" %}', {
+        method: 'POST',
+        body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.status !== 'success') {
+        throw new Error(data.message || 'خطا در ذخیره تنظیمات');
+    }
+    
+    return data;
+}
+
+function getCSRFToken() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    return csrfToken ? csrfToken.value : '';
+}
+
+function updateBulkEditPanel() {
+    // شمارش تعداد ردیف‌های انتخاب شده
+    const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+    const selectedCount = selectedCheckboxes.length;
+    
+    console.log('updateBulkEditPanel: Selected count =', selectedCount);
+    
+    // پیدا کردن پنل bulk edit
+    const bulkEditPanel = document.querySelector('.bulk-edit-controls');
+    const countElement = document.querySelector('.bulk-edit-controls .count');
+    
+    if (bulkEditPanel && countElement) {
+        // بروزرسانی شمارنده
+        countElement.textContent = selectedCount;
+        
+        // نمایش/مخفی کردن پنل
+        if (selectedCount > 0) {
+            bulkEditPanel.style.display = 'block';
+            console.log('updateBulkEditPanel: Showing bulk edit panel');
+        } else {
+            bulkEditPanel.style.display = 'none';
+            console.log('updateBulkEditPanel: Hiding bulk edit panel');
+        }
+        
+        // فعال/غیرفعال کردن دکمه‌های bulk edit
+        const bulkEditButtons = document.querySelectorAll('.bulk-edit-btn, .bulk-edit-excel-btn, .download-template-btn');
+        bulkEditButtons.forEach(btn => {
+            btn.disabled = selectedCount === 0;
+        });
+        
+        // بروزرسانی دکمه export excel در header
+        const exportExcelBtn = document.getElementById('exportExcelBtn');
+        if (exportExcelBtn) {
+            exportExcelBtn.disabled = selectedCount === 0;
+        }
+    }
+}
+
+// تابع سازگاری با bulk_edit.js
+function toggleRowSelection(checkbox) {
+    console.log('toggleRowSelection called with:', checkbox);
+    
+    // اگر bulk_edit.js موجود است، از آن استفاده کن
+    if (window.originalToggleRowSelection) {
+        window.originalToggleRowSelection(checkbox);
+    }
+    
+    // بروزرسانی پنل bulk edit
+    updateBulkEditPanel();
+}
+
+function applyColumnVisibility(columnVisibilityMap) {
+    console.log('Applying column visibility:', columnVisibilityMap);
+    
+    // ستون‌های الزامی که نباید مخفی شوند
+    const requiredColumns = ['select', 'actions'];
+    
+    // تغییر visibility ستون‌های header
+    for (const [columnId, isVisible] of Object.entries(columnVisibilityMap)) {
+        const header = document.querySelector(`th[data-column-id="${columnId}"]`);
+        if (header) {
+            // اگر ستون الزامی است، همیشه نمایش ده
+            const finalVisibility = requiredColumns.includes(columnId) ? true : isVisible;
+            header.style.display = finalVisibility ? 'table-cell' : 'none';
+            console.log(`Header ${columnId}: ${finalVisibility ? 'visible' : 'hidden'} (required: ${requiredColumns.includes(columnId)})`);
+        }
+        
+        // تغییر visibility سلول‌های موجود
+        const cells = document.querySelectorAll(`td[data-column="${columnId}"]`);
+        cells.forEach(cell => {
+            // اگر ستون الزامی است، همیشه نمایش ده
+            const finalVisibility = requiredColumns.includes(columnId) ? true : isVisible;
+            cell.style.display = finalVisibility ? 'table-cell' : 'none';
+        });
+        console.log(`Cells for ${columnId}: ${cells.length} updated`);
+    }
+}
+
+function showToast(message, type = 'info') {
+    // نمایش toast notification
+    const toastContainer = document.querySelector('.toast-container') || document.body;
+    
+    const toast = document.createElement('div');
+    toast.className = `toast show align-items-center text-white bg-${type === 'error' ? 'danger' : type} border-0`;
+    toast.setAttribute('role', 'alert');
+    
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                ${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.parentElement.parentElement.remove()"></button>
+        </div>
+    `;
+    
+    toastContainer.appendChild(toast);
+    
+    // حذف خودکار بعد از 5 ثانیه
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.parentNode.removeChild(toast);
+        }
+    }, 5000);
+}
+
+function setupFullExportModal() {
+    const exportTypeRadios = document.querySelectorAll('input[name="export_type"]');
+    const dateRangeSection = document.getElementById('dateRangeSection');
+    const startFullExportBtn = document.getElementById('startFullExportBtn');
+    
+    // مدیریت نمایش/مخفی کردن بخش بازه تاریخی
+    exportTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'date_range') {
+                dateRangeSection.style.display = 'block';
+            } else {
+                dateRangeSection.style.display = 'none';
+            }
+        });
+    });
+    
+    // مدیریت دکمه شروع خروجی
+    if (startFullExportBtn) {
+        startFullExportBtn.addEventListener('click', function() {
+            const exportType = document.querySelector('input[name="export_type"]:checked').value;
+            const fromDate = document.getElementById('from_date').value.trim();
+            const toDate = document.getElementById('to_date').value.trim();
+            
+            // اعتبارسنجی
+            if (exportType === 'date_range') {
+                if (!fromDate && !toDate) {
+                    showToast('لطفاً حداقل یکی از تاریخ‌های شروع یا پایان را وارد کنید', 'error');
+                    return;
+                }
+                
+                // اعتبارسنجی فرمت تاریخ
+                const datePattern = /^\d{4}\/\d{1,2}\/\d{1,2}$/;
+                if (fromDate && !datePattern.test(fromDate)) {
+                    showToast('فرمت تاریخ شروع صحیح نیست. از فرمت 1403/01/01 استفاده کنید', 'error');
+                    return;
+                }
+                if (toDate && !datePattern.test(toDate)) {
+                    showToast('فرمت تاریخ پایان صحیح نیست. از فرمت 1403/12/29 استفاده کنید', 'error');
+                    return;
+                }
+            }
+            
+            // تغییر وضعیت دکمه
+            const originalText = startFullExportBtn.innerHTML;
+            startFullExportBtn.disabled = true;
+            startFullExportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال پردازش...';
+            
+            // ایجاد FormData
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', getCSRFToken());
+            formData.append('export_type', exportType);
+            
+            if (exportType === 'date_range') {
+                if (fromDate) formData.append('from_date', fromDate);
+                if (toDate) formData.append('to_date', toDate);
+            }
+            
+            // ارسال درخواست
+            fetch('{% url "export_full_non_bazargah_barnameh_excel" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // دانلود فایل
+                    return response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `non_bazargah_barnamehs_full_export_${new Date().getTime()}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        showToast('فایل اکسل با موفقیت دانلود شد', 'success');
+                        
+                        // بستن مودال
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('fullExportModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                    });
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'خطا در تولید فایل اکسل');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('خطا در خروجی اکسل کامل:', error);
+                showToast(error.message || 'خطا در تولید فایل اکسل', 'error');
+            })
+            .finally(() => {
+                // بازگردانی وضعیت دکمه
+                startFullExportBtn.disabled = false;
+                startFullExportBtn.innerHTML = originalText;
+            });
+        });
+    }
+}
+</script>
+{% endblock %}

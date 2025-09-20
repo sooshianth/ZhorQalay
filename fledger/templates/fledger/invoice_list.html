@@ -1,0 +1,595 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block title %}لیست فاکتورها{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .invoice-hero {
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(99, 102, 241, 0.3);
+    }
+
+    .invoice-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .hero-info {
+        flex: 1;
+    }
+
+    .hero-info h1 {
+        margin: 0 0 0.5rem 0;
+    }
+
+    .hero-info p {
+        margin: 0;
+        opacity: 0.9;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-label {
+        color: #64748b;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .stat-card.total {
+        border-top: 4px solid #6366f1;
+    }
+
+    .stat-card.expense {
+        border-top: 4px solid #ef4444;
+    }
+
+    .stat-card.income {
+        border-top: 4px solid #10b981;
+    }
+
+    .filters-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        margin-bottom: 2rem;
+        overflow: hidden;
+    }
+
+    .filters-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .filters-body {
+        padding: 1.5rem;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+
+    .invoice-table-container {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .table-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .invoice-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .invoice-table th {
+        background: #f8fafc;
+        padding: 1rem;
+        text-align: right;
+        font-weight: 700;
+        color: #374151;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .invoice-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #f3f4f6;
+        vertical-align: middle;
+    }
+
+    .invoice-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .invoice-table tbody tr:hover {
+        background-color: #f9fafb;
+    }
+
+    .invoice-id {
+        font-weight: 700;
+        color: #6366f1;
+        font-family: 'Courier New', monospace;
+    }
+
+    .invoice-type {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        gap: 0.3rem;
+    }
+
+    .invoice-type.expense {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .invoice-type.income {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .related-expense {
+        color: #374151;
+        font-weight: 600;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .related-expense:hover {
+        color: #6366f1;
+        text-decoration: underline;
+    }
+
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.4rem 0.8rem;
+        border-radius: 0.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        gap: 0.3rem;
+    }
+
+    .status-badge.approved {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #166534;
+        border: 1px solid #bbf7d0;
+    }
+
+    .status-badge.pending {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        color: #92400e;
+        border: 1px solid #fde68a;
+    }
+
+    .status-badge.rejected {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #991b1b;
+        border: 1px solid #fecaca;
+    }
+
+    .amount-display {
+        font-weight: 700;
+        color: #1e293b;
+        font-family: 'Courier New', monospace;
+        text-align: left;
+        direction: ltr;
+    }
+
+    .amount-display small {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-right: 0.3rem;
+    }
+
+    .no-invoices {
+        text-align: center;
+        padding: 3rem;
+        color: #64748b;
+    }
+
+    .no-invoices i {
+        font-size: 4rem;
+        color: #e2e8f0;
+        margin-bottom: 1rem;
+    }
+
+    .table-actions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+
+    .btn-sm {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        border-radius: 0.5rem;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-view {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+    }
+
+    .btn-view:hover {
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+        color: #1e3a8a;
+        text-decoration: none;
+    }
+
+    .btn-edit {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #fbbf24;
+    }
+
+    .btn-edit:hover {
+        background: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
+        color: #78350f;
+        text-decoration: none;
+    }
+
+    .pagination-container {
+        padding: 1.5rem;
+        background: #f8fafc;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .items-count {
+        font-size: 0.9rem;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 0.3rem 0.6rem;
+        border-radius: 0.4rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    @media (max-width: 768px) {
+        .filter-row {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .invoice-table {
+            font-size: 0.9rem;
+        }
+        
+        .invoice-table th,
+        .invoice-table td {
+            padding: 0.7rem 0.5rem;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Hero Section -->
+    <div class="invoice-hero">
+        <div class="hero-content">
+            <div class="hero-info">
+                <h1>
+                    <i class="fas fa-file-invoice"></i>
+                    مدیریت فاکتورها
+                </h1>
+                <p>مشاهده و مدیریت تمام فاکتورهای ثبت شده در سیستم</p>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'fledger:create_invoice' %}" class="btn-fledger btn-fledger-primary">
+                    <i class="fas fa-plus"></i>
+                    ایجاد فاکتور جدید
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total">
+            <div class="stat-value">{{ total_invoices }}</div>
+            <div class="stat-label">کل فاکتورها</div>
+        </div>
+        <div class="stat-card expense">
+            <div class="stat-value">{{ expense_invoices }}</div>
+            <div class="stat-label">فاکتورهای هزینه</div>
+        </div>
+        <div class="stat-card income">
+            <div class="stat-value">{{ income_invoices }}</div>
+            <div class="stat-label">فاکتورهای درآمد</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-card">
+        <div class="filters-header">
+            <h3>
+                <i class="fas fa-filter"></i>
+                فیلترها و جستجو
+            </h3>
+        </div>
+        <div class="filters-body">
+            <form method="get" class="filter-form">
+                <div class="filter-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">جستجو</label>
+                        <input type="text" name="search" value="{{ search_query }}" 
+                               class="form-control-fledger" 
+                               placeholder="شماره فاکتور، توضیحات، نام هزینه یا درآمد">
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">نوع فاکتور</label>
+                        <select name="type" class="form-control-fledger">
+                            <option value="">همه</option>
+                            <option value="Hazinah" {% if invoice_type_filter == 'Hazinah' %}selected{% endif %}>هزینه</option>
+                            <option value="Income" {% if invoice_type_filter == 'Income' %}selected{% endif %}>درآمد</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">وضعیت</label>
+                        <select name="status" class="form-control-fledger">
+                            <option value="">همه</option>
+                            <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>تأیید شده</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>در انتظار تأیید</option>
+                            <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>رد شده</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <button type="submit" class="btn-fledger btn-fledger-primary">
+                            <i class="fas fa-search"></i>
+                            جستجو
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Invoices Table -->
+    <div class="invoice-table-container">
+        <div class="table-header">
+            <h3>
+                <i class="fas fa-list"></i>
+                لیست فاکتورها
+                {% if page_obj.paginator.count %}
+                    <span style="font-size: 0.9rem; color: #64748b; font-weight: normal;">
+                        ({{ page_obj.paginator.count }} فاکتور)
+                    </span>
+                {% endif %}
+            </h3>
+        </div>
+
+        {% if page_obj %}
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th>شماره فاکتور</th>
+                    <th>نوع</th>
+                    <th>مرتبط با</th>
+                    <th>مبلغ کل</th>
+                    <th>تعداد آیتم</th>
+                    <th>تاریخ صدور</th>
+                    <th>وضعیت</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for invoice in page_obj %}
+                <tr>
+                    <td>
+                        <span class="invoice-id">{{ invoice.invoice_id }}</span>
+                    </td>
+                    <td>
+                        {% if invoice.type == 'Hazinah' %}
+                            <span class="invoice-type expense">
+                                <i class="fas fa-minus-circle"></i>
+                                هزینه
+                            </span>
+                        {% else %}
+                            <span class="invoice-type income">
+                                <i class="fas fa-plus-circle"></i>
+                                درآمد
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.hazinah %}
+                            <a href="{% url 'fledger:hazinah_detail' invoice.hazinah.id %}" class="related-expense">
+                                <i class="fas fa-link"></i>
+                                {{ invoice.hazinah.title }}
+                            </a>
+                        {% elif invoice.income %}
+                            <span class="related-expense">
+                                <i class="fas fa-link"></i>
+                                {{ invoice.income.title }}
+                            </span>
+                        {% else %}
+                            <span style="color: #64748b;">نامشخص</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="amount-display">
+                            <small>ریال</small>{{ invoice.get_total_amount|floatformat:0 }}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="items-count">{{ invoice.get_items_count }} آیتم</span>
+                    </td>
+                    <td>
+                        {% if invoice.issue_date %}
+                            {{ invoice.issue_date }}
+                        {% else %}
+                            <span style="color: #64748b;">تعیین نشده</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if invoice.hazinah %}
+                            {% if invoice.hazinah.approval_status == 'approved' %}
+                                <span class="status-badge approved">
+                                    <i class="fas fa-check-circle"></i>
+                                    تأیید شده
+                                </span>
+                            {% elif invoice.hazinah.approval_status == 'rejected' %}
+                                <span class="status-badge rejected">
+                                    <i class="fas fa-times-circle"></i>
+                                    رد شده
+                                </span>
+                            {% else %}
+                                <span class="status-badge pending">
+                                    <i class="fas fa-clock"></i>
+                                    در انتظار
+                                </span>
+                            {% endif %}
+                        {% elif invoice.income %}
+                            <span class="status-badge approved">
+                                <i class="fas fa-check-circle"></i>
+                                فعال
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{% url 'fledger:invoice_detail' invoice.id %}" 
+                               class="btn-sm btn-view" title="مشاهده جزئیات فاکتور">
+                                <i class="fas fa-eye"></i>
+                                جزئیات
+                            </a>
+                            {% if invoice.hazinah %}
+                                <a href="{% url 'fledger:hazinah_detail' invoice.hazinah.id %}" 
+                                   class="btn-sm btn-edit" title="مشاهده هزینه مرتبط">
+                                    <i class="fas fa-link"></i>
+                                    هزینه
+                                </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-container">
+            {% include 'fledger/partials/pagination.html' with page_obj=page_obj %}
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div class="no-invoices">
+            <i class="fas fa-file-invoice"></i>
+            <h3>هیچ فاکتوری یافت نشد</h3>
+            <p>برای مشاهده فاکتورها، ابتدا باید فاکتورهایی ایجاد کنید.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Auto refresh every 5 minutes
+setTimeout(function() {
+    window.location.reload();
+}, 300000);
+
+// Highlight search results
+document.addEventListener('DOMContentLoaded', function() {
+    const searchQuery = '{{ search_query|escapejs }}';
+    if (searchQuery && searchQuery.length > 0) {
+        const cells = document.querySelectorAll('.invoice-table td');
+        cells.forEach(cell => {
+            if (cell.textContent.toLowerCase().includes(searchQuery.toLowerCase())) {
+                cell.style.backgroundColor = '#fef3c7';
+                cell.style.border = '1px solid #fbbf24';
+                cell.style.borderRadius = '0.25rem';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,846 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block head_styles %}
+    {{ block.super }}
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <!-- Custom CSS -->
+    <link href="{% static 'css/create_purchase_style.css' %}" rel="stylesheet">
+    
+    <style>
+        /* استایل کلی صفحه */
+        body {
+            font-family: 'Vazir', sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* کارت اصلی */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 0;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: none;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: #064E3B;
+            color: white;
+            padding: 20px;
+            margin: 0;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-header h4 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card-body {
+            padding: 30px;
+        }
+        
+        /* فرم‌ها */
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 14px;
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 15px 18px;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            background-color: #ffffff;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #064E3B;
+            box-shadow: 0 0 0 0.25rem rgba(6, 78, 59, 0.15);
+            background-color: #ffffff;
+        }
+        
+        .form-control:hover, .form-select:hover {
+            border-color: #48bb78;
+        }
+        
+        /* دکمه‌ها */
+        .btn {
+            border-radius: 8px;
+            padding: 12px 25px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: #064E3B;
+            border: none;
+            color: white;
+            box-shadow: 0 4px 15px rgba(6, 78, 59, 0.3);
+        }
+        
+        .btn-primary:hover {
+            background: #065f46;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(6, 78, 59, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            border: none;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+        }
+        
+        /* نشانگرهای نوع خرید */
+        .purchase-type-indicator {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .bazaargah-indicator {
+            background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+            color: #0c5460;
+            border: 2px solid #b8daff;
+            box-shadow: 0 4px 15px rgba(13, 202, 240, 0.2);
+        }
+        
+        .non-bazaargah-indicator {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            color: #155724;
+            border: 2px solid #b3d7c1;
+            box-shadow: 0 4px 15px rgba(25, 135, 84, 0.2);
+        }
+        
+        /* بخش‌های فرم */
+        .section-divider {
+            border-top: 3px solid #e9ecef;
+            margin: 35px 0 25px 0;
+            padding-top: 25px;
+            position: relative;
+        }
+        
+        .section-divider::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            right: 0;
+            width: 60px;
+            height: 3px;
+            background: #064E3B;
+        }
+        
+        .section-title {
+            color: #2d3748;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            font-size: 18px;
+        }
+        
+        .section-title i {
+            margin-left: 12px;
+            color: #064E3B;
+            font-size: 20px;
+        }
+        
+        /* فیلدهای اجباری */
+        .required-field::after {
+            content: " *";
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        /* پیام‌های خطا */
+        .text-danger {
+            color: #dc3545 !important;
+            font-size: 12px;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+        
+        /* Select2 */
+        .select2-container {
+            width: 100% !important;
+            display: block !important;
+        }
+        
+        .select2-container--bootstrap-5 .select2-selection {
+            border-radius: 8px !important;
+            border: 1px solid #e2e8f0 !important;
+            padding: 8px 12px !important;
+            min-height: 52px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+            border-color: #064E3B !important;
+            box-shadow: 0 0 0 0.25rem rgba(6, 78, 59, 0.15) !important;
+        }
+        
+        .select2-selection__rendered {
+            line-height: 36px !important;
+            padding: 0 !important;
+        }
+        
+        .select2-selection__arrow {
+            height: 50px !important;
+            top: 1px !important;
+            right: 1px !important;
+        }
+        
+        /* بهبود دکمه حذف Select2 */
+        .select2-selection__clear {
+            color: #dc3545 !important;
+            font-size: 16px !important;
+            font-weight: bold !important;
+            margin-right: 8px !important;
+            margin-top: -2px !important;
+            padding: 2px 4px !important;
+            border-radius: 50% !important;
+            background: rgba(220, 53, 69, 0.1) !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .select2-selection__clear:hover {
+            background: rgba(220, 53, 69, 0.2) !important;
+            color: #a71e2a !important;
+        }
+        
+        /* انیمیشن‌ها */
+        .bazaargah-field, .non-bazaargah-field {
+            transition: all 0.4s ease;
+        }
+        
+        .field-transition {
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.4s ease;
+        }
+        
+        .field-transition.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-container {
+                padding: 15px;
+            }
+            
+            .card-header {
+                padding: 20px;
+            }
+            
+            .card-header h4 {
+                font-size: 1.5rem;
+            }
+            
+            .card-body {
+                padding: 20px;
+            }
+            
+            .section-title {
+                font-size: 16px;
+            }
+            
+            .btn {
+                padding: 10px 20px;
+                font-size: 13px;
+            }
+        }
+        
+        @media (max-width: 576px) {
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div class="main-container">
+
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    {{ page_title }}
+                </h4>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="post" id="createPurchaseForm">
+                    {% csrf_token %}
+                    
+                    <!-- انتخاب نوع خرید -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.purchase_type.id_for_label }}" class="form-label required-field">
+                                    {{ form.purchase_type.label }}
+                                </label>
+                                {{ form.purchase_type }}
+                                {% if form.purchase_type.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.purchase_type.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- نشانگر نوع خرید -->
+                    <div id="bazaargahIndicator" class="purchase-type-indicator bazaargah-indicator">
+                        <i class="fas fa-store me-2"></i>
+                        خرید بازارگاهی انتخاب شده
+                    </div>
+                    
+                    <div id="nonBazaargahIndicator" class="purchase-type-indicator non-bazaargah-indicator">
+                        <i class="fas fa-handshake me-2"></i>
+                        خرید خارج از بازارگاه انتخاب شده
+                    </div>
+
+                    <!-- اطلاعات مشترک -->
+                    <div class="section-title">
+                        <i class="fas fa-user"></i>
+                        اطلاعات مشتری و کارشناس فروش
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.customer.id_for_label }}" class="form-label required-field">
+                                    {{ form.customer.label }}
+                                </label>
+                                {{ form.customer }}
+                                {% if form.customer.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.customer.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.sales_agent.id_for_label }}" class="form-label">
+                                    {{ form.sales_agent.label }}
+                                </label>
+                                {{ form.sales_agent }}
+                                {% if form.sales_agent.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.sales_agent.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فیلدهای خرید بازارگاهی -->
+                    <div id="bazaargahFields" style="display: none;">
+                        <div class="section-divider">
+                            <div class="section-title">
+                                <i class="fas fa-store"></i>
+                                اطلاعات خرید بازارگاهی
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.bazaargah_product.id_for_label }}" class="form-label required-field">
+                                        {{ form.bazaargah_product.label }}
+                                    </label>
+                                    {{ form.bazaargah_product }}
+                                    {% if form.bazaargah_product.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.bazaargah_product.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.bazaargah_weight.id_for_label }}" class="form-label required-field">
+                                        {{ form.bazaargah_weight.label }}
+                                    </label>
+                                    <input type="number" 
+                                           id="{{ form.bazaargah_weight.id_for_label }}" 
+                                           name="{{ form.bazaargah_weight.name }}"
+                                           class="form-control bazaargah-field" 
+                                           style="display: none;"
+                                           placeholder="حداقل 1000 کیلوگرم"
+                                           min="1000"
+                                           step="1">
+                                    {% if form.bazaargah_weight.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.bazaargah_weight.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+
+                    <!-- فیلدهای خرید خارج از بازارگاه -->
+                    <div id="nonBazaargahFields" style="display: none;">
+                        <div class="section-divider">
+                            <div class="section-title">
+                                <i class="fas fa-handshake"></i>
+                                اطلاعات خرید خارج از بازارگاه
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.non_bazaargah_product.id_for_label }}" class="form-label required-field">
+                                        {{ form.non_bazaargah_product.label }}
+                                    </label>
+                                    {{ form.non_bazaargah_product }}
+                                    {% if form.non_bazaargah_product.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.non_bazaargah_product.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="{{ form.non_bazaargah_unit.id_for_label }}" class="form-label required-field">
+                                        {{ form.non_bazaargah_unit.label }}
+                                    </label>
+                                    {{ form.non_bazaargah_unit }}
+                                    {% if form.non_bazaargah_unit.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.non_bazaargah_unit.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <label for="{{ form.non_bazaargah_quantity.id_for_label }}" class="form-label required-field">
+                                        {{ form.non_bazaargah_quantity.label }}
+                                    </label>
+                                    <input type="number" 
+                                           id="{{ form.non_bazaargah_quantity.id_for_label }}" 
+                                           name="{{ form.non_bazaargah_quantity.name }}"
+                                           class="form-control non-bazaargah-field" 
+                                           style="display: none;"
+                                           placeholder="مقدار مورد نظر"
+                                           min="1"
+                                           step="1">
+                                    {% if form.non_bazaargah_quantity.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.non_bazaargah_quantity.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.non_bazaargah_bag_weight.id_for_label }}" class="form-label">
+                                        {{ form.non_bazaargah_bag_weight.label }}
+                                    </label>
+                                    <input type="number" 
+                                           id="{{ form.non_bazaargah_bag_weight.id_for_label }}" 
+                                           name="{{ form.non_bazaargah_bag_weight.name }}"
+                                           class="form-control non-bazaargah-field" 
+                                           style="display: none;"
+                                           placeholder="در صورت انتخاب واحد کیسه"
+                                           min="1"
+                                           step="1">
+                                    {% if form.non_bazaargah_bag_weight.errors %}
+                                        <div class="text-danger small mt-1">
+                                            {{ form.non_bazaargah_bag_weight.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- فیلدهای مشترک -->
+                    <div class="section-divider">
+                        <div class="section-title">
+                            <i class="fas fa-cog"></i>
+                            اطلاعات تکمیلی
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label for="{{ form.customer_price.id_for_label }}" class="form-label">
+                                    {{ form.customer_price.label }}
+                                </label>
+                                {{ form.customer_price }}
+                                {% if form.customer_price.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.customer_price.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            {{ form.description.label }}
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <div class="text-danger small mt-1">
+                                {{ form.description.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- دکمه‌های عملیات -->
+                    <div class="d-flex justify-content-between mt-4 pt-3" style="border-top: 1px solid #dee2e6;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>
+                            ایجاد خرید
+                        </button>
+                        
+                        <a href="{% url 'purchase_list' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-right me-2"></i>
+                            بازگشت به لیست
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_scripts %}
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // فعال‌سازی Select2
+            $('.select2').select2({
+                theme: 'bootstrap-5',
+                placeholder: 'انتخاب کنید...',
+                allowClear: true
+            });
+            
+            // مدیریت تغییر نوع خرید
+            $('#id_purchase_type').change(function() {
+                togglePurchaseFields();
+            });
+            
+            // مدیریت تغییر واحد در خرید خارج از بازارگاه
+            $(document).on('change', '#id_non_bazaargah_unit', function() {
+                var unit = $(this).val();
+                var bagWeightField = $('#id_non_bazaargah_bag_weight').closest('.form-group');
+                
+                if (unit === 'Kiseh') {
+                    bagWeightField.show();
+                    $('#id_non_bazaargah_bag_weight').prop('required', true);
+                } else {
+                    bagWeightField.hide();
+                    $('#id_non_bazaargah_bag_weight').prop('required', false);
+                }
+                
+                // محاسبه و نمایش وزن کل
+                calculateTotalWeight();
+            });
+            
+            // محاسبه وزن کل هنگام تغییر مقدار یا وزن کیسه
+            $(document).on('input', '#id_non_bazaargah_quantity, #id_non_bazaargah_bag_weight', function() {
+                calculateTotalWeight();
+            });
+            
+            // بارگذاری جزئیات محصول هنگام انتخاب
+            $(document).on('change', '#id_bazaargah_product', function() {
+                var productId = $(this).val();
+                if (productId) {
+                    loadProductDetails(productId, 'bazaargah');
+                }
+            });
+            
+            $(document).on('change', '#id_non_bazaargah_product', function() {
+                var productId = $(this).val();
+                if (productId) {
+                    loadProductDetails(productId, 'non_bazaargah');
+                }
+            });
+            
+            // بارگذاری جزئیات مشتری هنگام انتخاب
+            $('#id_customer').change(function() {
+                var customerId = $(this).val();
+                if (customerId) {
+                    loadCustomerDetails(customerId);
+                }
+            });
+        });
+        
+        function togglePurchaseFields() {
+            var purchaseType = $('#id_purchase_type').val();
+            
+            // مخفی کردن همه فیلدها
+            $('#bazaargahFields, #nonBazaargahFields').hide();
+            $('#bazaargahIndicator, #nonBazaargahIndicator').hide();
+            
+            // تخریب Select2 های موجود
+            try {
+                $('#id_bazaargah_product, #id_non_bazaargah_product, #id_non_bazaargah_unit').each(function() {
+                    if ($(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2('destroy');
+                    }
+                });
+            } catch(e) {
+                // نادیده گیری خطاهای تخریب
+            }
+            
+            if (purchaseType === 'bazaargah') {
+                $('#bazaargahFields').show();
+                $('#bazaargahIndicator').show();
+                
+                // فعال کردن فیلدهای بازارگاهی
+                $('.bazaargah-field').prop('required', true);
+                $('.non-bazaargah-field').prop('required', false);
+                
+                // راه‌اندازی مجدد Select2 برای فیلدهای بازارگاهی
+                setTimeout(function() {
+                    $('#id_bazaargah_product').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'انتخاب محصول...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    
+                    // نمایش فیلدهای عددی
+                    $('.bazaargah-field').not('.select2').show().prop('disabled', false);
+                }, 100);
+                
+            } else if (purchaseType === 'non_bazaargah') {
+                $('#nonBazaargahFields').show();
+                $('#nonBazaargahIndicator').show();
+                
+                // فعال کردن فیلدهای خارج از بازارگاه
+                $('.non-bazaargah-field').prop('required', true);
+                $('.bazaargah-field').prop('required', false);
+                
+                // راه‌اندازی مجدد Select2 برای فیلدهای خارج از بازارگاه
+                setTimeout(function() {
+                    $('#id_non_bazaargah_product').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'انتخاب محصول...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    $('#id_non_bazaargah_unit').select2({
+                        theme: 'bootstrap-5',
+                        placeholder: 'انتخاب واحد...',
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    
+                    // نمایش فیلدهای عددی
+                    $('.non-bazaargah-field').not('.select2').show().prop('disabled', false);
+                }, 100);
+                
+                // بررسی واحد کیسه
+                $('#id_non_bazaargah_unit').trigger('change');
+            }
+        }
+        
+        function loadProductDetails(productId, productType) {
+            $.get('/ERP/api/product-details/', {
+                product_id: productId,
+                product_type: productType
+            })
+            .done(function(data) {
+                if (data.customer_price && !$('#id_customer_price').val()) {
+                    $('#id_customer_price').val(data.customer_price);
+                }
+            })
+            .fail(function() {
+                console.error('خطا در بارگذاری جزئیات محصول');
+            });
+        }
+        
+        function loadCustomerDetails(customerId) {
+            $.get('/ERP/api/customer-details/', {
+                customer_id: customerId
+            })
+            .done(function(data) {
+                // اگر مشتری کارشناس فروش دارد، آن را انتخاب کن
+                if (data.sales_agents && data.sales_agents.length > 0) {
+                    var firstAgent = data.sales_agents[0];
+                    $('#id_sales_agent').val(firstAgent.id).trigger('change');
+                }
+            })
+            .fail(function() {
+                console.error('خطا در بارگذاری جزئیات مشتری');
+            });
+        }
+        
+        // اعتبارسنجی فرم قبل از ارسال
+        $('#createPurchaseForm').submit(function(e) {
+            var purchaseType = $('#id_purchase_type').val();
+            
+            if (!purchaseType) {
+                e.preventDefault();
+                alert('لطفاً نوع خرید را انتخاب کنید.');
+                return false;
+            }
+            
+            if (!$('#id_customer').val()) {
+                e.preventDefault();
+                alert('لطفاً مشتری را انتخاب کنید.');
+                return false;
+            }
+            
+            // اعتبارسنجی فیلدهای بازارگاهی
+            if (purchaseType === 'bazaargah') {
+                if (!$('#id_bazaargah_product').val()) {
+                    e.preventDefault();
+                    alert('لطفاً محصول بازارگاه را انتخاب کنید.');
+                    return false;
+                }
+                
+                if (!$('#id_bazaargah_weight').val()) {
+                    e.preventDefault();
+                    alert('لطفاً وزن سفارش را وارد کنید.');
+                    return false;
+                }
+                
+            }
+            
+            // اعتبارسنجی فیلدهای خارج از بازارگاه
+            if (purchaseType === 'non_bazaargah') {
+                if (!$('#id_non_bazaargah_product').val()) {
+                    e.preventDefault();
+                    alert('لطفاً محصول خارج از بازارگاه را انتخاب کنید.');
+                    return false;
+                }
+                
+                if (!$('#id_non_bazaargah_unit').val()) {
+                    e.preventDefault();
+                    alert('لطفاً واحد را انتخاب کنید.');
+                    return false;
+                }
+                
+                if (!$('#id_non_bazaargah_quantity').val()) {
+                    e.preventDefault();
+                    alert('لطفاً مقدار را وارد کنید.');
+                    return false;
+                }
+                
+                if ($('#id_non_bazaargah_unit').val() === 'Kiseh' && !$('#id_non_bazaargah_bag_weight').val()) {
+                    e.preventDefault();
+                    alert('برای واحد کیسه، وزن کیسه الزامی است.');
+                    return false;
+                }
+            }
+            
+            return true;
+        });
+        
+        // تابع محاسبه وزن کل برای خرید خارج از بازارگاه
+        function calculateTotalWeight() {
+            var unit = $('#id_non_bazaargah_unit').val();
+            var quantity = parseInt($('#id_non_bazaargah_quantity').val()) || 0;
+            var bagWeight = parseInt($('#id_non_bazaargah_bag_weight').val()) || 0;
+            var totalWeight = 0;
+            
+            if (!unit || !quantity) {
+                $('#weightCalculationDisplay').remove();
+                return;
+            }
+            
+            // محاسبه وزن بر اساس واحد
+            if (unit === 'Kilo') {
+                totalWeight = quantity;
+            } else if (unit === 'Ton') {
+                totalWeight = quantity * 1000;
+            } else if (unit === 'Kiseh' && bagWeight > 0) {
+                totalWeight = quantity * bagWeight;
+            }
+            
+            // نمایش وزن محاسبه شده
+            if (totalWeight > 0) {
+                var displayText = '';
+                if (unit === 'Kilo') {
+                    displayText = `وزن کل: ${totalWeight.toLocaleString()} کیلوگرم`;
+                } else if (unit === 'Ton') {
+                    displayText = `وزن کل: ${totalWeight.toLocaleString()} کیلوگرم (${quantity} تن)`;
+                } else if (unit === 'Kiseh') {
+                    displayText = `وزن کل: ${totalWeight.toLocaleString()} کیلوگرم (${quantity} کیسه × ${bagWeight} کیلوگرم)`;
+                }
+                
+                // حذف نمایش قبلی
+                $('#weightCalculationDisplay').remove();
+                
+                // اضافه کردن نمایش جدید
+                $('#nonBazaargahFields .section-title').after(`
+                    <div id="weightCalculationDisplay" class="alert alert-info mb-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%); border: 2px solid #2196f3; color: #0d47a1;">
+                        <i class="fas fa-calculator me-2"></i>
+                        <strong>${displayText}</strong>
+                    </div>
+                `);
+            } else {
+                $('#weightCalculationDisplay').remove();
+            }
+        }
+    </script>
+{% endblock %}

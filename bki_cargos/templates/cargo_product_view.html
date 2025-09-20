@@ -388,6 +388,52 @@
         transform: translateY(-1px);
         box-shadow: var(--card-shadow);
     }
+
+    /* Collapsible styles */
+    .collapsible-header {
+        background-color: var(--primary);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+    }
+    
+    .collapsible-header:hover {
+        background-color: var(--primary-hover);
+    }
+    
+    .collapsible-header h2 {
+        margin-bottom: 0;
+    }
+    
+    .collapsible-content {
+        padding: 0;
+        border-top: 1px solid var(--border);
+        transition: all 0.3s ease;
+    }
+    
+    .collapsible-content.collapsed {
+        display: none;
+    }
+    
+    .toggle-icon {
+        transition: transform 0.3s ease;
+        font-size: 0.875rem;
+    }
+    
+    .collapsible-header.collapsed .toggle-icon {
+        transform: rotate(180deg);
+    }
+    
+    /* Override default card-header styles for collapsible */
+    .collapsible-header.card-header {
+        background-color: var(--primary);
+        color: white;
+    }
 </style>
 
 <div class="container">
@@ -411,11 +457,14 @@
     {% endif %}
     
     <div class="card animate-slide-up" style="animation-delay: 0.1s;">
-        <div class="card-header">
+        <div class="card-header collapsible-header" onclick="toggleSection('cargo-products-section')" style="cursor: pointer;">
             <h2 class="text-lg font-semibold" style="color: white;">محصولات و کوتاژهای فعال</h2>
-            <span class="badge badge-success">{{ cargo_products|length }} محصول</span>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="badge badge-success">{{ cargo_products|length }} محصول</span>
+                <i class="fas fa-chevron-down toggle-icon" id="cargo-products-toggle-icon" style="color: white; transition: transform 0.3s ease;"></i>
+            </div>
         </div>
-        <div class="card-body" style="padding: 0;">
+        <div class="card-body collapsible-content" id="cargo-products-section" style="padding: 0;">
             <!-- Bulk Edit Controls Panel for Active Products -->
             <div class="bulk-edit-controls bulk-edit-controls-active" style="display: none; background-color: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
                 <div class="bulk-edit-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
@@ -588,6 +637,170 @@
             </div>
         </div>
     </details>
+    
+    <!-- جدول محصولات خارج از بازارگاه -->
+    <div class="card animate-slide-up" style="animation-delay: 0.3s;">
+        <div class="card-header collapsible-header" onclick="toggleSection('non-bazargah-section')" style="cursor: pointer;">
+            <h2 class="text-lg font-semibold" style="color: white;">محصولات خارج از بازارگاه</h2>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span class="badge badge-success">{{ non_bazargah_products|length }} محصول</span>
+                <i class="fas fa-chevron-down toggle-icon" id="non-bazargah-toggle-icon" style="color: white; transition: transform 0.3s ease;"></i>
+            </div>
+        </div>
+        <div class="card-body collapsible-content" id="non-bazargah-section" style="padding: 0;">
+            <!-- Bulk Edit Controls Panel for Non-Bazargah Products -->
+            <div class="bulk-edit-controls bulk-edit-controls-non-bazargah" style="display: none; background-color: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div class="bulk-edit-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div class="selected-count" style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-check-square"></i>
+                        <span class="count">0</span> مورد انتخاب شده
+                    </div>
+                    <div class="bulk-edit-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="non-bazargah">
+                            <i class="fas fa-edit"></i> ویرایش گروهی
+                        </button>
+                        <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="non-bazargah">
+                            <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                        </button>
+                        <button class="btn btn-info download-template-btn" data-action="template" data-section="non-bazargah">
+                            <i class="fas fa-download"></i> دانلود قالب اکسل
+                        </button>
+                        <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="non-bazargah">
+                            <i class="fas fa-times"></i> لغو انتخاب
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="enable-filter" id="nonBazargahProductsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;" class="column-select" data-column-type="checkbox"><input type="checkbox" id="select-all-non-bazargah" class="select-all-checkbox-non-bazargah" onclick="toggleAllNonBazargah()"></th>
+                            <th class="column-name" data-column-type="text">نام محصول</th>
+                            <th class="column-description" data-column-type="text">توضیحات</th>
+                            {% if not hide_supplier_info %}
+                            <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            {% endif %}
+                            <th class="column-created_at" data-column-type="date">تاریخ ثبت</th>
+                            <th class="column-status" data-column-type="status">وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in non_bazargah_products %}
+                            <tr onclick="toggleSelection(this, '{{ product.id }}');" class="animate-fade-in">
+                                <td class="column-select">
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
+                                </td>
+                                <td class="column-name"><strong>{{ product.name|default:"-" }}</strong></td>
+                                <td class="column-description">{{ product.description|default:"-" }}</td>
+                                {% if not hide_supplier_info %}
+                                <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                {% endif %}
+                                <td class="column-created_at" data-value="{{ product.created_at }}">{{ product.created_at }}</td>
+                                <td class="column-status">
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-check-circle" style="margin-left: 0.25rem;"></i>
+                                        فعال
+                                    </span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="{% if hide_supplier_info %}6{% else %}5{% endif %}" style="text-align: center; padding: 3rem;">
+                                    <div style="display: flex; flex-direction: column; align-items: center;">
+                                        <i class="fas fa-box-open" style="font-size: 2.5rem; margin-bottom: 1rem; color: #ccc;"></i>
+                                        <p style="color: #666;">هیچ محصول خارج از بازارگاه فعالی یافت نشد</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- جدول محصولات خارج از بازارگاه غیرفعال -->
+    <details class="dropdown-container animate-slide-up" style="animation-delay: 0.4s;">
+        <summary class="dropdown-header">
+            <div style="display: flex; align-items: center;">
+                <i class="fas fa-archive" style="margin-left: 0.5rem;"></i>
+                لیست محصولات خارج از بازارگاه غیرفعال
+                <span class="badge badge-danger" style="margin-right: 0.5rem;">{{ deactive_non_bazargah_products|length }}</span>
+            </div>
+            <i class="fas fa-chevron-down dropdown-icon"></i>
+        </summary>
+        <div class="dropdown-content">
+            <!-- Bulk Edit Controls Panel for Inactive Non-Bazargah Products -->
+            <div class="bulk-edit-controls bulk-edit-controls-archived-non-bazargah" style="display: none; background-color: #f8fafc; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                <div class="bulk-edit-toolbar" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                    <div class="selected-count" style="font-weight: 600; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-check-square"></i>
+                        <span class="count">0</span> مورد انتخاب شده
+                    </div>
+                    <div class="bulk-edit-actions" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-primary bulk-edit-btn" data-action="edit" data-section="archived-non-bazargah">
+                            <i class="fas fa-edit"></i> ویرایش گروهی
+                        </button>
+                        <button class="btn btn-success bulk-edit-excel-btn" data-action="excel" data-section="archived-non-bazargah">
+                            <i class="fas fa-file-excel"></i> ویرایش با اکسل
+                        </button>
+                        <button class="btn btn-info download-template-btn" data-action="template" data-section="archived-non-bazargah">
+                            <i class="fas fa-download"></i> دانلود قالب اکسل
+                        </button>
+                        <button class="btn btn-secondary clear-selection-btn" data-action="clear" data-section="archived-non-bazargah">
+                            <i class="fas fa-times"></i> لغو انتخاب
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div style="overflow-x: auto;">
+                <table class="enable-filter" id="inactiveNonBazargahProductsTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;" class="column-select" data-column-type="checkbox"><input type="checkbox" id="select-all-inactive-non-bazargah" class="select-all-checkbox-archived-non-bazargah" onclick="toggleAllInactiveNonBazargah()"></th>
+                            <th class="column-name" data-column-type="text">نام محصول</th>
+                            <th class="column-description" data-column-type="text">توضیحات</th>
+                            {% if not hide_supplier_info %}
+                            <th class="column-vared_konandeh" data-column-type="text">واردکننده</th>
+                            {% endif %}
+                            <th class="column-created_at" data-column-type="date">تاریخ ثبت</th>
+                            <th class="column-status" data-column-type="status">وضعیت</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in deactive_non_bazargah_products %}
+                            <tr onclick="toggleSelection(this, '{{ product.id }}');">
+                                <td class="column-select">
+                                    <input type="checkbox" name="product_id" value="{{ product.id }}" class="row-checkbox" data-id="{{ product.id }}" onclick="event.stopPropagation();">
+                                </td>
+                                <td class="column-name"><strong>{{ product.name|default:"-" }}</strong></td>
+                                <td class="column-description">{{ product.description|default:"-" }}</td>
+                                {% if not hide_supplier_info %}
+                                <td class="column-vared_konandeh">{{ product.vared_konandeh.name|default:"-" }}</td>
+                                {% endif %}
+                                <td class="column-created_at" data-value="{{ product.created_at }}">{{ product.created_at }}</td>
+                                <td class="column-status">
+                                    <span class="badge badge-danger">
+                                        <i class="fas fa-times-circle" style="margin-left: 0.25rem;"></i>
+                                        غیرفعال
+                                    </span>
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="{% if hide_supplier_info %}6{% else %}5{% endif %}" style="text-align: center; padding: 3rem;">
+                                    <p style="color: #666;">هیچ محصول خارج از بازارگاه غیرفعالی یافت نشد</p>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </details>
 </div>
 
 <script>
@@ -651,6 +864,50 @@
             checkbox.dispatchEvent(event);
         });
     }
+    
+    function toggleAllNonBazargah() {
+        var mainCheckbox = document.getElementById('select-all-non-bazargah');
+        var checkboxes = document.querySelectorAll('#nonBazargahProductsTable input.row-checkbox');
+        var isChecked = mainCheckbox.checked;
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = isChecked;
+            var row = checkbox.closest('tr');
+            if (isChecked) {
+                row.classList.add('selected');
+                row.classList.add('bulk-selected');
+            } else {
+                row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
+            }
+            
+            // Trigger a change event to notify the bulk edit manager
+            var event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
+        });
+    }
+    
+    function toggleAllInactiveNonBazargah() {
+        var mainCheckbox = document.getElementById('select-all-inactive-non-bazargah');
+        var checkboxes = document.querySelectorAll('#inactiveNonBazargahProductsTable input.row-checkbox');
+        var isChecked = mainCheckbox.checked;
+        
+        checkboxes.forEach(function(checkbox) {
+            checkbox.checked = isChecked;
+            var row = checkbox.closest('tr');
+            if (isChecked) {
+                row.classList.add('selected');
+                row.classList.add('bulk-selected');
+            } else {
+                row.classList.remove('selected');
+                row.classList.remove('bulk-selected');
+            }
+            
+            // Trigger a change event to notify the bulk edit manager
+            var event = new Event('change', { bubbles: true });
+            checkbox.dispatchEvent(event);
+        });
+    }
 
     // اضافه کردن آیکون‌های Font Awesome
     document.addEventListener('DOMContentLoaded', function() {
@@ -665,6 +922,9 @@
         document.querySelectorAll('#columnOptions input[type="checkbox"]').forEach(function(checkbox) {
             checkbox.addEventListener('change', toggleColumnVisibility);
         });
+
+        // بازگردانی وضعیت سکشن‌ها از localStorage
+        restoreSectionStates();
     });
 
     // تابع تغییر نمایش ستون‌ها
@@ -720,6 +980,77 @@
             menu.classList.remove('show');
         }
     });
+
+    // تابع برای باز/بسته کردن سکشن‌ها
+    function toggleSection(sectionId) {
+        const section = document.getElementById(sectionId);
+        const header = section.previousElementSibling;
+        const toggleIcon = header.querySelector('.toggle-icon');
+        const isCollapsed = section.classList.contains('collapsed');
+        
+        if (isCollapsed) {
+            // باز کردن سکشن
+            section.classList.remove('collapsed');
+            section.style.display = 'block';
+            header.classList.remove('collapsed');
+            toggleIcon.style.transform = 'rotate(180deg)';
+            localStorage.setItem(`${sectionId}-collapsed`, 'false');
+        } else {
+            // بستن سکشن
+            section.classList.add('collapsed');
+            section.style.display = 'none';
+            header.classList.add('collapsed');
+            toggleIcon.style.transform = 'rotate(0deg)';
+            localStorage.setItem(`${sectionId}-collapsed`, 'true');
+        }
+    }
+    
+    // تابع برای بازگردانی وضعیت سکشن‌ها از localStorage
+    function restoreSectionStates() {
+        const sections = ['cargo-products-section', 'non-bazargah-section'];
+        
+        sections.forEach(sectionId => {
+            const section = document.getElementById(sectionId);
+            const header = section.previousElementSibling;
+            const toggleIcon = header.querySelector('.toggle-icon');
+            const isCollapsed = localStorage.getItem(`${sectionId}-collapsed`) === 'true';
+            
+            if (isCollapsed) {
+                section.classList.add('collapsed');
+                section.style.display = 'none';
+                header.classList.add('collapsed');
+                toggleIcon.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
+
+    // تابع برای باز کردن همه سکشن‌ها
+    function expandAllSections() {
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            const section = header.nextElementSibling;
+            if (section && section.classList.contains('collapsible-content')) {
+                section.classList.remove('collapsed');
+                section.style.display = 'block';
+                header.classList.remove('collapsed');
+                header.querySelector('.toggle-icon').style.transform = 'rotate(180deg)';
+                localStorage.setItem(`${header.nextElementSibling.id}-collapsed`, 'false');
+            }
+        });
+    }
+
+    // تابع برای بستن همه سکشن‌ها
+    function collapseAllSections() {
+        document.querySelectorAll('.collapsible-header').forEach(header => {
+            const section = header.nextElementSibling;
+            if (section && section.classList.contains('collapsible-content')) {
+                section.classList.add('collapsed');
+                section.style.display = 'none';
+                header.classList.add('collapsed');
+                header.querySelector('.toggle-icon').style.transform = 'rotate(0deg)';
+                localStorage.setItem(`${header.nextElementSibling.id}-collapsed`, 'true');
+            }
+        });
+    }
 </script>
 
 <!-- Initialize table filters -->
@@ -753,7 +1084,96 @@
             // Re-initialize to apply new configuration
             window.bulkEditManager.init();
         }
+        
+        // Initialize bulk edit functionality for non-bazargah products
+        initializeNonBazargahBulkEdit();
     });
+    
+    function initializeNonBazargahBulkEdit() {
+        // Add event listeners for non-bazargah product checkboxes
+        const nonBazargahCheckboxes = document.querySelectorAll('#nonBazargahProductsTable input.row-checkbox');
+        const inactiveNonBazargahCheckboxes = document.querySelectorAll('#inactiveNonBazargahProductsTable input.row-checkbox');
+        
+        // Active non-bazargah products
+        nonBazargahCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkEditControls('non-bazargah');
+            });
+        });
+        
+        // Inactive non-bazargah products
+        inactiveNonBazargahCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                updateBulkEditControls('archived-non-bazargah');
+            });
+        });
+        
+        // Add event listeners for bulk edit buttons
+        document.querySelectorAll('[data-section="non-bazargah"]').forEach(button => {
+            button.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                handleBulkEditAction(action, 'non-bazargah');
+            });
+        });
+        
+        document.querySelectorAll('[data-section="archived-non-bazargah"]').forEach(button => {
+            button.addEventListener('click', function() {
+                const action = this.getAttribute('data-action');
+                handleBulkEditAction(action, 'archived-non-bazargah');
+            });
+        });
+    }
+    
+    function updateBulkEditControls(section) {
+        const tableId = section === 'non-bazargah' ? 'nonBazargahProductsTable' : 'inactiveNonBazargahProductsTable';
+        const controlsClass = section === 'non-bazargah' ? 'bulk-edit-controls-non-bazargah' : 'bulk-edit-controls-archived-non-bazargah';
+        
+        const checkboxes = document.querySelectorAll(`#${tableId} input.row-checkbox:checked`);
+        const controls = document.querySelector(`.${controlsClass}`);
+        const countSpan = controls.querySelector('.count');
+        
+        if (checkboxes.length > 0) {
+            controls.style.display = 'block';
+            countSpan.textContent = checkboxes.length;
+        } else {
+            controls.style.display = 'none';
+        }
+    }
+    
+    function handleBulkEditAction(action, section) {
+        const tableId = section === 'non-bazargah' ? 'nonBazargahProductsTable' : 'inactiveNonBazargahProductsTable';
+        const selectedIds = Array.from(document.querySelectorAll(`#${tableId} input.row-checkbox:checked`))
+            .map(checkbox => checkbox.value);
+        
+        if (selectedIds.length === 0) {
+            alert('لطفاً حداقل یک محصول را انتخاب کنید');
+            return;
+        }
+        
+        switch(action) {
+            case 'edit':
+                // Redirect to bulk edit page
+                window.location.href = `{% url "table_filter:bulk_edit_page" %}?ids=${selectedIds.join(',')}&model=NonBazargahProduct&app=major`;
+                break;
+            case 'excel':
+                // Redirect to excel edit page
+                window.location.href = `{% url "table_filter:bulk_edit_excel_page" %}?ids=${selectedIds.join(',')}&model=NonBazargahProduct&app=major`;
+                break;
+            case 'template':
+                // Download template
+                window.location.href = `{% url "table_filter:bulk_edit_template" %}?model=NonBazargahProduct&app=major`;
+                break;
+            case 'clear':
+                // Clear selection
+                document.querySelectorAll(`#${tableId} input.row-checkbox:checked`).forEach(checkbox => {
+                    checkbox.checked = false;
+                    const row = checkbox.closest('tr');
+                    row.classList.remove('selected', 'bulk-selected');
+                });
+                updateBulkEditControls(section);
+                break;
+        }
+    }
 </script>
 
 {% endblock %}

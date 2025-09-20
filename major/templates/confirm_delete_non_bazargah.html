@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+  .delete-confirmation {
+    max-width: 600px;
+    margin: 50px auto;
+    background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+    border: 2px solid #fc8181;
+    border-radius: 15px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(252, 129, 129, 0.2);
+  }
+  
+  .delete-header {
+    text-align: center;
+    color: #e53e3e;
+    margin-bottom: 30px;
+    font-size: 2rem;
+    font-weight: bold;
+  }
+  
+  .delete-icon {
+    font-size: 4rem;
+    color: #e53e3e;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .purchase-details {
+    background: rgba(255, 255, 255, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px 0;
+    border-left: 4px solid #e53e3e;
+  }
+  
+  .detail-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px dashed #cbd5e0;
+  }
+  
+  .detail-label {
+    font-weight: bold;
+    color: #4a5568;
+  }
+  
+  .detail-value {
+    color: #2d3748;
+  }
+  
+  .warning-text {
+    color: #c53030;
+    font-weight: bold;
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(254, 178, 178, 0.5);
+    border-radius: 8px;
+  }
+  
+  .action-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 30px;
+  }
+  
+  .btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .btn-danger {
+    background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    color: white;
+  }
+  
+  .btn-danger:hover {
+    background: linear-gradient(135deg, #c53030 0%, #9c2626 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(197, 48, 48, 0.4);
+  }
+  
+  .btn-secondary {
+    background: linear-gradient(135deg, #718096 0%, #4a5568 100%);
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(113, 128, 150, 0.4);
+  }
+
+  @media (max-width: 768px) {
+    .delete-confirmation {
+      margin: 20px;
+      padding: 25px;
+    }
+    
+    .action-buttons {
+      flex-direction: column;
+    }
+    
+    .btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>
+
+<div class="delete-confirmation">
+  <div class="delete-icon">
+    <i class="fas fa-exclamation-triangle"></i>
+  </div>
+  
+  <h2 class="delete-header">
+    <i class="fas fa-trash-alt"></i>
+    تایید حذف خرید خارج بازارگاه
+  </h2>
+  
+  <div class="purchase-details">
+    <h3 style="text-align: center; color: #4a5568; margin-bottom: 20px;">
+      <i class="fas fa-info-circle"></i> جزئیات خرید
+    </h3>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-hashtag"></i> شناسه خرید:
+      </span>
+      <span class="detail-value">{{ purchase.id }}</span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-user"></i> مشتری:
+      </span>
+      <span class="detail-value">{{ purchase.customer.name|default:"نامشخص" }}</span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-box"></i> محصول:
+      </span>
+      <span class="detail-value">{{ purchase.product.name|default:"نامشخص" }}</span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-calculator"></i> مقدار:
+      </span>
+      <span class="detail-value">{{ purchase.quantity|default:"0" }} {{ purchase.get_unit_display|default:"واحد" }}</span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-money-bill-wave"></i> مبلغ:
+      </span>
+      <span class="detail-value">
+        {% if purchase.customer_price %}
+          {{ purchase.customer_price|add_commas }} ریال
+        {% else %}
+          نامشخص
+        {% endif %}
+      </span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-calendar"></i> تاریخ ایجاد:
+      </span>
+      <span class="detail-value">{{ purchase.created_at|date:"Y/m/d H:i" }}</span>
+    </div>
+    
+    <div class="detail-row">
+      <span class="detail-label">
+        <i class="fas fa-info-circle"></i> وضعیت:
+      </span>
+      <span class="detail-value">{{ purchase.get_state_display }}</span>
+    </div>
+  </div>
+  
+  <div class="warning-text">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>هشدار:</strong> با حذف این خرید، تمام اطلاعات مربوط به آن از سیستم پاک خواهد شد و قابل بازیابی نخواهد بود!
+  </div>
+  
+  <form method="post" style="display: inline;">
+    {% csrf_token %}
+    <div class="action-buttons">
+      <button type="submit" class="btn btn-danger" onclick="return confirm('آیا مطمئن هستید که می‌خواهید این خرید را حذف کنید؟');">
+        <i class="fas fa-trash-alt"></i>
+        بله، حذف کن
+      </button>
+      
+      <a href="{% url 'non_bazargah_purchase_CRUD' purchase.id %}" class="btn btn-secondary">
+        <i class="fas fa-times"></i>
+        انصراف
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+// افزودن انیمیشن ورود
+document.addEventListener('DOMContentLoaded', function() {
+  const confirmation = document.querySelector('.delete-confirmation');
+  confirmation.style.opacity = '0';
+  confirmation.style.transform = 'translateY(30px)';
+  
+  setTimeout(() => {
+    confirmation.style.transition = 'all 0.5s ease';
+    confirmation.style.opacity = '1';
+    confirmation.style.transform = 'translateY(0)';
+  }, 100);
+});
+</script>
+{% endblock %}
