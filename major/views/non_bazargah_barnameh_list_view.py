@@ -20,6 +20,21 @@ from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill
 import jdatetime
+from datetime import timedelta
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.units import inch, mm
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER, TA_LEFT
+import os
+import io
+import arabic_reshaper
+from bidi.algorithm import get_display
+from django.conf import settings
 
 logger = logging.getLogger("major_non_bazargah_barnameh_list_view")
 
@@ -1328,4 +1343,427 @@ def _export_non_bazargah_barnameh_excel_full(queryset, from_date=None, to_date=N
     
     logger.warning(f"فایل اکسل کامل بارنامه‌های خارج بازارگاه با موفقیت تولید شد: {filename}")
     return response
+
+
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@login_required
+def fast_non_bazargah_barnameh_report_pdf(request):
+    """
+    گزارش PDF از خریدهای خارج بازارگاه 7 روز اخیر که بارنامه سریع (کمتر از 3 روز) دارند
+    به تفکیک کارشناس فروش - با پشتیبانی کامل از فارسی
+    """
+    try:
+        from major.models.NonBazargahPurchase import NonBazargahPurchase
+        from core.SalesAgentModel import SalesAgent
+        from django.db.models import Prefetch
+        
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        
+        # تابع کمکی برای پردازش متن فارسی
+        def process_persian_text(text):
+            """تبدیل متن فارسی به حالت صحیح برای نمایش در PDF"""
+            if text is None:
+                return "-"
+            
+            text = str(text).strip()
+            if not text:
+                return "-"
+            
+            try:
+                # بازسازی متن فارسی - فقط اگر حروف فارسی/عربی داشت
+                if any(ord(char) > 127 for char in text):  # اگر کاراکتر غیر ASCII داشت
+                    reshaped_text = arabic_reshaper.reshape(text)
+                    # تبدیل به BIDI
+                    bidi_text = get_display(reshaped_text)
+                    return bidi_text
+                else:
+                    # اگر فقط کاراکترهای انگلیسی/عددی بود، بدون تغییر برگردان
+                    return text
+            except Exception as e:
+                logger.warning(f"خطا در پردازش متن فارسی '{text}': {str(e)}")
+                return text
+        
+        # تابع کمکی برای تبدیل مقادیر به متن امن
+        def safe_text(value, default='-'):
+            """تبدیل مقادیر به متن امن"""
+            if value is None:
+                return default
+            return process_persian_text(str(value))
+        
+        # تابع کمکی برای فرمت کردن اعداد
+        def format_number(value, default='0'):
+            """تبدیل اعداد به متن فارسی با کاما"""
+            if value is None or value == 0:
+                return default
+            try:
+                # فقط عدد را فرمت کن، بدون پردازش فارسی
+                return f"{int(value):,}"
+            except (ValueError, TypeError):
+                return default
+        
+        # تابع کمکی برای فرمت کردن اعداد با واحد
+        def format_number_with_unit(value, unit_text, default='0'):
+            """تبدیل اعداد با واحد به متن مناسب"""
+            if value is None or value == 0:
+                return default
+            try:
+                number_part = f"{int(value):,}"
+                if unit_text:
+                    # برای واحدها، عدد و واحد را جداگانه پردازش کن
+                    unit_processed = process_persian_text(unit_text)
+                    return f"{number_part} {unit_processed}"
+                else:
+                    return number_part
+            except (ValueError, TypeError):
+                return default
+        
+        # ثبت فونت فارسی
+        BIDI_ENABLED = True
+        try:
+            font_path = os.path.join(settings.BASE_DIR, 'ERP', 'static', 'fonts', 'Vazir.ttf')
+            if os.path.exists(font_path):
+                pdfmetrics.registerFont(TTFont('Vazir', font_path))
+            else:
+                # اگر فونت وزیر موجود نبود، از فونت پیش‌فرض استفاده کن
+                BIDI_ENABLED = False
+                logger.warning("فونت وزیر یافت نشد، از فونت پیش‌فرض استفاده می‌شود")
+        except Exception as e:
+            BIDI_ENABLED = False
+            logger.warning(f"خطا در بارگذاری فونت فارسی: {str(e)}")
+        
+        # محاسبه تاریخ‌های مورد نیاز
+        now = timezone.now()
+        seven_days_ago = now - timedelta(days=7)
+        
+        logger.info(f"گزارش بارنامه‌های سریع خارج بازارگاه از {seven_days_ago} تا {now}")
+        
+        # یافتن خریدهای خارج بازارگاه 7 روز اخیر که دارای بارنامه هستند
+        base_queryset = NonBazargahPurchase.objects.filter(
+            created_at__gte=seven_days_ago
+        ).prefetch_related(
+            'allocations__barnamehs',
+            'unique_sales_agent',
+            'customer',
+            'product'
+        )
+        
+        # اگر کاربر کارشناس فروش است، فقط خریدهای مربوطه را ببیند
+        if user_role == 'sales_agent':
+            if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
+                base_queryset = base_queryset.filter(
+                    unique_sales_agent=request.user.sales_agent
+                )
+            else:
+                base_queryset = NonBazargahPurchase.objects.none()
+        
+        # یافتن بارنامه‌های سریع (کمتر از 3 روز)
+        fast_purchases = []
+        
+        # بررسی بارنامه‌های مستقیم (بدون تخصیص)
+        direct_barnamehs = Barnameh.objects.filter(
+            non_bazargah_purchase__in=base_queryset,
+            barnameh_created_at__gte=seven_days_ago,
+            type='Non_Bazargah'
+        ).select_related('non_bazargah_purchase', 'non_bazargah_purchase__customer', 'non_bazargah_purchase__unique_sales_agent')
+        
+        for barnameh in direct_barnamehs:
+            if barnameh.barnameh_created_at and barnameh.non_bazargah_purchase:
+                # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
+                time_diff = barnameh.barnameh_created_at - barnameh.non_bazargah_purchase.created_at
+                if time_diff.days <= 3:  # کمتر از 3 روز
+                    # محاسبه دقیق تفاوت روز
+                    purchase_date = barnameh.non_bazargah_purchase.created_at.date()
+                    barnameh_date = barnameh.barnameh_created_at.date()
+                    actual_days_diff = (barnameh_date - purchase_date).days
+                    
+                    fast_purchases.append({
+                        'purchase': barnameh.non_bazargah_purchase,
+                        'barnameh': barnameh,
+                        'days_diff': actual_days_diff,
+                        'hours_diff': time_diff.total_seconds() / 3600,
+                        'allocation': None  # بارنامه مستقیم
+                    })
+        
+        # بررسی بارنامه‌های از طریق تخصیص
+        for purchase in base_queryset:
+            for allocation in purchase.allocations.all():
+                for barnameh in allocation.barnamehs.all():
+                    if barnameh.barnameh_created_at and barnameh.barnameh_created_at >= seven_days_ago:
+                        # محاسبه تفاوت زمان بین ثبت خرید و صدور بارنامه
+                        time_diff = barnameh.barnameh_created_at - purchase.created_at
+                        if time_diff.days <= 3:  # کمتر از 3 روز
+                            # محاسبه دقیق تفاوت روز
+                            purchase_date = purchase.created_at.date()
+                            barnameh_date = barnameh.barnameh_created_at.date()
+                            actual_days_diff = (barnameh_date - purchase_date).days
+                            
+                            fast_purchases.append({
+                                'purchase': purchase,
+                                'barnameh': barnameh,
+                                'days_diff': actual_days_diff,
+                                'hours_diff': time_diff.total_seconds() / 3600,
+                                'allocation': allocation
+                            })
+        
+        # گروه‌بندی بر اساس کارشناس فروش
+        sales_agent_groups = {}
+        for item in fast_purchases:
+            purchase = item['purchase']
+            sales_agent = purchase.unique_sales_agent
+            
+            # اگر کارشناس فروش مشخص نباشد، در گروه "نامشخص" قرار بده
+            if not sales_agent:
+                agent_key = "نامشخص"
+                agent_name = "کارشناس فروش نامشخص"
+                agent_type = "نامشخص"
+            else:
+                agent_key = str(sales_agent.id)
+                agent_name = sales_agent.name or sales_agent.user.get_full_name() or sales_agent.user.username
+                
+                # تشخیص نوع کارشناس (سوپریوزر یا عادی)
+                if sales_agent.user and sales_agent.user.is_superuser:
+                    agent_type = "سوپریوزر"
+                    agent_name = f"{agent_name} (سوپریوزر)"
+                else:
+                    agent_type = "کارشناس فروش"
+            
+            if agent_key not in sales_agent_groups:
+                sales_agent_groups[agent_key] = {
+                    'name': agent_name,
+                    'type': agent_type,
+                    'purchases': []
+                }
+            
+            sales_agent_groups[agent_key]['purchases'].append(item)
+        
+        # ایجاد PDF
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"fast_non_bazargah_barnameh_report_{now.strftime('%Y%m%d_%H%M%S')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(
+            buffer, 
+            pagesize=A4,
+            rightMargin=20*mm,
+            leftMargin=20*mm,
+            topMargin=20*mm,
+            bottomMargin=20*mm
+        )
+        story = []
+        
+        # تعریف استایل‌های فارسی
+        styles = getSampleStyleSheet()
+        
+        # استایل عنوان اصلی
+        title_style = ParagraphStyle(
+            'FarsiTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=18,
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            leading=22
+        )
+        
+        # استایل عنوان کارشناس فروش
+        agent_title_style = ParagraphStyle(
+            'FarsiAgentTitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=16,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            leading=20
+        )
+        
+        # استایل متن عادی
+        normal_style = ParagraphStyle(
+            'FarsiNormal',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica',
+            fontSize=11,
+            spaceAfter=8,
+            alignment=TA_RIGHT,
+            leading=16
+        )
+        
+        # استایل زیرعنوان
+        subtitle_style = ParagraphStyle(
+            'FarsiSubtitle',
+            fontName='Vazir' if BIDI_ENABLED else 'Helvetica-Bold',
+            fontSize=13,
+            spaceAfter=10,
+            alignment=TA_RIGHT,
+            leading=18
+        )
+        
+        # اگر هیچ خریدی پیدا نشد
+        if not fast_purchases:
+            story.append(Paragraph(process_persian_text("گزارش بارنامه‌های سریع خارج بازارگاه"), title_style))
+            story.append(Spacer(1, 20))
+            story.append(Paragraph(process_persian_text("هیچ خرید خارج بازارگاه با بارنامه سریع در 7 روز اخیر یافت نشد."), normal_style))
+            
+            doc.build(story)
+            pdf = buffer.getvalue()
+            buffer.close()
+            response.write(pdf)
+            return response
+        
+        # تاریخ‌های شمسی
+        import jdatetime
+        jalali_start = jdatetime.datetime.fromgregorian(datetime=seven_days_ago).strftime('%Y/%m/%d')
+        jalali_end = jdatetime.datetime.fromgregorian(datetime=now).strftime('%Y/%m/%d')
+        
+        # برای هر کارشناس فروش صفحه کاملاً جداگانه
+        first_page = True
+        for agent_key, agent_data in sales_agent_groups.items():
+            if not first_page:  # اگر اولین صفحه نیست، صفحه جدید بساز
+                story.append(PageBreak())
+            first_page = False
+            
+            # عنوان اصلی گزارش برای هر کارشناس
+            story.append(Paragraph(process_persian_text("گزارش خریدهای خارج بازارگاه دارای بارنامه سریع"), title_style))
+            story.append(Spacer(1, 15))
+            
+            # اطلاعات کلی گزارش
+            summary_info = [
+                f"از تاریخ: {jalali_start} تا {jalali_end}",
+                f"{agent_data['type']}: {agent_data['name']}",
+                f"تعداد خریدهای سریع: {len(agent_data['purchases'])}"
+            ]
+            
+            for info in summary_info:
+                story.append(Paragraph(process_persian_text(info), normal_style))
+            
+            story.append(Spacer(1, 20))
+            
+            # گروه‌بندی بارنامه‌ها بر اساس خرید
+            purchases_with_barnamehs = {}
+            for item in agent_data['purchases']:
+                purchase = item['purchase']
+                if purchase.id not in purchases_with_barnamehs:
+                    purchases_with_barnamehs[purchase.id] = {
+                        'purchase': purchase,
+                        'barnamehs': []
+                    }
+                purchases_with_barnamehs[purchase.id]['barnamehs'].append(item)
+            
+            # نمایش هر خرید با بارنامه‌هایش
+            for purchase_id, purchase_data in purchases_with_barnamehs.items():
+                purchase = purchase_data['purchase']
+                barnamehs = purchase_data['barnamehs']
+                
+                # عنوان خرید
+                purchase_title = f"خرید خارج بازارگاه شماره: {purchase.purchase_number or 'نامشخص'}"
+                story.append(Paragraph(process_persian_text(purchase_title), subtitle_style))
+                story.append(Spacer(1, 8))
+                
+                # اطلاعات کلی خرید خارج بازارگاه
+                purchase_info_data = [
+                    [
+                        process_persian_text('مقدار خرید'),
+                        process_persian_text('نام مشتری'),
+                        process_persian_text('محصول'),
+                        process_persian_text('تعداد بارنامه‌های سریع')
+                    ],
+                    [
+                        format_number_with_unit(purchase.quantity, purchase.get_unit_display() if purchase.unit else None) if purchase.quantity else "-",
+                        process_persian_text(purchase.customer.name) if purchase.customer and purchase.customer.name else "-",
+                        process_persian_text(purchase.product.name) if purchase.product and purchase.product.name else "-",
+                        process_persian_text(str(len(barnamehs)))
+                    ]
+                ]
+                
+                purchase_info_table = Table(purchase_info_data, colWidths=[40*mm, 50*mm, 50*mm, 35*mm])
+                purchase_info_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 10),
+                    ('FONTSIZE', (0, 1), (-1, -1), 9),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('TOPPADDING', (0, 0), (-1, -1), 4),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ]))
+                
+                story.append(purchase_info_table)
+                story.append(Spacer(1, 12))
+                
+                # جدول بارنامه‌های این خرید
+                barnameh_table_data = [
+                    [
+                        process_persian_text('ردیف'),
+                        process_persian_text('نوع ارتباط'),
+                        process_persian_text('شماره بارنامه'),
+                        process_persian_text('سریال'),
+                        process_persian_text('وزن (کیلوگرم)'),
+                        process_persian_text('نام راننده'),
+                        process_persian_text('شماره راننده'),
+                        process_persian_text('پلاک'),
+                        process_persian_text('تفاوت (روز)')
+                    ]
+                ]
+                
+                for idx, item in enumerate(barnamehs, 1):
+                    barnameh = item['barnameh']
+                    allocation = item['allocation']
+                    
+                    # تشخیص نوع ارتباط (مستقیم یا از طریق تخصیص)
+                    relation_type = "تخصیص" if allocation else "مستقیم"
+                    
+                    barnameh_number = safe_text(barnameh.number)
+                    serial_text = safe_text(barnameh.serial)
+                    tonnage_text = format_number_with_unit(barnameh.tonnage, "کیلوگرم") if barnameh.tonnage else "-"
+                    driver_name = process_persian_text(barnameh.driver_name) if barnameh.driver_name else "-"
+                    driver_phone = safe_text(barnameh.driver_phone) if barnameh.driver_phone else "-"
+                    plate_text = safe_text(barnameh.vehicle_plate) if barnameh.vehicle_plate else "-"
+                    days_diff = f"{item['days_diff']}"
+                    
+                    barnameh_table_data.append([
+                        process_persian_text(str(idx)),
+                        process_persian_text(relation_type),
+                        barnameh_number,
+                        serial_text,
+                        tonnage_text,
+                        driver_name,
+                        driver_phone,
+                        plate_text,
+                        days_diff
+                    ])
+                
+                barnameh_table = Table(barnameh_table_data, colWidths=[15*mm, 20*mm, 25*mm, 20*mm, 20*mm, 25*mm, 25*mm, 20*mm, 15*mm])
+                barnameh_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgrey),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Vazir' if BIDI_ENABLED else 'Helvetica'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                ]))
+                
+                story.append(barnameh_table)
+                story.append(Spacer(1, 15))
+        
+        # ایجاد PDF
+        doc.build(story)
+        pdf = buffer.getvalue()
+        buffer.close()
+        response.write(pdf)
+        
+        logger.info(f"گزارش PDF بارنامه‌های سریع خارج بازارگاه با پشتیبانی فارسی ایجاد شد: {filename}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"خطا در ایجاد گزارش PDF بارنامه‌های سریع خارج بازارگاه: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': f'خطا در ایجاد گزارش: {str(e)}'
+        }, status=500)
 
