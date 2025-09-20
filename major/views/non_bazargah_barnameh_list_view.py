@@ -15,8 +15,69 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count, Sum, Max, Min
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment, PatternFill
+import jdatetime
 
 logger = logging.getLogger("major_non_bazargah_barnameh_list_view")
+
+def persian_digits_to_english(persian_text):
+    """تبدیل اعداد فارسی به انگلیسی"""
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    
+    if not persian_text:
+        return persian_text
+    
+    for persian, english in zip(persian_digits, english_digits):
+        persian_text = persian_text.replace(persian, english)
+    
+    return persian_text
+
+def jalali_to_gregorian_date(jalali_date_str):
+    """
+    تبدیل رشته تاریخ جلالی به تاریخ میلادی
+    پشتیبانی از فرمت‌های مختلف: 1403/01/01، 1403-01-01، 1403.01.01
+    """
+    if not jalali_date_str or not isinstance(jalali_date_str, str):
+        return None
+    
+    try:
+        # تبدیل اعداد فارسی به انگلیسی
+        jalali_date_str_en = persian_digits_to_english(jalali_date_str)
+        
+        # حذف فاصله‌ها و تبدیل جداکننده‌های مختلف به /
+        jalali_date_str_en = jalali_date_str_en.strip().replace('-', '/').replace('.', '/')
+        
+        # تقسیم تاریخ به بخش‌های مختلف
+        parts = jalali_date_str_en.split('/')
+        if len(parts) != 3:
+            raise ValueError("فرمت تاریخ باید به صورت YYYY/MM/DD باشد")
+        
+        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+        
+        # بررسی معتبر بودن تاریخ
+        if year < 1300 or year > 1500:
+            raise ValueError("سال باید بین 1300 تا 1500 باشد")
+        if month < 1 or month > 12:
+            raise ValueError("ماه باید بین 1 تا 12 باشد")
+        if day < 1 or day > 31:
+            raise ValueError("روز باید بین 1 تا 31 باشد")
+        
+        # تبدیل تاریخ جلالی به میلادی
+        jalali_date = jdatetime.date(year, month, day)
+        gregorian_date = jalali_date.togregorian()
+        
+        return gregorian_date
+        
+    except ValueError as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"فرمت تاریخ نامعتبر: {jalali_date_str}. {str(e)}")
+    except Exception as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
@@ -1010,4 +1071,261 @@ def update_barnameh_table_columns(request):
             'status': 'error',
             'message': f'خطا در ذخیره تنظیمات: {str(e)}'
         }, status=500)
+
+
+@csrf_exempt
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@login_required
+def export_full_non_bazargah_barnameh_excel(request):
+    """
+    خروجی اکسل کامل از همه بارنامه‌های خارج بازارگاه با تمام ستون‌ها و امکان انتخاب بازه تاریخ
+    """
+    logger.warning(f"خروجی اکسل کامل بارنامه‌های خارج بازارگاه توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
+    
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
+    
+    try:
+        # تشخیص نقش کاربر
+        user_role = determine_user_role(request.user)
+        
+        # دریافت پارامترهای درخواست
+        export_type = request.POST.get('export_type', 'all')
+        from_date = request.POST.get('from_date')
+        to_date = request.POST.get('to_date')
+        
+        logger.warning(f"نوع خروجی: {export_type}, از تاریخ: {from_date}, تا تاریخ: {to_date}")
+        
+        # ایجاد QuerySet پایه - فقط بارنامه‌های خارج از بازارگاه
+        base_queryset = Barnameh.objects.filter(
+            type='Non_Bazargah'
+        ).select_related(
+            'non_bazargah_purchase', 'non_bazargah_purchase__customer', 
+            'non_bazargah_purchase__unique_sales_agent', 'non_bazargah_purchase__product',
+            'non_bazargah_allocation', 'non_bazargah_allocation__purchase'
+        ).order_by('-barnameh_created_at')
+        
+        # اگر کاربر کارشناس فروش است، فقط بارنامه‌های مربوطه را ببیند
+        if user_role == 'sales_agent':
+            if hasattr(request.user, 'sales_agent') and request.user.sales_agent:
+                base_queryset = base_queryset.filter(
+                    non_bazargah_purchase__unique_sales_agent=request.user.sales_agent
+                )
+            else:
+                base_queryset = Barnameh.objects.none()
+        
+        # اعمال فیلتر تاریخ اگر مشخص شده باشد
+        if export_type == 'date_range' and (from_date or to_date):
+            
+            if from_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    from_date_obj = jalali_to_gregorian_date(from_date)
+                    if from_date_obj:
+                        # فیلتر روی barnameh_created_at (تاریخ ایجاد بارنامه)
+                        base_queryset = base_queryset.filter(barnameh_created_at__date__gte=from_date_obj)
+                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ شروع نامعتبر: {from_date}'
+                    }, status=400)
+            
+            if to_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    to_date_obj = jalali_to_gregorian_date(to_date)
+                    if to_date_obj:
+                        # فیلتر روی barnameh_created_at (تاریخ ایجاد بارنامه)
+                        base_queryset = base_queryset.filter(barnameh_created_at__date__lte=to_date_obj)
+                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ پایان نامعتبر: {to_date}'
+                    }, status=400)
+        
+        # شمارش کل بارنامه‌ها
+        total_count = base_queryset.count()
+        logger.warning(f"تعداد کل بارنامه‌های قابل خروجی: {total_count}")
+        
+        if total_count == 0:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'هیچ بارنامه‌ای در بازه انتخاب شده یافت نشد'
+            }, status=400)
+        
+        # محدودیت تعداد برای جلوگیری از مشکلات عملکردی
+        max_export_limit = 50000  # حداکثر 50,000 بارنامه
+        if total_count > max_export_limit:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'تعداد بارنامه‌ها ({total_count:,}) بیش از حد مجاز ({max_export_limit:,}) است. لطفاً بازه تاریخی کوچک‌تری انتخاب کنید.'
+            }, status=400)
+        
+        # تولید فایل اکسل
+        return _export_non_bazargah_barnameh_excel_full(base_queryset, from_date, to_date)
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"خطا در خروجی اکسل کامل بارنامه‌های خارج بازارگاه: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'خطا در تولید فایل اکسل: {str(e)}'
+        }, status=500)
+
+
+def _export_non_bazargah_barnameh_excel_full(queryset, from_date=None, to_date=None):
+    """پردازش و ایجاد فایل اکسل کامل برای همه بارنامه‌های خارج بازارگاه"""
+    
+    logger.warning(f"شروع تولید فایل اکسل کامل برای {queryset.count()} بارنامه خارج بازارگاه")
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "بارنامه‌های خارج بازارگاه"
+    
+    # تنظیم گردش متن از راست به چپ
+    ws.sheet_view.rightToLeft = True
+    
+    # استایل‌های ساده برای scalability
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')  # خاکستری ساده
+    alignment = Alignment(horizontal='right', vertical='center')
+    
+    # مپینگ کامل ستون‌ها برای بارنامه‌های خارج بازارگاه
+    column_mapping = {
+        'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
+        'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
+        'barnameh_date': ('تاریخ بارنامه', lambda b: b.barnameh_date.strftime("%Y/%m/%d") if b.barnameh_date else "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('تلفن راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک', lambda b: b.vehicle_plate or "-"),
+        'tonnage': ('وزن (کیلوگرم)', lambda b: f"{int(b.tonnage)}" if b.tonnage else "0"),
+        'receiver_name': ('نام گیرنده', lambda b: b.receiver_name or "-"),
+        'destination': ('مقصد', lambda b: b.destination or "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.non_bazargah_purchase.purchase_number if b.non_bazargah_purchase else "-"),
+        'customer': ('مشتری', lambda b: b.non_bazargah_purchase.customer.name if b.non_bazargah_purchase and b.non_bazargah_purchase.customer else "-"),
+        'product': ('محصول', lambda b: b.non_bazargah_purchase.product.name if b.non_bazargah_purchase and b.non_bazargah_purchase.product else "-"),
+        'buyer_name': ('نام خریدار', lambda b: b.get_buyer_name() or "-"),
+        'company_price': ('فی خرید (ریال)', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
+        'customer_price': ('فی فروش (ریال)', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
+        'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
+        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
+        'origin': ('مبدا', lambda b: b.origin or "-"),
+        'rent': ('کرایه', lambda b: f"{b.rent:,}" if b.rent else "0"),
+        'empty_vehicle_weight': ('وزن خالی ماشین', lambda b: f"{b.empty_vehicle_weight}" if b.empty_vehicle_weight else "-"),
+        'loaded_vehicle_weight': ('وزن پر ماشین', lambda b: f"{b.loaded_vehicle_weight}" if b.loaded_vehicle_weight else "-"),
+        'final_delivered_weight': ('وزن نهایی تحویل', lambda b: f"{b.final_delivered_weight}" if b.final_delivered_weight else "-"),
+        'vehicle_arrival_time': ('زمان ورود ماشین', lambda b: b.vehicle_arrival_time.strftime("%Y/%m/%d %H:%M") if b.vehicle_arrival_time else "-"),
+        'empty_weigh_time': ('زمان وزن خالی', lambda b: b.empty_weigh_time.strftime("%Y/%m/%d %H:%M") if b.empty_weigh_time else "-"),
+        'loading_start_time': ('شروع بارگیری', lambda b: b.loading_start_time.strftime("%Y/%m/%d %H:%M") if b.loading_start_time else "-"),
+        'loading_end_time': ('پایان بارگیری', lambda b: b.loading_end_time.strftime("%Y/%m/%d %H:%M") if b.loading_end_time else "-"),
+        'loaded_weigh_time': ('زمان وزن پر', lambda b: b.loaded_weigh_time.strftime("%Y/%m/%d %H:%M") if b.loaded_weigh_time else "-"),
+        'departure_time': ('زمان خروج از انبار', lambda b: b.departure_time.strftime("%Y/%m/%d %H:%M") if b.departure_time else "-"),
+        'delivery_time': ('زمان تحویل', lambda b: b.delivery_time.strftime("%Y/%m/%d %H:%M") if b.delivery_time else "-"),
+        'factor_date': ('تاریخ ثبت فاکتور', lambda b: b.factor_date.strftime("%Y/%m/%d") if b.factor_date else "-"),
+        'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d %H:%M") if b.barnameh_created_at else "-"),
+        'updated_at': ('تاریخ بروزرسانی', lambda b: b.barnameh_updated_at.strftime("%Y/%m/%d %H:%M") if b.barnameh_updated_at else "-"),
+        'sales_agent': ('کارشناس فروش', lambda b: b.non_bazargah_purchase.unique_sales_agent.name if b.non_bazargah_purchase and b.non_bazargah_purchase.unique_sales_agent else "-"),
+        'net_cargo_weight': ('وزن خالص بار', lambda b: f"{b.get_net_cargo_weight()}" if b.get_net_cargo_weight() else "-"),
+        'weight_difference_from_order': ('اختلاف وزن با سفارش', lambda b: f"{b.get_weight_difference_from_order()}" if b.get_weight_difference_from_order() is not None else "-"),
+        'loading_duration': ('مدت بارگیری', lambda b: str(b.get_loading_duration()) if b.get_loading_duration() else "-"),
+    }
+    
+    # همه ستون‌ها را اضافه می‌کنیم
+    all_columns = list(column_mapping.keys())
+    headers = [column_mapping[col][0] for col in all_columns]
+    
+    # اضافه کردن ردیف اطلاعات گزارش
+    info_row = [
+        f"گزارش کامل بارنامه‌های خارج بازارگاه - تولید شده در {timezone.now().strftime('%Y/%m/%d %H:%M')}",
+        "",  # سلول خالی
+        f"تعداد کل: {queryset.count():,}",
+        "",  # سلول خالی
+    ]
+    
+    if from_date or to_date:
+        date_range = f"از {from_date or 'ابتدا'} تا {to_date or 'انتها'}"
+        info_row.extend(["", date_range])
+    
+    # اضافه کردن ردیف اطلاعات
+    ws.append(info_row)
+    
+    # استایل ساده برای ردیف اطلاعات
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = Font(bold=True)
+        cell.alignment = alignment
+    
+    # اضافه کردن ردیف خالی
+    ws.append([])
+    
+    # افزودن هدرها
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    header_row = ws.max_row
+    for i, cell in enumerate(ws[header_row], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+    
+    # پردازش داده‌ها در batch برای بهینه‌سازی حافظه
+    batch_size = 1000
+    processed_count = 0
+    
+    # دریافت تمام داده‌ها به صورت iterator
+    for barnameh in queryset.iterator(chunk_size=batch_size):
+        row = []
+        for col in all_columns:
+            try:
+                value = column_mapping[col][1](barnameh)
+                row.append(value)
+            except Exception as e:
+                logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
+                if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage', 'rent']:
+                    row.append("0")
+                else:
+                    row.append("-")
+        
+        ws.append(row)
+        processed_count += 1
+        
+        # نمایش پیشرفت هر 1000 رکورد
+        if processed_count % batch_size == 0:
+            logger.info(f"پردازش شد: {processed_count:,} از {queryset.count():,} بارنامه")
+        
+        # تنظیم استایل برای سطرهای داده
+        current_row = ws.max_row
+        for j, cell in enumerate(ws[current_row], 1):
+            cell.alignment = alignment
+    
+    logger.warning(f"تمام {processed_count:,} بارنامه پردازش شد")
+    
+    # تنظیم عرض ستون‌ها - ساده
+    for i in range(1, len(headers) + 1):
+        column_letter = ws.cell(row=header_row, column=i).column_letter
+        ws.column_dimensions[column_letter].width = 15
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = f"A{header_row + 1}"
+    
+    # تولید نام فایل
+    current_time = timezone.now().strftime('%Y%m%d_%H%M%S')
+    date_suffix = ""
+    if from_date or to_date:
+        date_suffix = f"_{from_date or 'start'}_to_{to_date or 'end'}"
+    
+    filename = f"non_bazargah_barnamehs_full_export{date_suffix}_{current_time}.xlsx"
+    
+    # تولید پاسخ HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    
+    logger.warning(f"فایل اکسل کامل بارنامه‌های خارج بازارگاه با موفقیت تولید شد: {filename}")
+    return response
 

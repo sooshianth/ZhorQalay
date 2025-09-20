@@ -183,6 +183,9 @@
             <button type="button" class="btn btn-success" id="exportExcelBtn" disabled>
                 <i class="fas fa-file-excel me-2"></i>خروجی اکسل
             </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#fullExportModal">
+                <i class="fas fa-download me-2"></i>خروجی اکسل کامل
+            </button>
         </div>
         <!-- <div class="d-flex gap-3 flex-wrap">
             <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllRowsBtn">
@@ -253,7 +256,7 @@
                    data-column-values-url="{% url 'get_non_bazargah_barnameh_column_values' %}">
                     <thead>
                         <tr>
-                            <th data-column-id="select" data-column-type="select" style="min-width: 50px; display: {% if 'select' in visible_columns %}table-cell{% else %}none{% endif %};">
+                            <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
                                 <input type="checkbox" id="selectAllCheckbox" class="select-all-checkbox" title="انتخاب همه">
                             </th>
                             <th data-column-id="number" data-column-type="text" style="min-width: 120px;">شماره بارنامه</th>
@@ -269,18 +272,18 @@
                             <th data-column-id="customer" data-column-type="text" style="min-width: 150px;">مشتری</th>
                             <th data-column-id="product" data-column-type="text" style="min-width: 150px;">محصول</th>
                             <th data-column-id="buyer_name" data-column-type="text" style="min-width: 120px;">نام خریدار</th>
-                            <th data-column-id="company_price" data-column-type="number" style="min-width: 120px; display: {% if 'company_price' in visible_columns %}table-cell{% else %}none{% endif %};">فی خرید (ریال)</th>
-                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px; display: {% if 'customer_price' in visible_columns %}table-cell{% else %}none{% endif %};">فی فروش (ریال)</th>
-                            <th data-column-id="total_sales_amount" data-column-type="number" style="min-width: 120px; display: {% if 'total_sales_amount' in visible_columns %}table-cell{% else %}none{% endif %};">مبلغ کل فروش</th>
-                            <th data-column-id="total_purchase_amount" data-column-type="number" style="min-width: 120px; display: {% if 'total_purchase_amount' in visible_columns %}table-cell{% else %}none{% endif %};">مبلغ کل خرید</th>
-                            <th data-column-id="origin" data-column-type="text" style="min-width: 120px; display: {% if 'origin' in visible_columns %}table-cell{% else %}none{% endif %};">مبدا</th>
-                            <th data-column-id="rent" data-column-type="number" style="min-width: 120px; display: {% if 'rent' in visible_columns %}table-cell{% else %}none{% endif %};">کرایه</th>
-                            <th data-column-id="empty_vehicle_weight" data-column-type="number" style="min-width: 120px; display: {% if 'empty_vehicle_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن خالی ماشین</th>
-                            <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px; display: {% if 'loaded_vehicle_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن پر ماشین</th>
-                            <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px; display: {% if 'final_delivered_weight' in visible_columns %}table-cell{% else %}none{% endif %};">وزن نهایی تحویل</th>
-                            <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px; display: {% if 'vehicle_arrival_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان ورود ماشین</th>
-                            <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px; display: {% if 'departure_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان خروج از انبار</th>
-                            <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px; display: {% if 'delivery_time' in visible_columns %}table-cell{% else %}none{% endif %};">زمان تحویل</th>
+                            <th data-column-id="company_price" data-column-type="number" style="min-width: 120px;">فی خرید (ریال)</th>
+                            <th data-column-id="customer_price" data-column-type="number" style="min-width: 120px;">فی فروش (ریال)</th>
+                            <th data-column-id="total_sales_amount" data-column-type="number" style="min-width: 120px;">مبلغ کل فروش</th>
+                            <th data-column-id="total_purchase_amount" data-column-type="number" style="min-width: 120px;">مبلغ کل خرید</th>
+                            <th data-column-id="origin" data-column-type="text" style="min-width: 120px;">مبدا</th>
+                            <th data-column-id="rent" data-column-type="number" style="min-width: 120px;">کرایه</th>
+                            <th data-column-id="empty_vehicle_weight" data-column-type="number" style="min-width: 120px;">وزن خالی ماشین</th>
+                            <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px;">وزن پر ماشین</th>
+                            <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px;">وزن نهایی تحویل</th>
+                            <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px;">زمان ورود ماشین</th>
+                            <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px;">زمان خروج از انبار</th>
+                            <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px;">زمان تحویل</th>
                             <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">عملیات</th>
                         </tr>
                     </thead>
@@ -331,15 +334,15 @@
                                 </div>
                             </div>
                             <div class="section-body pt-2">
-                                <div class="row g-4">
+                                <div class="row g-4" id="columnsContainer">
                                     <!-- ستون‌ها دینامیک از سرور بارگذاری می‌شوند -->
-                                    <div class="col-12 text-center">
+                                    <div class="col-12 text-center" id="loadingSpinner">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">در حال بارگذاری...</span>
                                         </div>
                                         <p class="mt-2 text-muted">در حال بارگذاری فیلدهای موجود...</p>
                                     </div>
-                                    <!-- محتوای قدیمی موقتاً نگه داشته شده -->
+                                    <!-- محتوای قدیمی به عنوان fallback نگه داشته شده -->
                                     <!-- ستون انتخاب -->
                                     <div class="col-lg-4 col-md-6">
                                         <div class="column-checkbox">
@@ -680,6 +683,106 @@
         </div>
     </div>
 
+    <!-- مودال خروجی اکسل کامل -->
+    <div class="modal fade" id="fullExportModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable">
+            <div class="modal-content shadow">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title fw-bold">
+                        <i class="fas fa-download me-2"></i>خروجی اکسل کامل بارنامه‌های خارج بازارگاه
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4">
+                    <div class="alert alert-info bg-info bg-opacity-10 border-0 mb-4 p-3">
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            این گزینه تمام بارنامه‌های خارج بازارگاه را با همه ستون‌های موجود خروجی می‌گیرد.
+                        </p>
+                        <p class="mb-0 small text-muted">
+                            <strong>توجه:</strong> خروجی گرفتن از تعداد زیاد بارنامه ممکن است زمان‌بر باشد.
+                        </p>
+                    </div>
+                    
+                    <form id="fullExportForm">
+                        {% csrf_token %}
+                        
+                        <!-- انتخاب نوع خروجی -->
+                        <div class="mb-4">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-list me-2"></i>نوع خروجی
+                            </h6>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="radio" name="export_type" id="export_all" value="all" checked>
+                                <label class="form-check-label fw-semibold" for="export_all">
+                                    <i class="fas fa-globe me-2 text-success"></i>
+                                    همه بارنامه‌های خارج بازارگاه
+                                </label>
+                                <div class="small text-muted mt-1 me-4">تمام بارنامه‌های خارج بازارگاه بدون محدودیت تاریخی</div>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="export_type" id="export_date_range" value="date_range">
+                                <label class="form-check-label fw-semibold" for="export_date_range">
+                                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                                    بازه تاریخی مشخص
+                                </label>
+                                <div class="small text-muted mt-1 me-4">انتخاب بارنامه‌ها بر اساس تاریخ ایجاد</div>
+                            </div>
+                        </div>
+                        
+                        <!-- بازه تاریخی -->
+                        <div id="dateRangeSection" class="mb-4" style="display: none;">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-calendar-range me-2"></i>انتخاب بازه تاریخی
+                            </h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="from_date" class="form-label">از تاریخ:</label>
+                                    <input type="text" class="form-control" id="from_date" name="from_date" 
+                                           placeholder="مثال: 1403/01/01" 
+                                           pattern="^\d{4}\/\d{1,2}\/\d{1,2}$">
+                                    <div class="form-text">فرمت: سال/ماه/روز (شمسی)</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="to_date" class="form-label">تا تاریخ:</label>
+                                    <input type="text" class="form-control" id="to_date" name="to_date" 
+                                           placeholder="مثال: 1403/12/29"
+                                           pattern="^\d{4}\/\d{1,2}\/\d{1,2}$">
+                                    <div class="form-text">فرمت: سال/ماه/روز (شمسی)</div>
+                                </div>
+                            </div>
+                            <div class="alert alert-warning mt-3">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>نکته مهم:</strong> فیلتر بر اساس تاریخ ایجاد بارنامه انجام می‌شود.
+                            </div>
+                        </div>
+                        
+                        <!-- اطلاعات تکمیلی -->
+                        <div class="mb-3">
+                            <h6 class="fw-bold text-primary mb-3">
+                                <i class="fas fa-table me-2"></i>اطلاعات خروجی
+                            </h6>
+                            <ul class="list-unstyled mb-0">
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>تمام ستون‌های موجود شامل می‌شود</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>فرمت فایل: Excel (.xlsx)</li>
+                                <li class="mb-2"><i class="fas fa-check text-success me-2"></i>ترتیب: جدیدترین به قدیمی‌ترین</li>
+                                <li class="mb-0"><i class="fas fa-check text-success me-2"></i>شامل اطلاعات کامل مشتری، محصول، و راننده</li>
+                            </ul>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light py-3">
+                    <button type="button" class="btn btn-outline-secondary px-4 py-2" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-2"></i>انصراف
+                    </button>
+                    <button type="button" class="btn btn-primary px-4 py-2" id="startFullExportBtn">
+                        <i class="fas fa-download me-2"></i>شروع خروجی
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
 <script src="{% static 'js/non_bazargah_barnameh_list.js' %}"></script>
@@ -708,6 +811,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // مدیریت ستون‌ها
     setupColumnManagement();
+    
+    // مدیریت خروجی اکسل کامل
+    setupFullExportModal();
 });
 
 function setupColumnManagement() {
@@ -788,57 +894,100 @@ function setupColumnManagement() {
 
 async function loadAvailableFields() {
     try {
+        console.log('loadAvailableFields: Starting to load fields from server...');
         const response = await fetch('{% url "get_available_barnameh_fields" %}');
         const data = await response.json();
         
+        console.log('loadAvailableFields: Server response:', data);
+        
         if (data.status === 'success') {
             updateColumnsModal(data.fields);
+        } else {
+            console.error('loadAvailableFields: Server returned error:', data.message);
+            // در صورت خطا از فیلدهای fallback استفاده کن
+            updateColumnsModal(null);
         }
     } catch (error) {
-        console.error('خطا در بارگذاری فیلدها:', error);
+        console.error('loadAvailableFields: خطا در بارگذاری فیلدها:', error);
+        // در صورت خطا از فیلدهای fallback استفاده کن
+        updateColumnsModal(null);
     }
 }
 
 function updateColumnsModal(fields) {
-    const sectionBody = document.querySelector('#columnsForm .section-body .row');
-    if (!sectionBody) return;
+    const columnsContainer = document.getElementById('columnsContainer');
+    const loadingSpinner = document.getElementById('loadingSpinner');
     
-    // پاک کردن محتوای فعلی
-    sectionBody.innerHTML = '';
+    if (!columnsContainer) {
+        console.error('columnsContainer not found!');
+        return;
+    }
     
-    // دریافت ستون‌های فعلی کاربر از template
-    const visibleColumns = {{ visible_columns|safe }};
+    // حذف loading spinner
+    if (loadingSpinner) {
+        loadingSpinner.remove();
+    }
     
-    // اضافه کردن فیلدها
-    fields.forEach(field => {
-        const isChecked = field.required || visibleColumns.includes(field.id);
-        
-        const columnDiv = document.createElement('div');
-        columnDiv.className = 'col-lg-4 col-md-6';
-        
-        // تعیین کلاس اضافی برای فیلدهای الزامی
-        const requiredClass = field.required ? ' required-field' : '';
-        
-        columnDiv.innerHTML = `
-            <div class="column-checkbox${requiredClass}">
-                <input class="form-check-input" type="checkbox" 
-                    id="col-${field.id}" name="columns[]" 
-                    value="${field.id}" ${isChecked ? 'checked' : ''} ${field.required ? 'disabled' : ''}>
-                <label class="form-check-label" for="col-${field.id}">
-                    ${field.name} ${field.is_model_field ? '<small class="text-muted">(فیلد مدل)</small>' : ''}
-                    ${field.required ? '<small class="text-danger">(الزامی)</small>' : ''}
-                </label>
-            </div>
-        `;
-        
-        sectionBody.appendChild(columnDiv);
+    // پاک کردن محتوای فعلی (بجز فیلدهای fallback که قبلاً وجود داشتند)
+    const existingFields = columnsContainer.querySelectorAll('.col-lg-4, .col-md-6');
+    existingFields.forEach(field => {
+        if (!field.querySelector('.column-checkbox')) {
+            field.remove(); // فقط فیلدهایی که fallback نیستند را حذف کن
+        }
     });
     
-    console.log('updateColumnsModal: Fields loaded, visible columns:', visibleColumns);
-    console.log('updateColumnsModal: Total fields:', fields.length);
+    // دریافت ستون‌های فعلی کاربر از template
+    const visibleColumns = JSON.parse('{{ visible_columns|safe|escapejs }}');
+    
+    console.log('updateColumnsModal: Loading fields from server, visible columns:', visibleColumns);
+    console.log('updateColumnsModal: Total fields from server:', fields.length);
+    
+    // اگر فیلدهای سرور موجود باشند، از آنها استفاده کن
+    if (fields && fields.length > 0) {
+        // پاک کردن تمام فیلدهای fallback
+        const allFallbackFields = columnsContainer.querySelectorAll('.col-lg-4, .col-md-6');
+        allFallbackFields.forEach(field => field.remove());
+        
+        // اضافه کردن فیلدهای جدید از سرور
+        fields.forEach(field => {
+            const isChecked = field.required || visibleColumns.includes(field.id);
+            
+            const columnDiv = document.createElement('div');
+            columnDiv.className = 'col-lg-4 col-md-6';
+            
+            // تعیین کلاس اضافی برای فیلدهای الزامی
+            const requiredClass = field.required ? ' required-field' : '';
+            
+            columnDiv.innerHTML = `
+                <div class="column-checkbox${requiredClass}">
+                    <input class="form-check-input" type="checkbox" 
+                        id="col-${field.id}" name="columns[]" 
+                        value="${field.id}" ${isChecked ? 'checked' : ''} ${field.required ? 'disabled' : ''}>
+                    <label class="form-check-label" for="col-${field.id}">
+                        ${field.name} ${field.is_model_field ? '<small class="text-muted">(فیلد مدل)</small>' : ''}
+                        ${field.required ? '<small class="text-danger">(الزامی)</small>' : ''}
+                    </label>
+                </div>
+            `;
+            
+            columnsContainer.appendChild(columnDiv);
+        });
+        
+        console.log('updateColumnsModal: Dynamic fields loaded successfully');
+    } else {
+        // اگر فیلدهای سرور موجود نباشند، از فیلدهای fallback استفاده کن
+        console.log('updateColumnsModal: Using fallback fields');
+        
+        // بروزرسانی وضعیت checked برای فیلدهای fallback
+        const fallbackCheckboxes = columnsContainer.querySelectorAll('input[type="checkbox"]');
+        fallbackCheckboxes.forEach(checkbox => {
+            const fieldId = checkbox.value;
+            checkbox.checked = visibleColumns.includes(fieldId);
+        });
+    }
     
     // Debug: بررسی اینکه آیا ستون select وجود دارد
-    const selectField = fields.find(f => f.id === 'select');
+    const selectField = fields ? fields.find(f => f.id === 'select') : null;
     console.log('updateColumnsModal: Select field found:', selectField);
 }
 
@@ -969,6 +1118,108 @@ function showToast(message, type = 'info') {
             toast.parentNode.removeChild(toast);
         }
     }, 5000);
+}
+
+function setupFullExportModal() {
+    const exportTypeRadios = document.querySelectorAll('input[name="export_type"]');
+    const dateRangeSection = document.getElementById('dateRangeSection');
+    const startFullExportBtn = document.getElementById('startFullExportBtn');
+    
+    // مدیریت نمایش/مخفی کردن بخش بازه تاریخی
+    exportTypeRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'date_range') {
+                dateRangeSection.style.display = 'block';
+            } else {
+                dateRangeSection.style.display = 'none';
+            }
+        });
+    });
+    
+    // مدیریت دکمه شروع خروجی
+    if (startFullExportBtn) {
+        startFullExportBtn.addEventListener('click', function() {
+            const exportType = document.querySelector('input[name="export_type"]:checked').value;
+            const fromDate = document.getElementById('from_date').value.trim();
+            const toDate = document.getElementById('to_date').value.trim();
+            
+            // اعتبارسنجی
+            if (exportType === 'date_range') {
+                if (!fromDate && !toDate) {
+                    showToast('لطفاً حداقل یکی از تاریخ‌های شروع یا پایان را وارد کنید', 'error');
+                    return;
+                }
+                
+                // اعتبارسنجی فرمت تاریخ
+                const datePattern = /^\d{4}\/\d{1,2}\/\d{1,2}$/;
+                if (fromDate && !datePattern.test(fromDate)) {
+                    showToast('فرمت تاریخ شروع صحیح نیست. از فرمت 1403/01/01 استفاده کنید', 'error');
+                    return;
+                }
+                if (toDate && !datePattern.test(toDate)) {
+                    showToast('فرمت تاریخ پایان صحیح نیست. از فرمت 1403/12/29 استفاده کنید', 'error');
+                    return;
+                }
+            }
+            
+            // تغییر وضعیت دکمه
+            const originalText = startFullExportBtn.innerHTML;
+            startFullExportBtn.disabled = true;
+            startFullExportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال پردازش...';
+            
+            // ایجاد FormData
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', getCSRFToken());
+            formData.append('export_type', exportType);
+            
+            if (exportType === 'date_range') {
+                if (fromDate) formData.append('from_date', fromDate);
+                if (toDate) formData.append('to_date', toDate);
+            }
+            
+            // ارسال درخواست
+            fetch('{% url "export_full_non_bazargah_barnameh_excel" %}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    // دانلود فایل
+                    return response.blob().then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `non_bazargah_barnamehs_full_export_${new Date().getTime()}.xlsx`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        showToast('فایل اکسل با موفقیت دانلود شد', 'success');
+                        
+                        // بستن مودال
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('fullExportModal'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                    });
+                } else {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'خطا در تولید فایل اکسل');
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('خطا در خروجی اکسل کامل:', error);
+                showToast(error.message || 'خطا در تولید فایل اکسل', 'error');
+            })
+            .finally(() => {
+                // بازگردانی وضعیت دکمه
+                startFullExportBtn.disabled = false;
+                startFullExportBtn.innerHTML = originalText;
+            });
+        });
+    }
 }
 </script>
 {% endblock %}
