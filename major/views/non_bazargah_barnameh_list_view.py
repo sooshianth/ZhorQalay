@@ -158,6 +158,8 @@ def get_column_mapping():
         'loaded_vehicle_weight': 'وزن پر ماشین',
         'final_delivered_weight': 'وزن نهایی تحویل',
         'vehicle_arrival_time': 'زمان ورود ماشین',
+        'empty_weigh_time': 'زمان وزن‌گیری خالی',
+        'loaded_weigh_time': 'زمان وزن‌گیری پر',
         'departure_time': 'زمان خروج از انبار',
         'delivery_time': 'زمان تحویل',
         'actions': 'عملیات'
@@ -228,11 +230,15 @@ def get_barnameh_data(barnameh, columns):
         elif column == 'final_delivered_weight':
             data[column_mapping[column]] = barnameh.final_delivered_weight or '-'
         elif column == 'vehicle_arrival_time':
-            data[column_mapping[column]] = barnameh.vehicle_arrival_time or '-'
+            data[column_mapping[column]] = barnameh.vehicle_arrival_time.strftime("%Y/%m/%d %H:%M") if barnameh.vehicle_arrival_time else '-'
+        elif column == 'empty_weigh_time':
+            data[column_mapping[column]] = barnameh.empty_weigh_time.strftime("%Y/%m/%d %H:%M") if barnameh.empty_weigh_time else '-'
+        elif column == 'loaded_weigh_time':
+            data[column_mapping[column]] = barnameh.loaded_weigh_time.strftime("%Y/%m/%d %H:%M") if barnameh.loaded_weigh_time else '-'
         elif column == 'departure_time':
-            data[column_mapping[column]] = barnameh.departure_time or '-'
+            data[column_mapping[column]] = barnameh.departure_time.strftime("%Y/%m/%d %H:%M") if barnameh.departure_time else '-'
         elif column == 'delivery_time':
-            data[column_mapping[column]] = barnameh.delivery_time or '-'
+            data[column_mapping[column]] = barnameh.delivery_time.strftime("%Y/%m/%d %H:%M") if barnameh.delivery_time else '-'
         elif column == 'actions':
             continue  # ستون عملیات را نادیده بگیر
     
@@ -411,7 +417,7 @@ def apply_non_bazargah_barnameh_filter(request):
                 filter_type = filter_data.get('type', 'include')
                 
                 if column_id == 'number':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(number__in=values)
@@ -419,7 +425,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(number__in=values)
                             
                 elif column_id == 'serial':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(serial__in=values)
@@ -435,6 +441,7 @@ def apply_non_bazargah_barnameh_filter(request):
                                 if cleaned_value.replace('.', '').isdigit():
                                     numeric_values.append(float(cleaned_value))
                         
+                        numeric_values = list(set(numeric_values))  # حذف تکراری‌ها
                         if numeric_values:
                             if filter_type == 'include':
                                 filter_conditions &= Q(tonnage__in=numeric_values)
@@ -444,7 +451,7 @@ def apply_non_bazargah_barnameh_filter(request):
                         continue
                         
                 elif column_id == 'driver_name':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(driver_name__in=values)
@@ -452,7 +459,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(driver_name__in=values)
                             
                 elif column_id == 'driver_phone':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(driver_phone__in=values)
@@ -460,7 +467,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(driver_phone__in=values)
                             
                 elif column_id == 'vehicle_plate':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(vehicle_plate__in=values)
@@ -468,7 +475,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(vehicle_plate__in=values)
                             
                 elif column_id == 'receiver_name':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(receiver_name__in=values)
@@ -476,7 +483,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(receiver_name__in=values)
                             
                 elif column_id == 'destination':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(destination__in=values)
@@ -484,7 +491,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(destination__in=values)
                             
                 elif column_id == 'purchase_number':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(non_bazargah_purchase__purchase_number__in=values)
@@ -492,7 +499,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(non_bazargah_purchase__purchase_number__in=values)
                             
                 elif column_id == 'customer':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(non_bazargah_purchase__customer__name__in=values)
@@ -500,7 +507,7 @@ def apply_non_bazargah_barnameh_filter(request):
                             filter_conditions &= ~Q(non_bazargah_purchase__customer__name__in=values)
                             
                 elif column_id == 'product':
-                    values = [v for v in values if v and v.strip()]
+                    values = list(set([v for v in values if v and v.strip()]))  # حذف تکراری‌ها
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(non_bazargah_purchase__product__name__in=values)
@@ -510,20 +517,44 @@ def apply_non_bazargah_barnameh_filter(request):
                 elif column_id == 'barnameh_date':
                     try:
                         date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime.datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(barnameh_date=date_obj)
+                        unique_dates = set([v for v in values if v and v.strip()])  # حذف تکراری‌ها
+                        for date_str in unique_dates:
+                            if '/' in date_str:
+                                parts = date_str.split('/')
+                                if len(parts) == 3:
+                                    year, month, day = parts
+                                    date_obj = datetime.datetime(int(year), int(month), int(day)).date()
+                                    date_conditions |= Q(barnameh_date=date_obj)
                         
                         if date_conditions:
                             if filter_type == 'include':
                                 filter_conditions &= date_conditions
                             else:
                                 filter_conditions &= ~date_conditions
+                    except (ValueError, TypeError):
+                        continue
+                        
+                elif column_id in ['vehicle_arrival_time', 'empty_weigh_time', 'loaded_weigh_time', 'departure_time', 'delivery_time']:
+                    try:
+                        datetime_conditions = Q()
+                        unique_datetimes = set([v for v in values if v and v.strip()])  # حذف تکراری‌ها
+                        for datetime_str in unique_datetimes:
+                            if '/' in datetime_str and ':' in datetime_str:
+                                # فرمت: YYYY/MM/DD HH:MM
+                                date_part, time_part = datetime_str.split(' ')
+                                date_parts = date_part.split('/')
+                                time_parts = time_part.split(':')
+                                if len(date_parts) == 3 and len(time_parts) == 2:
+                                    year, month, day = date_parts
+                                    hour, minute = time_parts
+                                    datetime_obj = datetime.datetime(int(year), int(month), int(day), int(hour), int(minute))
+                                    datetime_conditions |= Q(**{column_id: datetime_obj})
+                        
+                        if datetime_conditions:
+                            if filter_type == 'include':
+                                filter_conditions &= datetime_conditions
+                            else:
+                                filter_conditions &= ~datetime_conditions
                     except (ValueError, TypeError):
                         continue
                 
@@ -539,14 +570,15 @@ def apply_non_bazargah_barnameh_filter(request):
                             field_type = field.get_internal_type()
                             
                             if field_type == 'BooleanField':
-                                # تبدیل مقادیر بولین
-                                bool_values = []
+                                # تبدیل مقادیر بولین و حذف تکراری‌ها
+                                bool_values = set()
                                 for v in values:
                                     if v.lower() in ['بله', 'true', '1', 'فعال']:
-                                        bool_values.append(True)
+                                        bool_values.add(True)
                                     elif v.lower() in ['خیر', 'false', '0', 'غیرفعال']:
-                                        bool_values.append(False)
+                                        bool_values.add(False)
                                 
+                                bool_values = list(bool_values)
                                 if bool_values:
                                     if filter_type == 'include':
                                         filter_conditions &= Q(**{f'{column_id}__in': bool_values})
@@ -554,16 +586,17 @@ def apply_non_bazargah_barnameh_filter(request):
                                         filter_conditions &= ~Q(**{f'{column_id}__in': bool_values})
                             
                             elif field_type in ['IntegerField', 'PositiveIntegerField', 'BigIntegerField', 'FloatField', 'DecimalField']:
-                                # تبدیل مقادیر عددی
-                                numeric_values = []
+                                # تبدیل مقادیر عددی و حذف تکراری‌ها
+                                numeric_values = set()
                                 for v in values:
                                     try:
                                         cleaned_value = str(v).replace(',', '').replace('٬', '').strip()
                                         if cleaned_value.replace('.', '').isdigit():
-                                            numeric_values.append(float(cleaned_value))
+                                            numeric_values.add(float(cleaned_value))
                                     except:
                                         continue
                                 
+                                numeric_values = list(numeric_values)
                                 if numeric_values:
                                     if filter_type == 'include':
                                         filter_conditions &= Q(**{f'{column_id}__in': numeric_values})
@@ -571,16 +604,16 @@ def apply_non_bazargah_barnameh_filter(request):
                                         filter_conditions &= ~Q(**{f'{column_id}__in': numeric_values})
                             
                             elif field_type in ['DateField', 'DateTimeField']:
-                                # تبدیل مقادیر تاریخ
+                                # تبدیل مقادیر تاریخ و حذف تکراری‌ها
                                 date_conditions = Q()
-                                for date_str in values:
-                                    if date_str and date_str.strip():
-                                        if '/' in date_str:
-                                            parts = date_str.split('/')
-                                            if len(parts) == 3:
-                                                year, month, day = parts
-                                                date_obj = datetime.datetime(int(year), int(month), int(day)).date()
-                                                date_conditions |= Q(**{column_id: date_obj})
+                                unique_dates = set([v for v in values if v and v.strip()])
+                                for date_str in unique_dates:
+                                    if '/' in date_str:
+                                        parts = date_str.split('/')
+                                        if len(parts) == 3:
+                                            year, month, day = parts
+                                            date_obj = datetime.datetime(int(year), int(month), int(day)).date()
+                                            date_conditions |= Q(**{column_id: date_obj})
                                 
                                 if date_conditions:
                                     if filter_type == 'include':
@@ -589,11 +622,13 @@ def apply_non_bazargah_barnameh_filter(request):
                                         filter_conditions &= ~date_conditions
                             
                             else:
-                                # فیلتر متنی
-                                if filter_type == 'include':
-                                    filter_conditions &= Q(**{f'{column_id}__in': values})
-                                else:
-                                    filter_conditions &= ~Q(**{f'{column_id}__in': values})
+                                # فیلتر متنی با حذف تکراری‌ها
+                                unique_values = list(set([v for v in values if v and v.strip()]))
+                                if unique_values:
+                                    if filter_type == 'include':
+                                        filter_conditions &= Q(**{f'{column_id}__in': unique_values})
+                                    else:
+                                        filter_conditions &= ~Q(**{f'{column_id}__in': unique_values})
                                     
                     except Exception as e:
                         logger.warning(f"خطا در اعمال فیلتر برای فیلد {column_id}: {e}")
@@ -705,6 +740,8 @@ def apply_non_bazargah_barnameh_filter(request):
                 'loaded_vehicle_weight': barnameh.loaded_vehicle_weight or '',
                 'final_delivered_weight': barnameh.final_delivered_weight or '',
                 'vehicle_arrival_time': barnameh.vehicle_arrival_time.strftime("%Y/%m/%d %H:%M") if barnameh.vehicle_arrival_time else '',
+                'empty_weigh_time': barnameh.empty_weigh_time.strftime("%Y/%m/%d %H:%M") if barnameh.empty_weigh_time else '',
+                'loaded_weigh_time': barnameh.loaded_weigh_time.strftime("%Y/%m/%d %H:%M") if barnameh.loaded_weigh_time else '',
                 'departure_time': barnameh.departure_time.strftime("%Y/%m/%d %H:%M") if barnameh.departure_time else '',
                 'delivery_time': barnameh.delivery_time.strftime("%Y/%m/%d %H:%M") if barnameh.delivery_time else '',
             }
@@ -868,54 +905,101 @@ def get_non_bazargah_barnameh_column_values(request):
         
         if column_id == 'number':
             values_qs = base_queryset.values_list('number', flat=True).distinct().exclude(number__isnull=True).exclude(number='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'serial':
             values_qs = base_queryset.values_list('serial', flat=True).distinct().exclude(serial__isnull=True).exclude(serial='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'tonnage':
             values_qs = base_queryset.values_list('tonnage', flat=True).distinct().exclude(tonnage__isnull=True)
-            values = sorted(list(set(values_qs)))
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'driver_name':
             values_qs = base_queryset.values_list('driver_name', flat=True).distinct().exclude(driver_name__isnull=True).exclude(driver_name='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'driver_phone':
             values_qs = base_queryset.values_list('driver_phone', flat=True).distinct().exclude(driver_phone__isnull=True).exclude(driver_phone='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'vehicle_plate':
             values_qs = base_queryset.values_list('vehicle_plate', flat=True).distinct().exclude(vehicle_plate__isnull=True).exclude(vehicle_plate='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'receiver_name':
             values_qs = base_queryset.values_list('receiver_name', flat=True).distinct().exclude(receiver_name__isnull=True).exclude(receiver_name='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'destination':
             values_qs = base_queryset.values_list('destination', flat=True).distinct().exclude(destination__isnull=True).exclude(destination='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'barnameh_date':
             date_values = set()
             for barnameh in base_queryset:
                 if barnameh.barnameh_date:
                     date_values.add(barnameh.barnameh_date.strftime("%Y/%m/%d"))
-            values = sorted(list(date_values), reverse=True)
+            values = sorted(list(date_values), reverse=True)  # تکراری‌ها از قبل حذف شده‌اند
             
         elif column_id == 'purchase_number':
             values_qs = base_queryset.filter(non_bazargah_purchase__isnull=False).values_list('non_bazargah_purchase__purchase_number', flat=True).distinct().exclude(non_bazargah_purchase__purchase_number__isnull=True).exclude(non_bazargah_purchase__purchase_number='')
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'customer':
             values_qs = base_queryset.filter(non_bazargah_purchase__customer__isnull=False).values_list('non_bazargah_purchase__customer__name', flat=True).distinct()
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
             
         elif column_id == 'product':
             values_qs = base_queryset.filter(non_bazargah_purchase__product__isnull=False).values_list('non_bazargah_purchase__product__name', flat=True).distinct()
-            values = list(values_qs)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
+            
+        elif column_id == 'vehicle_arrival_time':
+            time_values = set()
+            for barnameh in base_queryset:
+                if barnameh.vehicle_arrival_time:
+                    time_values.add(barnameh.vehicle_arrival_time.strftime("%Y/%m/%d %H:%M"))
+            values = sorted(list(time_values), reverse=True)
+            
+        elif column_id == 'empty_weigh_time':
+            time_values = set()
+            for barnameh in base_queryset:
+                if barnameh.empty_weigh_time:
+                    time_values.add(barnameh.empty_weigh_time.strftime("%Y/%m/%d %H:%M"))
+            values = sorted(list(time_values), reverse=True)
+            
+        elif column_id == 'loaded_weigh_time':
+            time_values = set()
+            for barnameh in base_queryset:
+                if barnameh.loaded_weigh_time:
+                    time_values.add(barnameh.loaded_weigh_time.strftime("%Y/%m/%d %H:%M"))
+            values = sorted(list(time_values), reverse=True)
+            
+        elif column_id == 'departure_time':
+            time_values = set()
+            for barnameh in base_queryset:
+                if barnameh.departure_time:
+                    time_values.add(barnameh.departure_time.strftime("%Y/%m/%d %H:%M"))
+            values = sorted(list(time_values), reverse=True)
+            
+        elif column_id == 'delivery_time':
+            time_values = set()
+            for barnameh in base_queryset:
+                if barnameh.delivery_time:
+                    time_values.add(barnameh.delivery_time.strftime("%Y/%m/%d %H:%M"))
+            values = sorted(list(time_values), reverse=True)
+            
+        elif column_id == 'empty_vehicle_weight':
+            values_qs = base_queryset.values_list('empty_vehicle_weight', flat=True).distinct().exclude(empty_vehicle_weight__isnull=True)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
+            
+        elif column_id == 'loaded_vehicle_weight':
+            values_qs = base_queryset.values_list('loaded_vehicle_weight', flat=True).distinct().exclude(loaded_vehicle_weight__isnull=True)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
+            
+        elif column_id == 'final_delivered_weight':
+            values_qs = base_queryset.values_list('final_delivered_weight', flat=True).distinct().exclude(final_delivered_weight__isnull=True)
+            values = sorted(list(set(values_qs)))  # حذف تکراری‌ها و مرتب‌سازی
         
         else:
             # برای فیلدهای دینامیک دیگر
@@ -925,25 +1009,29 @@ def get_non_bazargah_barnameh_column_values(request):
                 values_qs = base_queryset.values_list(column_id, flat=True).distinct().exclude(**{f'{column_id}__isnull': True})
                 
                 # فرمت کردن مقادیر بر اساس نوع فیلد
-                formatted_values = []
+                formatted_values = set()  # استفاده از set برای جلوگیری از تکرار
                 for value in values_qs:
                     if value is not None:
                         if hasattr(value, 'strftime'):  # تاریخ
-                            formatted_values.append(value.strftime('%Y/%m/%d'))
+                            formatted_values.add(value.strftime('%Y/%m/%d'))
                         elif isinstance(value, bool):  # بولین
-                            formatted_values.append('بله' if value else 'خیر')
+                            formatted_values.add('بله' if value else 'خیر')
                         else:
-                            formatted_values.append(str(value))
+                            formatted_values.add(str(value))
                 
-                values = list(set(formatted_values))  # حذف تکراری‌ها
+                values = sorted(list(formatted_values))  # تبدیل set به list مرتب شده
                 
             except Exception as e:
                 logger.warning(f"فیلد {column_id} در مدل یافت نشد یا خطا در دریافت مقادیر: {e}")
                 values = []
         
-        # فیلتر کردن بر اساس search_term
+        # فیلتر کردن بر اساس search_term و حذف تکراری‌های احتمالی
         if search_term:
-            values = [v for v in values if search_term.lower() in str(v).lower()]
+            filtered_values = set()  # استفاده از set برای جلوگیری از تکرار
+            for v in values:
+                if search_term.lower() in str(v).lower():
+                    filtered_values.add(v)
+            values = sorted(list(filtered_values))
         
         # محدود کردن تعداد نتایج
         values = values[:100]
@@ -995,6 +1083,8 @@ def get_available_barnameh_fields(request):
             {'id': 'loaded_vehicle_weight', 'name': 'وزن پر ماشین', 'type': 'number', 'required': False},
             {'id': 'final_delivered_weight', 'name': 'وزن نهایی تحویل', 'type': 'number', 'required': False},
             {'id': 'vehicle_arrival_time', 'name': 'زمان ورود ماشین', 'type': 'datetime', 'required': False},
+            {'id': 'empty_weigh_time', 'name': 'زمان وزن‌گیری خالی', 'type': 'datetime', 'required': False},
+            {'id': 'loaded_weigh_time', 'name': 'زمان وزن‌گیری پر', 'type': 'datetime', 'required': False},
             {'id': 'departure_time', 'name': 'زمان خروج از انبار', 'type': 'datetime', 'required': False},
             {'id': 'delivery_time', 'name': 'زمان تحویل', 'type': 'datetime', 'required': False},
             {'id': 'actions', 'name': 'عملیات', 'type': 'actions', 'required': True},

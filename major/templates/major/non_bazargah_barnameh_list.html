@@ -278,6 +278,8 @@
                             <th data-column-id="loaded_vehicle_weight" data-column-type="number" style="min-width: 120px;">وزن پر ماشین</th>
                             <th data-column-id="final_delivered_weight" data-column-type="number" style="min-width: 120px;">وزن نهایی تحویل</th>
                             <th data-column-id="vehicle_arrival_time" data-column-type="text" style="min-width: 150px;">زمان ورود ماشین</th>
+                            <th data-column-id="empty_weigh_time" data-column-type="text" style="min-width: 150px;">زمان وزن‌گیری خالی</th>
+                            <th data-column-id="loaded_weigh_time" data-column-type="text" style="min-width: 150px;">زمان وزن‌گیری پر</th>
                             <th data-column-id="departure_time" data-column-type="text" style="min-width: 150px;">زمان خروج از انبار</th>
                             <th data-column-id="delivery_time" data-column-type="text" style="min-width: 150px;">زمان تحویل</th>
                             <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">عملیات</th>
@@ -623,6 +625,30 @@
                                                 value="vehicle_arrival_time">
                                             <label class="form-check-label" for="col-vehicle_arrival_time">
                                                 زمان ورود ماشین
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان وزن‌گیری خالی -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-empty_weigh_time" name="columns[]" 
+                                                value="empty_weigh_time">
+                                            <label class="form-check-label" for="col-empty_weigh_time">
+                                                زمان وزن‌گیری خالی
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون زمان وزن‌گیری پر -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-loaded_weigh_time" name="columns[]" 
+                                                value="loaded_weigh_time">
+                                            <label class="form-check-label" for="col-loaded_weigh_time">
+                                                زمان وزن‌گیری پر
                                             </label>
                                         </div>
                                     </div>
