@@ -1903,3 +1903,104 @@ body {
     max-height: 1000px;
   }
 }
+
+/* استایل دکمه بروزرسانی همه بارنامه‌ها */
+.update-all-barnamehs-section {
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #007bff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.update-all-barnamehs-header h4 {
+  color: #007bff;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.update-all-barnamehs-header h4 i {
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.update-all-info {
+  color: #6c757d;
+  margin-bottom: 20px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border-left: 4px solid #17a2b8;
+}
+
+.update-all-info i {
+  color: #17a2b8;
+  margin-right: 8px;
+}
+
+.update-all-barnamehs-form {
+  text-align: center;
+  margin: 20px 0;
+}
+
+.update-all-barnamehs-btn {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+  min-width: 250px;
+}
+
+.update-all-barnamehs-btn:hover {
+  background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+}
+
+.update-all-barnamehs-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+.update-all-barnamehs-btn i {
+  margin-right: 8px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.update-all-barnamehs-note {
+  background: rgba(255, 193, 7, 0.1);
+  border: 1px solid #ffc107;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 15px;
+}
+
+.update-all-barnamehs-note small {
+  color: #856404;
+  line-height: 1.5;
+}
+
+.update-all-barnamehs-note i {
+  color: #ffc107;
+  margin-right: 5px;
+}
