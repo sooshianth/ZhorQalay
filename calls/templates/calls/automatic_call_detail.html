@@ -298,33 +298,197 @@
         margin-bottom: 0.25rem;
     }
 
-    .log-time {
+    /* Modal Styles */
+    .modal {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        max-width: 800px;
+        width: 90%;
+        max-height: 90vh;
+        overflow: hidden;
+        animation: modalSlideIn 0.3s ease-out;
+    }
+
+    .modal-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #E5E7EB;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: linear-gradient(135deg, var(--primary-color) 0%, #2563EB 100%);
+        color: white;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .close-modal {
+        cursor: pointer;
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+
+    .close-modal:hover {
+        opacity: 1;
+    }
+
+    .modal-body {
+        padding: 2rem;
+        max-height: calc(90vh - 100px);
+        overflow-y: auto;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, #E5E7EB 0%, #D1D5DB 50%, #E5E7EB 100%);
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+        padding-left: 2rem;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -6px;
+        top: 8px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid var(--primary-color);
+        z-index: 1;
+    }
+
+    .timeline-icon {
+        position: absolute;
+        left: -25px;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 0.875rem;
+        z-index: 2;
+    }
+
+    .timeline-content {
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-title {
+        font-weight: 600;
+        color: var(--dark-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-description {
+        color: #6B7280;
+        margin-bottom: 0.5rem;
+    }
+
+    .timeline-time {
+        font-size: 0.75rem;
+        color: #9CA3AF;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .detail-item {
+        background: #F9FAFB;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .detail-label {
         font-size: 0.75rem;
         color: #6B7280;
-    }
-
-    .btn-warning {
-        background-color: #F59E0B;
-        color: white;
-        border: 1px solid #F59E0B;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.625rem 1.25rem;
-        border-radius: 0.5rem;
         font-weight: 500;
-        text-decoration: none;
-        transition: all 0.2s ease;
-        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        margin-bottom: 0.25rem;
     }
 
-    .btn-warning:hover {
-        background-color: #D97706;
-        border-color: #D97706;
-        color: white;
-        text-decoration: none;
+    .detail-value {
+        font-weight: 600;
+        color: var(--dark-color);
+    }
+
+    @keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: scale(0.95) translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+    }
+
+    .btn-details:hover {
+        background-color: #2563EB !important;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        box-shadow: 0 4px 8px rgba(59, 130, 246, 0.3);
+    }
+
+    .loading-spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid var(--primary-color);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 
     @media (max-width: 768px) {
@@ -335,6 +499,71 @@
         .call-info-grid {
             grid-template-columns: 1fr;
         }
+    }
+
+    /* Modal styles */
+    .modal {
+        position: fixed;
+        z-index: 10000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgb(0 0 0 / 60%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .modal-content {
+        background-color: white;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        max-width: 600px;
+        width: 90%;
+        padding: 2rem;
+        position: relative;
+    }
+
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--dark-color);
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: #6B7280;
+        transition: color 0.2s;
+    }
+
+    .close-modal:hover {
+        color: var(--danger-color);
+    }
+
+    /* Animation for modal */
+    .modal-content {
+        transform: translateY(-30px);
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .modal.show .modal-content {
+        transform: translateY(0);
+        opacity: 1;
     }
 </style>
 {% endblock %}
@@ -686,6 +915,20 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal for Queue Item Details -->
+<div id="queueItemDetailsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>جزئیات تماس</h2>
+            <span class="close-modal" onclick="closeQueueItemDetailsModal()">&times;</span>
+        </div>
+        <div class="modal-body" id="queueItemDetailsContent">
+            <!-- Content will be loaded here -->
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -894,6 +1137,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <th class="p-2 text-right">وضعیت</th>
                                     <th class="p-2 text-right">مدت تماس</th>
                                     <th class="p-2 text-right">کارشناس</th>
+                                    <th class="p-2 text-right">عملیات</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -910,6 +1154,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <td class="p-2"><span class="px-2 py-1 text-xs rounded-full ${statusClass}">${item.status_display}</span></td>
                                 <td class="p-2">${item.call_duration ? `${item.call_duration} ثانیه` : '-'}</td>
                                 <td class="p-2">${item.assigned_agent ? item.assigned_agent.name : '-'}</td>
+                                <td class="p-2">
+                                    <button type="button" class="btn-details" 
+                                            onclick="showQueueItemDetails('${item.phone_number}')"
+                                            style="background-color: #3B82F6; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; cursor: pointer;">
+                                        <i class="fas fa-info-circle"></i> جزئیات
+                                    </button>
+                                </td>
                             </tr>
                         `;
                     });
@@ -986,6 +1237,171 @@ document.addEventListener('DOMContentLoaded', function() {
         .btn-sm i { margin-left: 0.25rem; }
     `;
     document.head.appendChild(style);
+
+    // Modal functions
+    window.showQueueItemDetails = function(phoneNumber) {
+        // Show loading state
+        document.getElementById('queueItemDetailsContent').innerHTML = `
+            <div style="text-align: center; padding: 2rem;">
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 1rem; color: #6B7280;">در حال بارگذاری جزئیات...</p>
+            </div>
+        `;
+        const modal = document.getElementById('queueItemDetailsModal');
+        modal.style.display = 'flex';
+        // Add show class after a short delay to trigger animation
+        setTimeout(() => {
+            modal.classList.add('show');
+        }, 10);
+
+        // Get session_id from the call
+        const sessionId = "{{ call.queue_session_id }}";
+        
+        // Fetch details from server
+        fetch(`{% url 'calls:get_queue_item_details' %}?session_id=${sessionId}&phone_number=${phoneNumber}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const details = data.details;
+                    
+                    // Create details grid
+                    let detailsHTML = `
+                        <div class="details-grid">
+                            <div class="detail-item">
+                                <div class="detail-label">شماره تلفن</div>
+                                <div class="detail-value">${details.phone_number}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">نام مشتری</div>
+                                <div class="detail-value">${details.customer_name || 'نامشخص'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">منبع</div>
+                                <div class="detail-value">${details.source_display}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">وضعیت فعلی</div>
+                                <div class="detail-value">${details.status_display}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">مدت تماس</div>
+                                <div class="detail-value">${details.call_duration ? `${details.call_duration} ثانیه` : 'بدون تماس'}</div>
+                            </div>
+                            <div class="detail-item">
+                                <div class="detail-label">کارشناس مسئول</div>
+                                <div class="detail-value">${details.assigned_agent ? details.assigned_agent.name : 'تخصیص نیافته'}</div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Create timeline
+                    if (details.timeline_events && details.timeline_events.length > 0) {
+                        detailsHTML += `
+                            <h3 style="margin-bottom: 1rem; color: var(--dark-color); font-size: 1.25rem; font-weight: 600;">
+                                <i class="fas fa-clock" style="color: var(--primary-color);"></i>
+                                تایم‌لاین رویدادها
+                            </h3>
+                            <div class="timeline">
+                        `;
+
+                        details.timeline_events.forEach(event => {
+                            const eventDate = new Date(event.timestamp);
+                            const timeStr = eventDate.toLocaleDateString('fa-IR') + ' ' + eventDate.toLocaleTimeString('fa-IR');
+                            
+                            detailsHTML += `
+                                <div class="timeline-item">
+                                    <div class="timeline-icon" style="background-color: ${event.color};">
+                                        <i class="${event.icon}"></i>
+                                    </div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-title">${event.title}</div>
+                                        <div class="timeline-description">${event.description}</div>
+                                        <div class="timeline-time">
+                                            <i class="fas fa-clock"></i>
+                                            ${timeStr}
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        detailsHTML += `</div>`;
+                    }
+
+                    // Add additional information if available
+                    if (details.call_logs && details.call_logs.length > 0) {
+                        detailsHTML += `
+                            <h3 style="margin: 2rem 0 1rem 0; color: var(--dark-color); font-size: 1.25rem; font-weight: 600;">
+                                <i class="fas fa-list-alt" style="color: var(--primary-color);"></i>
+                                لاگ‌های سیستم
+                            </h3>
+                            <div style="background: #F9FAFB; border-radius: 8px; padding: 1rem; max-height: 200px; overflow-y: auto;">
+                        `;
+
+                        details.call_logs.forEach(log => {
+                            const logDate = new Date(log.timestamp);
+                            const logTimeStr = logDate.toLocaleDateString('fa-IR') + ' ' + logDate.toLocaleTimeString('fa-IR');
+                            
+                            detailsHTML += `
+                                <div style="margin-bottom: 0.5rem; padding: 0.5rem; background: white; border-radius: 4px; border-left: 3px solid var(--primary-color);">
+                                    <div style="font-weight: 500; color: var(--dark-color);">${log.message}</div>
+                                    <div style="font-size: 0.75rem; color: #6B7280; margin-top: 0.25rem;">${logTimeStr}</div>
+                                </div>
+                            `;
+                        });
+
+                        detailsHTML += `</div>`;
+                    }
+
+                    document.getElementById('queueItemDetailsContent').innerHTML = detailsHTML;
+                } else {
+                    document.getElementById('queueItemDetailsContent').innerHTML = `
+                        <div style="text-align: center; padding: 2rem; color: var(--danger-color);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                            <p style="font-size: 1.1rem; font-weight: 500;">${data.error}</p>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading queue item details:', error);
+                document.getElementById('queueItemDetailsContent').innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--danger-color);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p style="font-size: 1.1rem; font-weight: 500;">خطا در بارگذاری جزئیات تماس</p>
+                        <p style="font-size: 0.9rem; color: #6B7280; margin-top: 0.5rem;">لطفاً دوباره تلاش کنید</p>
+                    </div>
+                `;
+            });
+    };
+
+    window.closeQueueItemDetailsModal = function() {
+        const modal = document.getElementById('queueItemDetailsModal');
+        // Remove show class first to trigger animation
+        modal.classList.remove('show');
+        // Wait for animation to complete before hiding modal
+        setTimeout(() => {
+            modal.style.display = 'none';
+        }, 300);
+    };
+
+    // Close modal when clicking outside of it
+    window.onclick = function(event) {
+        const modal = document.getElementById('queueItemDetailsModal');
+        if (event.target === modal) {
+            closeQueueItemDetailsModal();
+        }
+    };
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            const modal = document.getElementById('queueItemDetailsModal');
+            if (modal.style.display === 'flex') {
+                closeQueueItemDetailsModal();
+            }
+        }
+    });
 });
 </script>
 {% endblock %}

@@ -14,7 +14,7 @@ import uuid
 import pandas as pd
 import requests
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from .models import AutomaticCall, CallLog, CallQueue
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
@@ -1820,3 +1820,137 @@ def retry_automatic_call(request, call_id):
     except Exception as e:
         messages.error(request, f'خطا در تکرار تماس: {str(e)}')
         return redirect('calls:automatic_call_detail', call_id=call_id)
+
+@login_required
+def get_queue_item_details(request):
+    """
+    API برای دریافت جزئیات کامل یک آیتم خاص از صف تماس
+    """
+    session_id = request.GET.get('session_id')
+    phone_number = request.GET.get('phone_number')
+    
+    if not session_id or not phone_number:
+        return JsonResponse({'success': False, 'error': 'session_id و phone_number مورد نیاز است'})
+    
+    try:
+        queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
+        
+        # Calculate actual call start time if we have duration and end time
+        actual_call_start = None
+        if queue_item.call_ended_at and queue_item.call_duration:
+            actual_call_start = queue_item.call_ended_at - timedelta(seconds=queue_item.call_duration)
+        
+        # Get all logs related to this phone number from CallLog
+        # We'll look for logs that mention this phone number
+        call_logs = []
+        try:
+            call = AutomaticCall.objects.get(queue_session_id=session_id)
+            logs = CallLog.objects.filter(call=call).filter(
+                Q(message__icontains=phone_number) | 
+                Q(details__icontains=phone_number)
+            ).order_by('timestamp')
+            
+            for log in logs:
+                call_logs.append({
+                    'timestamp': log.timestamp.isoformat(),
+                    'event_type': log.event_type,
+                    'message': log.message,
+                    'details': log.details
+                })
+        except AutomaticCall.DoesNotExist:
+            pass
+        
+        # Create timeline events
+        timeline_events = []
+        
+        # Add queue creation event
+        timeline_events.append({
+            'timestamp': queue_item.created_at.isoformat(),
+            'event': 'queue_added',
+            'title': 'اضافه به صف',
+            'description': f'شماره {phone_number} به صف تماس اضافه شد',
+            'icon': 'fas fa-plus-circle',
+            'color': '#10B981'
+        })
+        
+        # Add call start event
+        if queue_item.call_started_at or actual_call_start:
+            call_start_time = actual_call_start or queue_item.call_started_at
+            timeline_events.append({
+                'timestamp': call_start_time.isoformat(),
+                'event': 'call_started',
+                'title': 'شروع تماس',
+                'description': f'تماس با {phone_number} شروع شد',
+                'icon': 'fas fa-phone',
+                'color': '#3B82F6'
+            })
+        
+        # Add agent answer event (if agent is assigned and we have call data)
+        if queue_item.assigned_agent and queue_item.call_started_at:
+            # Assume agent answered shortly after call started (this is an approximation)
+            agent_answer_time = queue_item.call_started_at + timedelta(seconds=5)
+            timeline_events.append({
+                'timestamp': agent_answer_time.isoformat(),
+                'event': 'agent_answered',
+                'title': 'پاسخ کارشناس',
+                'description': f'کارشناس {queue_item.assigned_agent.get_full_name() or queue_item.assigned_agent.username} تماس را پاسخ داد',
+                'icon': 'fas fa-user-check',
+                'color': '#8B5CF6'
+            })
+        
+        # Add call end event
+        if queue_item.call_ended_at:
+            timeline_events.append({
+                'timestamp': queue_item.call_ended_at.isoformat(),
+                'event': 'call_ended',
+                'title': 'پایان تماس',
+                'description': f'تماس با {phone_number} پایان یافت',
+                'icon': 'fas fa-phone-slash',
+                'color': '#EF4444'
+            })
+        
+        # Add status change events from logs
+        for log in call_logs:
+            if 'status' in log['message'].lower() or 'وضعیت' in log['message']:
+                timeline_events.append({
+                    'timestamp': log['timestamp'],
+                    'event': 'status_change',
+                    'title': 'تغییر وضعیت',
+                    'description': log['message'],
+                    'icon': 'fas fa-exchange-alt',
+                    'color': '#F59E0B'
+                })
+        
+        # Sort timeline events by timestamp
+        timeline_events.sort(key=lambda x: x['timestamp'])
+        
+        item_details = {
+            'phone_number': queue_item.phone_number,
+            'customer_name': queue_item.customer.name if queue_item.customer else None,
+            'customer_id': queue_item.customer.id if queue_item.customer else None,
+            'source': queue_item.source,
+            'source_display': queue_item.get_source_display(),
+            'status': queue_item.status,
+            'status_display': queue_item.get_status_display(),
+            'call_duration': queue_item.call_duration,
+            'assigned_agent': {
+                'id': queue_item.assigned_agent.id,
+                'name': queue_item.assigned_agent.get_full_name() or queue_item.assigned_agent.username
+            } if queue_item.assigned_agent else None,
+            'created_at': queue_item.created_at.isoformat(),
+            'call_started_at': queue_item.call_started_at.isoformat() if queue_item.call_started_at else None,
+            'call_ended_at': queue_item.call_ended_at.isoformat() if queue_item.call_ended_at else None,
+            'actual_call_start': actual_call_start.isoformat() if actual_call_start else None,
+            'timeline_events': timeline_events,
+            'call_logs': call_logs
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'details': item_details
+        })
+        
+    except CallQueue.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'آیتم صف پیدا نشد'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)})

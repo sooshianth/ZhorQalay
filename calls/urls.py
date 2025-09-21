@@ -25,6 +25,7 @@ urlpatterns = [
     path('api/queue/add-suggestions/', views.add_suggested_numbers_to_queue, name='add_suggested_numbers_to_queue'),
     path('api/queue/remove/', views.remove_from_queue, name='remove_from_queue'),
     path('api/queue/get-numbers/', views.get_queue_numbers, name='get_queue_numbers'),
+    path('api/queue/get-item-details/', views.get_queue_item_details, name='get_queue_item_details'),
     path('api/customers/search/', views.search_customers_api, name='search_customers_api'),
     
     # API endpoints
