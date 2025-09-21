@@ -1115,23 +1115,43 @@ def asterisk_call_event_webhook(request):
         
         # Find the queue item
         try:
-            # Use uniqueid as session_id to find the call
-            call = AutomaticCall.objects.get(queue_session_id=uniqueid)
+            # Try to find call by uniqueid as session_id first
+            call = AutomaticCall.objects.filter(queue_session_id=uniqueid).first()
+            
+            # If not found by session_id, try to find an active call with this customer number
+            if not call:
+                call = AutomaticCall.objects.filter(
+                    status__in=['in_progress', 'paused'],
+                    queue_numbers__phone_number=customer_number
+                ).first()
+            
+            if not call:
+                error_msg = f"Call not found with session_id {uniqueid} or customer {customer_number}"
+                logger.error(error_msg)
+                return JsonResponse({'success': False, 'error': error_msg}, status=404)
+            
             # Find the queue item
             queue_item = CallQueue.objects.filter(
-                session_id=uniqueid, 
+                session_id=call.queue_session_id, 
                 phone_number=customer_number
             ).first()
             
             if not queue_item:
-                error_msg = f"Queue item not found for call {uniqueid}, customer {customer_number}"
+                error_msg = f"Queue item not found for call {call.queue_session_id}, customer {customer_number}"
                 logger.error(error_msg)
                 return JsonResponse({'success': False, 'error': error_msg}, status=404)
                 
-        except AutomaticCall.DoesNotExist:
-            error_msg = f"Call not found with session_id {uniqueid}"
+        except Exception as e:
+            error_msg = f"Error finding call or queue item: {str(e)}"
             logger.error(error_msg)
             return JsonResponse({'success': False, 'error': error_msg}, status=404)
+        
+        # Ensure customer_number is stored consistently in webhook data for better searching
+        if 'call_data' in data:
+            data['call_data']['customer_number'] = customer_number
+        
+        # Use the actual session_id from the found call
+        actual_session_id = call.queue_session_id
         
         # Log processing information
         logger.info("Processing %s event for call %s, customer %s", 
@@ -1835,21 +1855,86 @@ def get_queue_item_details(request):
     try:
         queue_item = CallQueue.objects.get(session_id=session_id, phone_number=phone_number)
         
-        # Calculate actual call start time if we have duration and end time
-        actual_call_start = None
-        if queue_item.call_ended_at and queue_item.call_duration:
-            actual_call_start = queue_item.call_ended_at - timedelta(seconds=queue_item.call_duration)
-        
-        # Get all logs related to this phone number from CallLog
-        # We'll look for logs that mention this phone number
+        # Get all logs related to this phone number from CallLog (created by asterisk webhook)
         call_logs = []
+        timeline_events = []
+        
         try:
             call = AutomaticCall.objects.get(queue_session_id=session_id)
+            
+            # Get logs that mention this phone number
             logs = CallLog.objects.filter(call=call).filter(
                 Q(message__icontains=phone_number) | 
-                Q(details__icontains=phone_number)
+                Q(details__call_data__customer_number=phone_number) |
+                Q(details__call_data__customer_phone=phone_number) |
+                Q(details__call_data__phone_number=phone_number)
             ).order_by('timestamp')
             
+            # Event type mapping for icons and colors
+            event_map = {
+                'call_initiated': {
+                    'title': 'شروع تماس',
+                    'icon': 'fas fa-phone',
+                    'color': '#3B82F6'
+                },
+                'customer_answer': {
+                    'title': 'پاسخ مشتری',
+                    'icon': 'fas fa-phone-volume',
+                    'color': '#10B981'
+                },
+                'customer_hung_up_pre_ivr': {
+                    'title': 'قطع قبل از IVR',
+                    'icon': 'fas fa-phone-slash',
+                    'color': '#F59E0B'
+                },
+                'customer_dtmf': {
+                    'title': 'فشردن کلید',
+                    'icon': 'fas fa-keyboard',
+                    'color': '#8B5CF6'
+                },
+                'customer_entered_queue': {
+                    'title': 'ورود به صف',
+                    'icon': 'fas fa-clock',
+                    'color': '#06B6D4'
+                },
+                'customer_hung_up_in_queue': {
+                    'title': 'قطع در صف',
+                    'icon': 'fas fa-phone-slash',
+                    'color': '#F59E0B'
+                },
+                'agent_answer': {
+                    'title': 'پاسخ کارشناس',
+                    'icon': 'fas fa-user-check',
+                    'color': '#10B981'
+                },
+                'call_end': {
+                    'title': 'پایان تماس',
+                    'icon': 'fas fa-phone-slash',
+                    'color': '#EF4444'
+                },
+                'customer_busy': {
+                    'title': 'مشغول',
+                    'icon': 'fas fa-phone-busy',
+                    'color': '#F59E0B'
+                },
+                'customer_no_answer': {
+                    'title': 'بی‌پاسخ',
+                    'icon': 'fas fa-phone-times',
+                    'color': '#EF4444'
+                },
+                'call_rejected': {
+                    'title': 'تماس رد شده',
+                    'icon': 'fas fa-ban',
+                    'color': '#EF4444'
+                },
+                'call_failed': {
+                    'title': 'خطا در تماس',
+                    'icon': 'fas fa-exclamation-triangle',
+                    'color': '#EF4444'
+                }
+            }
+            
+            # Process each log entry to create timeline events
             for log in logs:
                 call_logs.append({
                     'timestamp': log.timestamp.isoformat(),
@@ -1857,14 +1942,57 @@ def get_queue_item_details(request):
                     'message': log.message,
                     'details': log.details
                 })
+                
+                # Create timeline event from webhook log
+                event_info = event_map.get(log.event_type, {
+                    'title': log.event_type.replace('_', ' ').title(),
+                    'icon': 'fas fa-info-circle',
+                    'color': '#6B7280'
+                })
+                
+                # Extract additional details from webhook data
+                description = log.message
+                additional_info = []
+                
+                if log.details and isinstance(log.details, dict):
+                    call_data = log.details.get('call_data', {})
+                    
+                    # Add DTMF digit info
+                    if log.event_type == 'customer_dtmf' and 'digit_pressed' in call_data:
+                        additional_info.append(f"کلید فشرده شده: {call_data['digit_pressed']}")
+                    
+                    # Add queue extension info
+                    if log.event_type == 'customer_entered_queue' and 'queue_extension' in call_data:
+                        additional_info.append(f"صف: {call_data['queue_extension']}")
+                    
+                    # Add agent info
+                    if log.event_type == 'agent_answer' and 'agent_number' in call_data:
+                        additional_info.append(f"کارشناس: {call_data['agent_number']}")
+                    
+                    # Add duration info
+                    if log.event_type in ['call_end', 'customer_hung_up_in_queue', 'customer_hung_up_pre_ivr'] and 'duration' in call_data:
+                        duration = call_data['duration']
+                        if duration:
+                            additional_info.append(f"مدت: {duration} ثانیه")
+                
+                if additional_info:
+                    description += f" ({', '.join(additional_info)})"
+                
+                timeline_events.append({
+                    'timestamp': log.timestamp.isoformat(),
+                    'event': log.event_type,
+                    'title': event_info['title'],
+                    'description': description,
+                    'icon': event_info['icon'],
+                    'color': event_info['color'],
+                    'raw_data': log.details
+                })
+                
         except AutomaticCall.DoesNotExist:
             pass
         
-        # Create timeline events
-        timeline_events = []
-        
-        # Add queue creation event
-        timeline_events.append({
+        # Add initial queue creation event (not from webhook)
+        timeline_events.insert(0, {
             'timestamp': queue_item.created_at.isoformat(),
             'event': 'queue_added',
             'title': 'اضافه به صف',
@@ -1873,56 +2001,24 @@ def get_queue_item_details(request):
             'color': '#10B981'
         })
         
-        # Add call start event
-        if queue_item.call_started_at or actual_call_start:
-            call_start_time = actual_call_start or queue_item.call_started_at
-            timeline_events.append({
-                'timestamp': call_start_time.isoformat(),
-                'event': 'call_started',
-                'title': 'شروع تماس',
-                'description': f'تماس با {phone_number} شروع شد',
-                'icon': 'fas fa-phone',
-                'color': '#3B82F6'
-            })
-        
-        # Add agent answer event (if agent is assigned and we have call data)
-        if queue_item.assigned_agent and queue_item.call_started_at:
-            # Assume agent answered shortly after call started (this is an approximation)
-            agent_answer_time = queue_item.call_started_at + timedelta(seconds=5)
-            timeline_events.append({
-                'timestamp': agent_answer_time.isoformat(),
-                'event': 'agent_answered',
-                'title': 'پاسخ کارشناس',
-                'description': f'کارشناس {queue_item.assigned_agent.get_full_name() or queue_item.assigned_agent.username} تماس را پاسخ داد',
-                'icon': 'fas fa-user-check',
-                'color': '#8B5CF6'
-            })
-        
-        # Add call end event
-        if queue_item.call_ended_at:
-            timeline_events.append({
-                'timestamp': queue_item.call_ended_at.isoformat(),
-                'event': 'call_ended',
-                'title': 'پایان تماس',
-                'description': f'تماس با {phone_number} پایان یافت',
-                'icon': 'fas fa-phone-slash',
-                'color': '#EF4444'
-            })
-        
-        # Add status change events from logs
-        for log in call_logs:
-            if 'status' in log['message'].lower() or 'وضعیت' in log['message']:
-                timeline_events.append({
-                    'timestamp': log['timestamp'],
-                    'event': 'status_change',
-                    'title': 'تغییر وضعیت',
-                    'description': log['message'],
-                    'icon': 'fas fa-exchange-alt',
-                    'color': '#F59E0B'
-                })
-        
         # Sort timeline events by timestamp
         timeline_events.sort(key=lambda x: x['timestamp'])
+        
+        # Calculate call statistics from timeline events
+        call_duration_from_logs = None
+        call_started_from_logs = None
+        call_ended_from_logs = None
+        
+        for event in timeline_events:
+            if event['event'] == 'call_initiated':
+                call_started_from_logs = event['timestamp']
+            elif event['event'] in ['call_end', 'customer_hung_up_pre_ivr', 'customer_hung_up_in_queue']:
+                call_ended_from_logs = event['timestamp']
+                # Try to extract duration from the event description
+                if 'raw_data' in event and event['raw_data']:
+                    call_data = event['raw_data'].get('call_data', {})
+                    if 'duration' in call_data:
+                        call_duration_from_logs = call_data['duration']
         
         item_details = {
             'phone_number': queue_item.phone_number,
@@ -1932,17 +2028,17 @@ def get_queue_item_details(request):
             'source_display': queue_item.get_source_display(),
             'status': queue_item.status,
             'status_display': queue_item.get_status_display(),
-            'call_duration': queue_item.call_duration,
+            'call_duration': call_duration_from_logs or queue_item.call_duration,
             'assigned_agent': {
                 'id': queue_item.assigned_agent.id,
                 'name': queue_item.assigned_agent.get_full_name() or queue_item.assigned_agent.username
             } if queue_item.assigned_agent else None,
             'created_at': queue_item.created_at.isoformat(),
-            'call_started_at': queue_item.call_started_at.isoformat() if queue_item.call_started_at else None,
-            'call_ended_at': queue_item.call_ended_at.isoformat() if queue_item.call_ended_at else None,
-            'actual_call_start': actual_call_start.isoformat() if actual_call_start else None,
+            'call_started_at': call_started_from_logs or (queue_item.call_started_at.isoformat() if queue_item.call_started_at else None),
+            'call_ended_at': call_ended_from_logs or (queue_item.call_ended_at.isoformat() if queue_item.call_ended_at else None),
             'timeline_events': timeline_events,
-            'call_logs': call_logs
+            'call_logs': call_logs,
+            'total_events': len(timeline_events)
         }
         
         return JsonResponse({
@@ -1954,3 +2050,37 @@ def get_queue_item_details(request):
         return JsonResponse({'success': False, 'error': 'آیتم صف پیدا نشد'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+def extract_customer_phone_from_webhook_data(call_data):
+    """
+    Helper function to extract customer phone number from webhook call_data
+    """
+    if not call_data:
+        return None
+    
+    # Try different possible keys for customer phone number
+    phone_keys = ['customer_number', 'customer_phone', 'phone_number', 'callerid', 'from_number']
+    
+    for key in phone_keys:
+        if key in call_data and call_data[key]:
+            return call_data[key]
+    
+    return None
+
+
+def get_call_logs_for_phone(call, phone_number):
+    """
+    Helper function to get all call logs related to a specific phone number
+    """
+    if not phone_number:
+        return []
+    
+    # Search in both message and details JSON field
+    logs = CallLog.objects.filter(call=call).filter(
+        Q(message__icontains=phone_number) | 
+        Q(details__call_data__customer_number=phone_number) |
+        Q(details__call_data__customer_phone=phone_number) |
+        Q(details__call_data__phone_number=phone_number)
+    ).order_by('timestamp')
+    
+    return logs

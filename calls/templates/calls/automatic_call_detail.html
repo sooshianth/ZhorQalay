@@ -1291,6 +1291,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="detail-label">کارشناس مسئول</div>
                                 <div class="detail-value">${details.assigned_agent ? details.assigned_agent.name : 'تخصیص نیافته'}</div>
                             </div>
+                            <div class="detail-item">
+                                <div class="detail-label">تعداد رویدادها</div>
+                                <div class="detail-value">${details.total_events || 0} رویداد</div>
+                            </div>
                         </div>
                     `;
 
@@ -1308,13 +1312,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             const eventDate = new Date(event.timestamp);
                             const timeStr = eventDate.toLocaleDateString('fa-IR') + ' ' + eventDate.toLocaleTimeString('fa-IR');
                             
+                            // Add badge for webhook events
+                            let eventBadge = '';
+                            if (event.raw_data && Object.keys(event.raw_data).length > 0) {
+                                eventBadge = '<span style="background: #10B981; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 3px; margin-left: 8px;">Webhook</span>';
+                            }
+                            
                             detailsHTML += `
                                 <div class="timeline-item">
                                     <div class="timeline-icon" style="background-color: ${event.color};">
                                         <i class="${event.icon}"></i>
                                     </div>
                                     <div class="timeline-content">
-                                        <div class="timeline-title">${event.title}</div>
+                                        <div class="timeline-title">${event.title}${eventBadge}</div>
                                         <div class="timeline-description">${event.description}</div>
                                         <div class="timeline-time">
                                             <i class="fas fa-clock"></i>
