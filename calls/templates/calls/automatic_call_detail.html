@@ -467,99 +467,27 @@
         </div>
     </div>
 
-    <!-- مدیریت صف تماس‌ها (فقط برای تماس‌های pending) -->
-    {% if call.status == 'pending' %}
+    <!-- لیست شماره‌های تماس -->
     <div class="queue-container">
-        <div class="queue-header">
+        <div class="queue-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h2>
                 <i class="fas fa-list-ol"></i>
-                مدیریت صف تماس‌ها
+                لیست شماره‌های تماس
             </h2>
+            <button type="button" class="btn btn-sm" style="background-color: #065F46; color: white;" onclick="loadQueueNumbers()">
+                <i class="fas fa-sync-alt"></i>
+                بروزرسانی
+            </button>
         </div>
         
         <div class="queue-body">
-            <!-- Queue Actions -->
-            <div class="queue-actions">
-                <div class="action-tabs">
-                    <button class="tab-button active" data-tab="customers">مشتریان</button>
-                    <button class="tab-button" data-tab="manual">دستی</button>
-                    <button class="tab-button" data-tab="excel">اکسل</button>
-                    <button class="tab-button" data-tab="suggest">پیشنهادی</button>
-                </div>
-
-                <!-- Customer Tab -->
-                <div class="tab-content active" id="customers-tab">
-                    <div class="customer-search">
-                        <input type="text" id="customerSearchInput" class="form-input" 
-                               placeholder="جستجوی مشتری (نام یا شماره تلفن)">
-                        <div class="customer-search-results" id="customerSearchResults"></div>
-                    </div>
-                </div>
-
-                <!-- Manual Tab -->
-                <div class="tab-content" id="manual-tab">
-                    <form id="manualNumbersForm">
-                        <textarea id="manualNumbers" class="form-textarea" rows="5" 
-                                  placeholder="شماره‌های تلفن را وارد کنید (هر شماره در یک خط)&#10;مثال:&#10;09123456789&#10;09876543210"></textarea>
-                        <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
-                            <i class="fas fa-plus"></i>
-                            افزودن شماره‌ها
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Excel Tab -->
-                <div class="tab-content" id="excel-tab">
-                    <form id="excelUploadForm" enctype="multipart/form-data">
-                        <div class="file-input-wrapper">
-                            <input type="file" id="excelFile" name="excel_file" class="file-input" accept=".xlsx,.xls,.csv" style="display: none;">
-                            <div class="file-input-button" onclick="document.getElementById('excelFile').click();">
-                                <i class="fas fa-file-excel"></i>
-                                انتخاب فایل (اکسل/CSV)
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 0.5rem;">
-                            <i class="fas fa-upload"></i>
-                            آپلود و افزودن
-                        </button>
-                    </form>
-                </div>
-
-                <!-- Suggest Tab -->
-                <div class="tab-content" id="suggest-tab">
-                    <p style="margin-bottom: 1rem; color: #6B7280;">
-                        افزودن شماره‌های پیشنهادی بر اساس مشتریان فعال
-                    </p>
-                    <button type="button" class="btn btn-secondary btn-sm" id="addSuggestionsBtn">
-                        <i class="fas fa-magic"></i>
-                        افزودن پیشنهادات
-                    </button>
-                </div>
-            </div>
-
-            <!-- Queue List -->
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" class="btn btn-secondary btn-sm" id="selectAllBtn">
-                        <i class="fas fa-check-square"></i>
-                        انتخاب همه
-                    </button>
-                    <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedBtn" style="display: none;">
-                        <i class="fas fa-trash"></i>
-                        حذف انتخاب‌شده‌ها
-                    </button>
-                </div>
-                <div id="selectedCount" style="color: #6B7280; font-size: 0.875rem;"></div>
-            </div>
-            
-            <div class="queue-list" id="queueList">
+            <div class="queue-list" id="queueList" style="max-height: 500px; overflow-y: auto;">
                 <div id="queue-content">
                     <!-- محتوای صف از طریق AJAX بارگذاری می‌شود -->
                 </div>
             </div>
         </div>
     </div>
-    {% endif %}
 
     <!-- اطلاعات تماس -->
     <div class="call-info-grid">
@@ -720,72 +648,6 @@
         </div>
     </div>
 
-    <!-- صف تماس‌ها -->
-    <div class="queue-container">
-        <div class="queue-header">
-            <h2>مدیریت صف تماس</h2>
-        </div>
-        
-        <div class="queue-body">
-            <!-- تب‌های مدیریت صف -->
-            <div class="action-tabs">
-                <button class="tab-button active" data-tab="tab-queue-info">اطلاعات صف</button>
-                <button class="tab-button" data-tab="tab-queue-stats">آمار صف</button>
-            </div>
-            
-            <!-- محتوای تب اطلاعات صف -->
-            <div class="tab-content active" id="tab-queue-info">
-                <div class="info-item">
-                    <span class="info-label">وضعیت صف:</span>
-                    <span class="info-value">
-                        {% if call.queue_status == 'waiting' %}در حال انتظار
-                        {% elif call.queue_status == 'in_progress' %}در حال پردازش
-                        {% elif call.queue_status == 'completed' %}اتمام یافته
-                        {% else %}نامشخص
-                        {% endif %}
-                    </span>
-                </div>
-                
-                <div class="info-item">
-                    <span class="info-label">زمان انتظار تخمینی:</span>
-                    <span class="info-value">{{ call.estimated_wait_time }} ثانیه</span>
-                </div>
-                
-                <div class="info-item">
-                    <span class="info-label">تعداد تماس‌های در صف:</span>
-                    <span class="info-value">{{ call.calls_in_queue }}</span>
-                </div>
-            </div>
-            
-            <!-- محتوای تب آمار صف -->
-            <div class="tab-content" id="tab-queue-stats">
-                <div class="info-item">
-                    <span class="info-label">تعداد کل تماس‌ها:</span>
-                    <span class="info-value">{{ call.total_queue_calls }}</span>
-                </div>
-                
-                <div class="info-item">
-                    <span class="info-label">تعداد تماس‌های موفق:</span>
-                    <span class="info-value">{{ call.total_successful_calls }}</span>
-                </div>
-                
-                <div class="info-item">
-                    <span class="info-label">تعداد تماس‌های ناموفق:</span>
-                    <span class="info-value">{{ call.total_failed_calls }}</span>
-                </div>
-                
-                {% if call.total_queue_calls > 0 %}
-                <div class="info-item">
-                    <span class="info-label">نرخ موفقیت:</span>
-                    <span class="info-value">
-                        {{ call.total_successful_calls|floatformat:0 }}/{{ call.total_queue_calls }} 
-                        ({% widthratio call.total_successful_calls call.total_queue_calls 100 %}%)
-                    </span>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-    </div>
 
     <!-- لاگ‌های تماس -->
     <div class="logs-section">
@@ -979,12 +841,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const callId = '{{ call.id }}';
     const isPending = callStatus === 'pending';
     
-    // فقط در صورت وجود تماس pending، بخش مدیریت صف را بارگذاری کن
-    if (isPending) {
-    // بارگذاری شماره‌های صف
+    // بارگذاری شماره‌های صف - برای همه وضعیت‌های تماس
     loadQueueNumbers();
-
-    // Tab switching
+    
+    // Tab switching for the queue stats/info tabs
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -1002,349 +862,84 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Customer search
-    const customerSearchInput = document.getElementById('customerSearchInput');
-    const customerSearchResults = document.getElementById('customerSearchResults');
-    let searchTimeout;
-
-    if (customerSearchInput) {
-        customerSearchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            const query = this.value.trim();
-            
-            if (query.length < 2) {
-                customerSearchResults.style.display = 'none';
-                return;
-            }
-
-            searchTimeout = setTimeout(() => {
-                fetch(`{% url 'calls:search_customers_api' %}?q=${encodeURIComponent(query)}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        customerSearchResults.innerHTML = '';
-                        
-                        if (data.results.length > 0) {
-                            data.results.forEach(customer => {
-                                const div = document.createElement('div');
-                                div.className = 'customer-result';
-                                div.innerHTML = `
-                                    <div style="font-weight: 600;">${customer.name}</div>
-                                    <div style="font-size: 0.875rem; color: #6B7280;">${customer.phone}</div>
-                                `;
-                                div.addEventListener('click', () => addCustomerToQueue(customer));
-                                customerSearchResults.appendChild(div);
-                            });
-                            customerSearchResults.style.display = 'block';
-                        } else {
-                            customerSearchResults.style.display = 'none';
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error searching customers:', error);
-                    });
-            }, 300);
-        });
-    }
-
-    // Hide search results when clicking outside
-    document.addEventListener('click', function(e) {
-        if (customerSearchInput && customerSearchResults && 
-            !customerSearchInput.contains(e.target) && !customerSearchResults.contains(e.target)) {
-            customerSearchResults.style.display = 'none';
-        }
-    });
-
-    // بارگذاری شماره‌های صف
+    // بارگذاری شماره‌های صف با وضعیت تماس
     function loadQueueNumbers() {
         fetch(`{% url 'calls:get_queue_numbers' %}?call_id=${callId}`)
             .then(response => response.json())
             .then(data => {
                 const queueContent = document.getElementById('queue-content');
                 if (data.success && data.numbers && data.numbers.length > 0) {
-                    queueContent.innerHTML = data.numbers.map(item => `
-                        <div class="queue-item" data-phone="${item.phone_number}">
-                            <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                <input type="checkbox" class="queue-checkbox" value="${item.phone_number}">
-                                <div>
-                                    <div class="queue-phone">${item.phone_number}</div>
-                                    ${item.customer_name ? `<div style="font-size: 0.875rem; color: #6B7280;">${item.customer_name}</div>` : ''}
-                                </div>
-                            </div>
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <span class="queue-source">${item.source_display}</span>
-                            </div>
-                        </div>
-                    `).join('');
+                    // تعریف کلاس‌های رنگ برای وضعیت‌های مختلف
+                    const statusClasses = {
+                        'waiting': 'bg-gray-100',
+                        'calling': 'bg-blue-100',
+                        'answered': 'bg-green-100',
+                        'not_answered': 'bg-red-100',
+                        'answered_no_ivr': 'bg-yellow-100',
+                        'answered_ivr': 'bg-emerald-100',
+                        'busy': 'bg-orange-100',
+                        'failed': 'bg-red-100',
+                        'in_queue': 'bg-indigo-100',
+                        'hung_up_in_queue': 'bg-purple-100'
+                    };
+                    
+                    // استفاده از یک جدول ساده برای نمایش بهتر
+                    let html = `
+                        <table class="w-full border-collapse">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-2 text-right">شماره تلفن</th>
+                                    <th class="p-2 text-right">نام مشتری</th>
+                                    <th class="p-2 text-right">منبع</th>
+                                    <th class="p-2 text-right">وضعیت</th>
+                                    <th class="p-2 text-right">مدت تماس</th>
+                                    <th class="p-2 text-right">کارشناس</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+                    
+                    data.numbers.forEach(item => {
+                        const statusClass = statusClasses[item.status] || 'bg-gray-100';
+                        
+                        html += `
+                            <tr class="border-b hover:bg-gray-50">
+                                <td class="p-2">${item.phone_number}</td>
+                                <td class="p-2">${item.customer_name || '-'}</td>
+                                <td class="p-2"><span class="px-2 py-1 text-xs rounded-full bg-gray-200">${item.source_display}</span></td>
+                                <td class="p-2"><span class="px-2 py-1 text-xs rounded-full ${statusClass}">${item.status_display}</span></td>
+                                <td class="p-2">${item.call_duration ? `${item.call_duration} ثانیه` : '-'}</td>
+                                <td class="p-2">${item.assigned_agent ? item.assigned_agent.name : '-'}</td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                            </tbody>
+                        </table>
+                    `;
+                    
+                    queueContent.innerHTML = html;
                 } else {
                     queueContent.innerHTML = `
-                        <div class="empty-queue">
+                        <div class="empty-queue" style="text-align: center; padding: 2rem;">
                             <i class="fas fa-inbox" style="font-size: 2rem; color: #D1D5DB; margin-bottom: 1rem;"></i>
-                            <p>هنوز شماره‌ای اضافه نشده است</p>
-                            <p style="font-size: 0.875rem; color: #6B7280;">از تب‌های بالا برای افزودن شماره استفاده کنید</p>
+                            <p>هیچ شماره‌ای در این لیست تماس یافت نشد</p>
+                            ${isPending ? `<p style="font-size: 0.875rem; color: #6B7280; margin-top: 0.5rem;">برای افزودن شماره به <a href="{% url 'calls:edit_automatic_call' call.id %}" style="color: var(--primary-color); text-decoration: underline;">صفحه ویرایش</a> بروید</p>` : ''}
                         </div>
                     `;
                 }
-                updateSelectionUI();
             })
             .catch(error => {
                 console.error('Error loading queue numbers:', error);
             });
     }
 
-    // Add customer to queue
-    function addCustomerToQueue(customer) {
-        const formData = new FormData();
-        formData.append('customer_id', customer.id);
-        formData.append('call_id', callId);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-        fetch('{% url "calls:add_customer_to_queue" %}', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                customerSearchInput.value = '';
-                customerSearchResults.style.display = 'none';
-                showMessage(data.message, 'success');
-                loadQueueNumbers(); // بارگذاری مجدد شماره‌ها
-            } else {
-                showMessage(data.error, 'error');
-            }
-        })
-        .catch(error => {
-            console.error('Error adding customer:', error);
-            showMessage('خطا در افزودن مشتری', 'error');
-        });
+    // Set up auto-refresh for active calls
+    if (callStatus === 'in_progress' || callStatus === 'paused') {
+        // Refresh queue list every 10 seconds for active calls
+        setInterval(loadQueueNumbers, 10000);
     }
-
-    // Manual numbers form
-    const manualNumbersForm = document.getElementById('manualNumbersForm');
-    if (manualNumbersForm) {
-        manualNumbersForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const numbers = document.getElementById('manualNumbers').value;
-            if (!numbers.trim()) {
-                showMessage('لطفا شماره‌هایی را وارد کنید', 'error');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('numbers', numbers);
-            formData.append('call_id', callId);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            fetch('{% url "calls:add_manual_numbers_to_queue" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    document.getElementById('manualNumbers').value = '';
-                    showMessage(data.message, 'success');
-                    loadQueueNumbers(); // بارگذاری مجدد شماره‌ها
-                } else {
-                    showMessage(data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding manual numbers:', error);
-                showMessage('خطا در افزودن شماره‌ها', 'error');
-            });
-        });
-    }
-
-    // Excel upload form
-    const excelUploadForm = document.getElementById('excelUploadForm');
-    if (excelUploadForm) {
-        excelUploadForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const fileInput = document.getElementById('excelFile');
-            if (!fileInput.files[0]) {
-                showMessage('لطفا فایل اکسل یا CSV را انتخاب کنید', 'error');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('excel_file', fileInput.files[0]);
-            formData.append('call_id', callId);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            fetch('{% url "calls:upload_excel_to_queue" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    fileInput.value = '';
-                    showMessage(data.message, 'success');
-                    loadQueueNumbers(); // بارگذاری مجدد شماره‌ها
-                } else {
-                    showMessage(data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error uploading excel:', error);
-                showMessage('خطا در آپلود فایل', 'error');
-            });
-        });
-    }
-
-    // Add suggestions button
-    const addSuggestionsBtn = document.getElementById('addSuggestionsBtn');
-    if (addSuggestionsBtn) {
-        addSuggestionsBtn.addEventListener('click', function() {
-            const formData = new FormData();
-            formData.append('call_id', callId);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            fetch('{% url "calls:add_suggested_numbers_to_queue" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(data.message, 'success');
-                    loadQueueNumbers(); // بارگذاری مجدد شماره‌ها
-                } else {
-                    showMessage(data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error adding suggestions:', error);
-                showMessage('خطا در افزودن پیشنهادات', 'error');
-            });
-        });
-    }
-
-    // Queue management
-    document.addEventListener('click', function(e) {
-        // Handle checkbox selection
-        if (e.target.classList.contains('queue-checkbox')) {
-            updateSelectionUI();
-            return;
-        }
-        
-        // Handle queue item click (but not checkbox)
-        if (e.target.closest('.queue-item') && !e.target.closest('.queue-checkbox')) {
-            const queueItem = e.target.closest('.queue-item');
-            const checkbox = queueItem.querySelector('.queue-checkbox');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                updateSelectionUI();
-            }
-        }
-    });
-
-    // Select All button
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function() {
-            const checkboxes = document.querySelectorAll('.queue-checkbox');
-            const allSelected = Array.from(checkboxes).every(cb => cb.checked);
-            
-            checkboxes.forEach(cb => {
-                cb.checked = !allSelected;
-            });
-            
-            updateSelectionUI();
-        });
-    }
-
-    // Delete Selected button
-    const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    if (deleteSelectedBtn) {
-        deleteSelectedBtn.addEventListener('click', function() {
-            const selectedPhones = Array.from(document.querySelectorAll('.queue-checkbox:checked'))
-                                       .map(cb => cb.value);
-            
-            if (selectedPhones.length === 0) return;
-            
-            if (!confirm(`آیا مطمئن هستید که می‌خواهید ${selectedPhones.length} شماره را حذف کنید؟`)) {
-                return;
-            }
-            
-            const formData = new FormData();
-            formData.append('phone_numbers', JSON.stringify(selectedPhones));
-            formData.append('call_id', callId);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-
-            fetch('{% url "calls:remove_from_queue" %}', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showMessage(data.message, 'success');
-                    loadQueueNumbers(); // بارگذاری مجدد شماره‌ها
-                } else {
-                    showMessage(data.error, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error removing from queue:', error);
-                showMessage('خطا در حذف از صف', 'error');
-            });
-        });
-    }
-
-    // Update selection UI
-    function updateSelectionUI() {
-        const checkboxes = document.querySelectorAll('.queue-checkbox');
-        const selectedCheckboxes = document.querySelectorAll('.queue-checkbox:checked');
-        const selectAllBtn = document.getElementById('selectAllBtn');
-        const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-        const selectedCount = document.getElementById('selectedCount');
-        
-        if (!selectAllBtn || !deleteSelectedBtn || !selectedCount) return;
-        
-        // Update select all button text
-        const allSelected = checkboxes.length > 0 && selectedCheckboxes.length === checkboxes.length;
-        selectAllBtn.innerHTML = allSelected ? 
-            '<i class="fas fa-square"></i> لغو انتخاب همه' : 
-            '<i class="fas fa-check-square"></i> انتخاب همه';
-        
-        // Show/hide delete button
-        if (selectedCheckboxes.length > 0) {
-            deleteSelectedBtn.style.display = 'inline-flex';
-            selectedCount.textContent = `${selectedCheckboxes.length} مورد انتخاب شده`;
-        } else {
-            deleteSelectedBtn.style.display = 'none';
-            selectedCount.textContent = '';
-        }
-        
-        // Update queue item appearance
-        document.querySelectorAll('.queue-item').forEach(item => {
-            const checkbox = item.querySelector('.queue-checkbox');
-            if (checkbox && checkbox.checked) {
-                item.classList.add('selected');
-            } else {
-                item.classList.remove('selected');
-            }
-        });
-    }
-
-    // File input display
-    const excelFile = document.getElementById('excelFile');
-    if (excelFile) {
-        excelFile.addEventListener('change', function() {
-            const button = document.querySelector('.file-input-button');
-            if (this.files[0]) {
-                button.innerHTML = `<i class="fas fa-file-excel"></i> ${this.files[0].name}`;
-            } else {
-                button.innerHTML = `<i class="fas fa-file-excel"></i> انتخاب فایل (اکسل/CSV)`;
-            }
-        });
-    }
-    } // End of isPending check
-
     // انیمیشن ورود عناصر
     const sections = document.querySelectorAll('.info-section, .logs-section, .queue-container');
     sections.forEach((section, index) => {
@@ -1357,6 +952,40 @@ document.addEventListener('DOMContentLoaded', function() {
             section.style.transform = 'translateY(0)';
         }, index * 100);
     });
+
+    // اضافه کردن استایل برای جدول شماره‌ها
+    const style = document.createElement('style');
+    style.textContent = `
+        .w-full { width: 100%; }
+        .border-collapse { border-collapse: collapse; }
+        .bg-gray-200 { background-color: #E5E7EB; }
+        .bg-gray-100 { background-color: #F3F4F6; }
+        .bg-blue-100 { background-color: #DBEAFE; }
+        .bg-green-100 { background-color: #D1FAE5; }
+        .bg-red-100 { background-color: #FEE2E2; }
+        .bg-yellow-100 { background-color: #FEF3C7; }
+        .bg-emerald-100 { background-color: #D1FAE5; }
+        .bg-orange-100 { background-color: #FFEDD5; }
+        .bg-indigo-100 { background-color: #E0E7FF; }
+        .bg-purple-100 { background-color: #EDE9FE; }
+        .p-2 { padding: 0.5rem; }
+        .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+        .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+        .text-right { text-align: right; }
+        .text-xs { font-size: 0.75rem; }
+        .rounded-full { border-radius: 9999px; }
+        .border-b { border-bottom: 1px solid #E5E7EB; }
+        .hover\\:bg-gray-50:hover { background-color: #F9FAFB; }
+        
+        /* Additional styles to match with the UI */
+        table { font-family: inherit; border-radius: var(--border-radius); overflow: hidden; }
+        table thead tr { background: linear-gradient(135deg, var(--primary-color) 0%, #047857 100%); color: white; }
+        table th { font-weight: 600; }
+        table tr:nth-child(even) { background-color: #f8fafc; }
+        .btn-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; border-radius: 0.375rem; }
+        .btn-sm i { margin-left: 0.25rem; }
+    `;
+    document.head.appendChild(style);
 });
 </script>
 {% endblock %}

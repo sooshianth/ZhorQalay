@@ -478,7 +478,13 @@ def edit_automatic_call(request, call_id):
             pass
     
     # دریافت شماره‌های موجود در صف
-    queue_numbers = CallQueue.objects.filter(session_id=session_id).order_by('-created_at')
+    # در mid-call edit فقط شماره‌های با وضعیت 'waiting' قابل ویرایش هستند
+    if is_mid_call_edit:
+        queue_numbers = CallQueue.objects.filter(session_id=session_id, status='waiting').order_by('-created_at')
+        messages.info(request, 'در حالت ویرایش حین تماس، فقط شماره‌های با وضعیت "در انتظار" قابل ویرایش هستند.')
+    else:
+        queue_numbers = CallQueue.objects.filter(session_id=session_id).order_by('-created_at')
+    
     queue_stats = {
         'total': queue_numbers.count(),
         'from_customers': queue_numbers.filter(source='customer').count(),
@@ -1664,12 +1670,20 @@ def cleanup_orphaned_queue_sessions():
 def edit_mid_call(request, call_id):
     """
     ویرایش تماس در حین انجام - ابتدا تماس را متوقف می‌کند، سپس به صفحه ویرایش می‌رود
+    فقط شماره‌های با وضعیت 'waiting' قابل ویرایش هستند
     """
     call = get_object_or_404(AutomaticCall, id=call_id)
     
     # بررسی وضعیت تماس
     if call.status not in ['in_progress', 'paused']:
         messages.error(request, 'فقط تماس‌های در حال انجام یا متوقف شده قابل ویرایش هستند.')
+        return redirect('calls:automatic_call_detail', call_id=call.id)
+    
+    # بررسی تعداد شماره‌های با وضعیت 'waiting' در صف
+    waiting_numbers = CallQueue.objects.filter(session_id=call.queue_session_id, status='waiting').count()
+    
+    if waiting_numbers == 0:
+        messages.error(request, 'هیچ شماره‌ای با وضعیت انتظار برای ویرایش وجود ندارد.')
         return redirect('calls:automatic_call_detail', call_id=call.id)
     
     # اگر تماس در حال انجام است، ابتدا آن را متوقف کنیم
@@ -1704,7 +1718,7 @@ def edit_mid_call(request, call_id):
                     message=f'تماس "{call.title}" برای ویرایش موقتاً متوقف شد.'
                 )
                 
-                messages.success(request, 'تماس موقتاً متوقف شد. اکنون می‌توانید آن را ویرایش کنید.')
+                messages.success(request, f'تماس موقتاً متوقف شد. اکنون می‌توانید {waiting_numbers} شماره با وضعیت انتظار را ویرایش کنید.')
             else:
                 # اگر pause نشد، مستقیماً به ویرایش برو (ممکن است Asterisk پاسخ ندهد)
                 messages.warning(request, 'خطا در متوقف کردن تماس، اما می‌توانید ویرایش کنید.')
