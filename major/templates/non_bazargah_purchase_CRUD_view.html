@@ -627,8 +627,9 @@
                     <div class="barnameh-fields">
                       <div class="form-group">
                         <label>شماره بارنامه:</label>
-                        <input type="text" name="barnameh_{{ barnameh.id }}_number" value="{{ barnameh.number|default:'' }}" 
-                               class="form-control" placeholder="شماره بارنامه"
+                        <input type="text" name="number" value="{{ barnameh.number|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="شماره بارنامه"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="number"
                                {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                         <small class="form-text text-muted">شماره بارنامه (قابل ویرایش در مراحل اولیه)</small>
                       </div>
@@ -636,9 +637,10 @@
                       {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="form-group">
                         <label><i class="fas fa-calendar"></i> تاریخ بارنامه:</label>
-                        <input type="date" name="barnameh_{{ barnameh.id }}_barnameh_date" 
+                        <input type="date" name="barnameh_date" 
                                value="{% if barnameh.barnameh_date %}{{ barnameh.barnameh_date|date:'Y-m-d' }}{% endif %}" 
-                               class="form-control"
+                               class="form-control barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="barnameh_date"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                         <small class="form-text text-muted">تاریخ رسمی صدور بارنامه (مهم برای گزارش‌گیری)</small>
                       </div>
@@ -652,20 +654,23 @@
                     <div class="barnameh-fields">
                       <div class="form-group">
                         <label>نام راننده:</label>
-                        <input type="text" name="barnameh_{{ barnameh.id }}_driver_name" value="{{ barnameh.driver_name|default:'' }}" 
-                               class="form-control" placeholder="نام راننده"
+                        <input type="text" name="driver_name" value="{{ barnameh.driver_name|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="نام راننده"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="driver_name"
                                {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>شماره راننده:</label>
-                        <input type="text" name="barnameh_{{ barnameh.id }}_driver_phone" value="{{ barnameh.driver_phone|default:'' }}" 
-                               class="form-control" placeholder="شماره تماس راننده"
+                        <input type="text" name="driver_phone" value="{{ barnameh.driver_phone|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="شماره تماس راننده"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="driver_phone"
                                {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>پلاک ماشین:</label>
-                        <input type="text" name="barnameh_{{ barnameh.id }}_vehicle_plate" value="{{ barnameh.vehicle_plate|default:'' }}" 
-                               class="form-control" placeholder="پلاک ماشین"
+                        <input type="text" name="vehicle_plate" value="{{ barnameh.vehicle_plate|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="پلاک ماشین"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="vehicle_plate"
                                {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                     </div>
@@ -677,20 +682,23 @@
                     <div class="barnameh-fields">
                       <div class="form-group">
                         <label>وزن خالی (کیلوگرم):</label>
-                        <input type="number" name="barnameh_{{ barnameh.id }}_empty_vehicle_weight" value="{{ barnameh.empty_vehicle_weight|default:'' }}" 
-                               class="form-control" step="0.01" placeholder="وزن خالی"
+                        <input type="number" name="empty_vehicle_weight" value="{{ barnameh.empty_vehicle_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن خالی"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="empty_vehicle_weight"
                                {% if purchase.state != 'vehicle_arrived' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>وزن پر (کیلوگرم):</label>
-                        <input type="number" name="barnameh_{{ barnameh.id }}_loaded_vehicle_weight" value="{{ barnameh.loaded_vehicle_weight|default:'' }}" 
-                               class="form-control" step="0.01" placeholder="وزن پر"
+                        <input type="number" name="loaded_vehicle_weight" value="{{ barnameh.loaded_vehicle_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن پر"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="loaded_vehicle_weight"
                                {% if purchase.state != 'empty_weighed' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       <div class="form-group">
                         <label>وزن تحویلی (کیلوگرم):</label>
-                        <input type="number" name="barnameh_{{ barnameh.id }}_final_delivered_weight" value="{{ barnameh.final_delivered_weight|default:'' }}" 
-                               class="form-control" step="0.01" placeholder="وزن تحویلی"
+                        <input type="number" name="final_delivered_weight" value="{{ barnameh.final_delivered_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن تحویلی"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="final_delivered_weight"
                                {% if purchase.state not in 'loaded_weighed,barnameh_issued,delivered'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% if barnameh.empty_vehicle_weight and barnameh.loaded_vehicle_weight %}
@@ -712,9 +720,10 @@
                       {% if purchase.state in 'vehicle_arrived,empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="time-field-group">
                         <label><i class="fas fa-car"></i> زمان ورود ماشین:</label>
-                        <input type="datetime-local" name="barnameh_{{ barnameh.id }}_vehicle_arrival_time" 
+                        <input type="datetime-local" name="vehicle_arrival_time" 
                                value="{% if barnameh.vehicle_arrival_time %}{{ barnameh.vehicle_arrival_time|date:'Y-m-d\TH:i' }}{% endif %}" 
-                               class="form-control time-input"
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="vehicle_arrival_time"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}
@@ -723,9 +732,10 @@
                       {% if purchase.state in 'empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="time-field-group">
                         <label><i class="fas fa-weight-hanging"></i> زمان وزن خالی:</label>
-                        <input type="datetime-local" name="barnameh_{{ barnameh.id }}_empty_weigh_time" 
+                        <input type="datetime-local" name="empty_weigh_time" 
                                value="{% if barnameh.empty_weigh_time %}{{ barnameh.empty_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
-                               class="form-control time-input"
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="empty_weigh_time"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}
@@ -734,9 +744,10 @@
                       {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="time-field-group">
                         <label><i class="fas fa-balance-scale"></i> زمان وزن پر:</label>
-                        <input type="datetime-local" name="barnameh_{{ barnameh.id }}_loaded_weigh_time" 
+                        <input type="datetime-local" name="loaded_weigh_time" 
                                value="{% if barnameh.loaded_weigh_time %}{{ barnameh.loaded_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
-                               class="form-control time-input"
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="loaded_weigh_time"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}
@@ -745,9 +756,10 @@
                       {% if purchase.state in 'barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="time-field-group">
                         <label><i class="fas fa-truck-loading"></i> زمان خروج از انبار:</label>
-                        <input type="datetime-local" name="barnameh_{{ barnameh.id }}_departure_time" 
+                        <input type="datetime-local" name="departure_time" 
                                value="{% if barnameh.departure_time %}{{ barnameh.departure_time|date:'Y-m-d\TH:i' }}{% endif %}" 
-                               class="form-control time-input"
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="departure_time"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}
@@ -756,9 +768,10 @@
                       {% if purchase.state in 'delivered,purchase_closed'|split:',' %}
                       <div class="time-field-group">
                         <label><i class="fas fa-handshake"></i> زمان تحویل:</label>
-                        <input type="datetime-local" name="barnameh_{{ barnameh.id }}_delivery_time" 
+                        <input type="datetime-local" name="delivery_time" 
                                value="{% if barnameh.delivery_time %}{{ barnameh.delivery_time|date:'Y-m-d\TH:i' }}{% endif %}" 
-                               class="form-control time-input"
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="delivery_time"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                       </div>
                       {% endif %}

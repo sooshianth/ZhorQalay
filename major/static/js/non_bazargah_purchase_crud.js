@@ -106,13 +106,13 @@ function confirmUpdateAllBarnamehs() {
     const filledFields = [];
     
     // جستجوی تمام فیلدهای بارنامه در کل صفحه
-    const allInputs = document.querySelectorAll('input[name^="barnameh_"]');
+    const allInputs = document.querySelectorAll('.barnameh-field');
     
     allInputs.forEach(input => {
-        if (input.name.startsWith('barnameh_') && input.value.trim() !== '') {
+        if (input.value.trim() !== '') {
             hasBarnamehFields = true;
             const fieldLabel = input.closest('.form-group')?.querySelector('label')?.textContent?.replace(':', '') || 'نامشخص';
-            const barnamehId = input.name.split('_')[1];
+            const barnamehId = input.getAttribute('data-barnameh-id') || 'نامشخص';
             filledFields.push(`بارنامه #${barnamehId}: ${fieldLabel} = "${input.value}"`);
         }
     });
@@ -172,20 +172,25 @@ function submitUpdateAllBarnamehs() {
     actionInput.value = 'true';
     form.appendChild(actionInput);
     
-    // جمع‌آوری همه فیلدهای بارنامه
-    const allInputs = document.querySelectorAll('input[name^="barnameh_"]');
+    // جمع‌آوری همه فیلدهای بارنامه با استفاده از class selector
+    const allInputs = document.querySelectorAll('.barnameh-field');
     console.log('تعداد فیلدهای بارنامه یافت شده:', allInputs.length);
     
     let addedFields = 0;
     allInputs.forEach(input => {
         if (input.value.trim() !== '') {
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = input.name;
-            hiddenInput.value = input.value;
-            form.appendChild(hiddenInput);
-            addedFields++;
-            console.log('اضافه شد:', input.name, '=', input.value);
+            const barnamehId = input.getAttribute('data-barnameh-id');
+            const fieldName = input.getAttribute('data-field-name');
+            
+            if (barnamehId && fieldName) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `barnameh_${barnamehId}_${fieldName}`;
+                hiddenInput.value = input.value;
+                form.appendChild(hiddenInput);
+                addedFields++;
+                console.log('اضافه شد:', hiddenInput.name, '=', input.value);
+            }
         }
     });
     
