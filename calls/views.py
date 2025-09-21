@@ -1115,43 +1115,27 @@ def asterisk_call_event_webhook(request):
         
         # Find the queue item
         try:
-            # Try to find call by uniqueid as session_id first
-            call = AutomaticCall.objects.filter(queue_session_id=uniqueid).first()
-            
-            # If not found by session_id, try to find an active call with this customer number
-            if not call:
-                call = AutomaticCall.objects.filter(
-                    status__in=['in_progress', 'paused'],
-                    queue_numbers__phone_number=customer_number
-                ).first()
-            
-            if not call:
-                error_msg = f"Call not found with session_id {uniqueid} or customer {customer_number}"
-                logger.error(error_msg)
-                return JsonResponse({'success': False, 'error': error_msg}, status=404)
-            
+            # Use uniqueid as session_id to find the call
+            call = AutomaticCall.objects.get(queue_session_id=uniqueid)
             # Find the queue item
             queue_item = CallQueue.objects.filter(
-                session_id=call.queue_session_id, 
+                session_id=uniqueid, 
                 phone_number=customer_number
             ).first()
             
             if not queue_item:
-                error_msg = f"Queue item not found for call {call.queue_session_id}, customer {customer_number}"
+                error_msg = f"Queue item not found for call {uniqueid}, customer {customer_number}"
                 logger.error(error_msg)
                 return JsonResponse({'success': False, 'error': error_msg}, status=404)
                 
-        except Exception as e:
-            error_msg = f"Error finding call or queue item: {str(e)}"
+        except AutomaticCall.DoesNotExist:
+            error_msg = f"Call not found with session_id {uniqueid}"
             logger.error(error_msg)
             return JsonResponse({'success': False, 'error': error_msg}, status=404)
         
         # Ensure customer_number is stored consistently in webhook data for better searching
         if 'call_data' in data:
             data['call_data']['customer_number'] = customer_number
-        
-        # Use the actual session_id from the found call
-        actual_session_id = call.queue_session_id
         
         # Log processing information
         logger.info("Processing %s event for call %s, customer %s", 
