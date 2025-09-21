@@ -146,7 +146,7 @@ def get_purchase_data(purchase, columns):
     return data
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def export_non_bazargah_purchases_excel(request):
     """

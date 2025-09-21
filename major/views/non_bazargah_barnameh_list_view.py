@@ -94,7 +94,7 @@ def jalali_to_gregorian_date(jalali_date_str):
         logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
         raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def non_bazargah_barnameh_list(request):
     logger.warning(f"لیست بارنامه‌های خارج از بازارگاه توسط {request.user.username} باز شد با آیپی {get_client_ip(request)}")
@@ -245,7 +245,7 @@ def get_barnameh_data(barnameh, columns):
     return data
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def export_non_bazargah_barnamehs_excel(request):
     """
@@ -359,7 +359,7 @@ def export_non_bazargah_barnamehs_excel(request):
         return response
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 @require_POST
 def apply_non_bazargah_barnameh_filter(request):
@@ -811,7 +811,7 @@ def apply_non_bazargah_barnameh_filter(request):
         }, status=500)
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 @require_POST
 def get_non_bazargah_barnameh_column_values(request):
@@ -1050,7 +1050,7 @@ def get_non_bazargah_barnameh_column_values(request):
         }, status=500)
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 def get_available_barnameh_fields(request):
     """
@@ -1140,7 +1140,7 @@ def get_available_barnameh_fields(request):
         }, status=500)
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
 @require_POST
 def update_barnameh_table_columns(request):
@@ -1435,7 +1435,7 @@ def _export_non_bazargah_barnameh_excel_full(queryset, from_date=None, to_date=N
     return response
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager')
 @login_required
 def fast_non_bazargah_barnameh_report_pdf(request):
     """
