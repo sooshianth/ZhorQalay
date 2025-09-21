@@ -1347,6 +1347,195 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     messages.error(request, 'بارنامه مورد نظر یافت نشد')
                     return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
+        # پردازش بروزرسانی همه بارنامه‌ها
+        if 'update_all_barnamehs' in request.POST and user_role in ['logistics_manager', 'admin']:
+            try:
+                updated_count = 0
+                errors = []
+                
+                # لاگ همه کلیدهای POST برای دیباگ
+                barnameh_keys = [k for k in request.POST.keys() if k.startswith('barnameh_')]
+                logger.info(f"کلیدهای بارنامه در POST: {barnameh_keys}")
+                logger.info(f"همه کلیدهای POST: {list(request.POST.keys())}")
+                
+                # دریافت همه بارنامه‌های مربوط به این خرید
+                all_barnamehs = purchase.get_all_barnamehs()
+                logger.info(f"تعداد بارنامه‌های موجود: {len(all_barnamehs)}, IDs: {[b.id for b in all_barnamehs]}")
+                
+                for barnameh in all_barnamehs:
+                    try:
+                        # بررسی اینکه آیا برای این بارنامه اطلاعاتی ارسال شده یا نه
+                        barnameh_prefix = f'barnameh_{barnameh.id}_'
+                        has_data = any(key.startswith(barnameh_prefix) for key in request.POST.keys())
+                        
+                        logger.info(f"بررسی بارنامه {barnameh.id}: has_data={has_data}, کلیدهای POST: {[k for k in request.POST.keys() if k.startswith(barnameh_prefix)]}")
+                        
+                        if has_data:
+                            # استخراج اطلاعات مربوط به این بارنامه
+                            number = request.POST.get(f'{barnameh_prefix}number', '').strip()
+                            driver_name = request.POST.get(f'{barnameh_prefix}driver_name', '').strip()
+                            driver_phone = request.POST.get(f'{barnameh_prefix}driver_phone', '').strip()
+                            vehicle_plate = request.POST.get(f'{barnameh_prefix}vehicle_plate', '').strip()
+                            
+                            # اطلاعات وزن
+                            empty_weight = request.POST.get(f'{barnameh_prefix}empty_vehicle_weight', '')
+                            loaded_weight = request.POST.get(f'{barnameh_prefix}loaded_vehicle_weight', '')
+                            delivered_weight = request.POST.get(f'{barnameh_prefix}final_delivered_weight', '')
+                            
+                            # اطلاعات زمانی
+                            vehicle_arrival_time = request.POST.get(f'{barnameh_prefix}vehicle_arrival_time', '')
+                            empty_weigh_time = request.POST.get(f'{barnameh_prefix}empty_weigh_time', '')
+                            loaded_weigh_time = request.POST.get(f'{barnameh_prefix}loaded_weigh_time', '')
+                            departure_time = request.POST.get(f'{barnameh_prefix}departure_time', '')
+                            delivery_time = request.POST.get(f'{barnameh_prefix}delivery_time', '')
+                            barnameh_date = request.POST.get(f'{barnameh_prefix}barnameh_date', '')
+                            
+                            # بروزرسانی فیلدها - بررسی مقدار وارد شده بدون در نظر گیری تغییر
+                            updated = False
+                            
+                            if number:
+                                if number != (barnameh.number or ''):
+                                    barnameh.number = number
+                                    updated = True
+                                    logger.info(f"بروزرسانی شماره بارنامه {barnameh.id}: '{barnameh.number}' -> '{number}'")
+                            
+                            if driver_name:
+                                if driver_name != (barnameh.driver_name or ''):
+                                    barnameh.driver_name = driver_name
+                                    updated = True
+                                    logger.info(f"بروزرسانی نام راننده بارنامه {barnameh.id}: '{barnameh.driver_name}' -> '{driver_name}'")
+                            
+                            if driver_phone:
+                                if driver_phone != (barnameh.driver_phone or ''):
+                                    barnameh.driver_phone = driver_phone
+                                    updated = True
+                                    logger.info(f"بروزرسانی شماره راننده بارنامه {barnameh.id}: '{barnameh.driver_phone}' -> '{driver_phone}'")
+                            
+                            if vehicle_plate:
+                                if vehicle_plate != (barnameh.vehicle_plate or ''):
+                                    barnameh.vehicle_plate = vehicle_plate
+                                    updated = True
+                                    logger.info(f"بروزرسانی پلاک بارنامه {barnameh.id}: '{barnameh.vehicle_plate}' -> '{vehicle_plate}'")
+                            
+                            # بروزرسانی وزن‌ها
+                            if empty_weight:
+                                try:
+                                    empty_weight_val = float(empty_weight)
+                                    if empty_weight_val != (barnameh.empty_vehicle_weight or 0):
+                                        barnameh.empty_vehicle_weight = empty_weight_val
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if loaded_weight:
+                                try:
+                                    loaded_weight_val = float(loaded_weight)
+                                    if loaded_weight_val != (barnameh.loaded_vehicle_weight or 0):
+                                        barnameh.loaded_vehicle_weight = loaded_weight_val
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if delivered_weight:
+                                try:
+                                    delivered_weight_val = float(delivered_weight)
+                                    if delivered_weight_val != (barnameh.final_delivered_weight or 0):
+                                        barnameh.final_delivered_weight = delivered_weight_val
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            # بروزرسانی زمان‌ها
+                            from datetime import datetime
+                            
+                            if vehicle_arrival_time:
+                                try:
+                                    arrival_time = datetime.fromisoformat(vehicle_arrival_time)
+                                    if arrival_time != barnameh.vehicle_arrival_time:
+                                        barnameh.vehicle_arrival_time = arrival_time
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if empty_weigh_time:
+                                try:
+                                    empty_time = datetime.fromisoformat(empty_weigh_time)
+                                    if empty_time != barnameh.empty_weigh_time:
+                                        barnameh.empty_weigh_time = empty_time
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if loaded_weigh_time:
+                                try:
+                                    loaded_time = datetime.fromisoformat(loaded_weigh_time)
+                                    if loaded_time != barnameh.loaded_weigh_time:
+                                        barnameh.loaded_weigh_time = loaded_time
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if departure_time:
+                                try:
+                                    depart_time = datetime.fromisoformat(departure_time)
+                                    if depart_time != barnameh.departure_time:
+                                        barnameh.departure_time = depart_time
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if delivery_time:
+                                try:
+                                    deliver_time = datetime.fromisoformat(delivery_time)
+                                    if deliver_time != barnameh.delivery_time:
+                                        barnameh.delivery_time = deliver_time
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            if barnameh_date:
+                                try:
+                                    date_val = datetime.strptime(barnameh_date, '%Y-%m-%d').date()
+                                    if date_val != barnameh.barnameh_date:
+                                        barnameh.barnameh_date = date_val
+                                        updated = True
+                                except (ValueError, TypeError):
+                                    pass
+                            
+                            # ذخیره تغییرات اگر چیزی تغییر کرده باشد
+                            if updated:
+                                barnameh.save()
+                                updated_count += 1
+                    
+                    except Exception as e:
+                        errors.append(f'خطا در بروزرسانی بارنامه #{barnameh.number or barnameh.id}: {str(e)}')
+                        continue
+                
+                # نمایش نتیجه
+                if updated_count > 0:
+                    message = f'{updated_count} بارنامه با موفقیت بروزرسانی شد'
+                    if errors:
+                        message += f' ({len(errors)} خطا)'
+                    messages.success(request, message)
+                    
+                    # نمایش خطاها (حداکثر 3 مورد)
+                    for error in errors[:3]:
+                        messages.warning(request, error)
+                else:
+                    if errors:
+                        messages.error(request, f'هیچ بارنامه‌ای بروزرسانی نشد - {len(errors)} خطا رخ داد')
+                        for error in errors[:3]:
+                            messages.error(request, error)
+                    else:
+                        messages.info(request, 'هیچ تغییری برای بروزرسانی یافت نشد')
+                
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+                
+            except Exception as e:
+                logger.error(f"خطا در بروزرسانی همه بارنامه‌ها: {str(e)}")
+                messages.error(request, f'خطا در بروزرسانی همه بارنامه‌ها: {str(e)}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
         if is_action_button_pressed:
             post_data['bypass_validation'] = 'true'
             # برای دکمه‌های اکشن، اطمینان از وجود فیلدهای ضروری

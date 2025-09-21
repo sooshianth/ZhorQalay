@@ -789,8 +789,15 @@ def generate_barnameh_pdf(request, purchase_id):
              [Paragraph(format_number(total_loaded_weight) + ' ' + process_persian_text('کیلوگرم'), styles['Right']), Paragraph(process_persian_text('مجموع وزن پر:'), styles['Right'])],
              [Paragraph(format_number(total_net_weight) + ' ' + process_persian_text('کیلوگرم'), styles['Right']), Paragraph(process_persian_text('مجموع وزن خالص:'), styles['Right'])],
              [Paragraph(format_number(purchase.get_remaining_weight_for_allocation() + purchase.get_total_allocated_weight()) + ' ' + process_persian_text('کیلوگرم'), styles['Right']), Paragraph(process_persian_text('وزن درخواستی:'), styles['Right'])],
-             [Paragraph(format_number(total_net_weight - (purchase.get_remaining_weight_for_allocation() + purchase.get_total_allocated_weight())) + ' ' + process_persian_text('کیلوگرم'), styles['Right']), Paragraph(process_persian_text('اختلاف وزن:'), styles['Right'])],
         ]
+        
+        # اضافه کردن اختلاف وزن اگر موجود باشد
+        if purchase.weight_difference is not None:
+            summary_data.append([Paragraph(format_number(purchase.weight_difference) + ' ' + process_persian_text('کیلوگرم'), styles['Right']), Paragraph(process_persian_text('اختلاف وزن:'), styles['Right'])])
+        
+        # اضافه کردن مبلغ اختلاف وزن اگر موجود باشد
+        if purchase.weight_difference_amount is not None:
+            summary_data.append([Paragraph(format_number(purchase.weight_difference_amount) + ' ' + process_persian_text('ریال'), styles['Right']), Paragraph(process_persian_text('مبلغ اختلاف وزن:'), styles['Right'])])
         
         summary_table = Table(summary_data, colWidths=[doc_width*2/3, doc_width/3])
         summary_table.setStyle(TableStyle([

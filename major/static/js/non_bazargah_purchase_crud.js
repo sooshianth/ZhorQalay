@@ -89,3 +89,114 @@ function hideAddBarnamehForm(allocationId) {
         });
     }
 }
+
+// تابع تایید بروزرسانی همه بارنامه‌ها
+function confirmUpdateAllBarnamehs() {
+    // شمارش تعداد بارنامه‌ها
+    const barnamehForms = document.querySelectorAll('.barnameh-form');
+    const barnamehCount = barnamehForms.length;
+    
+    if (barnamehCount === 0) {
+        alert('هیچ بارنامه‌ای برای بروزرسانی یافت نشد');
+        return false;
+    }
+    
+    // بررسی اینکه آیا فیلدهایی با prefix barnameh_ وجود دارند یا نه
+    let hasBarnamehFields = false;
+    const filledFields = [];
+    
+    // جستجوی تمام فیلدهای بارنامه در کل صفحه
+    const allInputs = document.querySelectorAll('.barnameh-field');
+    
+    allInputs.forEach(input => {
+        if (input.value.trim() !== '') {
+            hasBarnamehFields = true;
+            const fieldLabel = input.closest('.form-group')?.querySelector('label')?.textContent?.replace(':', '') || 'نامشخص';
+            const barnamehId = input.getAttribute('data-barnameh-id') || 'نامشخص';
+            filledFields.push(`بارنامه #${barnamehId}: ${fieldLabel} = "${input.value}"`);
+        }
+    });
+    
+    console.log('تعداد فیلدهای یافت شده:', allInputs.length);
+    console.log('فیلدهای پر شده:', filledFields);
+    
+    if (!hasBarnamehFields) {
+        const result = confirm(
+            `هیچ اطلاعاتی در فیلدهای بارنامه‌ها وارد نشده است.\n\n` +
+            `آیا می‌خواهید عملیات بروزرسانی را ادامه دهید؟\n\n` +
+            `تعداد بارنامه‌ها: ${barnamehCount}\n` +
+            `تعداد فیلدهای بارنامه: ${allInputs.length}`
+        );
+        return result;
+    }
+    
+    // نمایش تایید نهایی با جزئیات فیلدهای پر شده
+    const fieldsList = filledFields.slice(0, 5).join('\n• ');
+    const moreFields = filledFields.length > 5 ? `\n• و ${filledFields.length - 5} فیلد دیگر...` : '';
+    
+    const confirmMessage = 
+        `آیا از بروزرسانی همه بارنامه‌ها اطمینان دارید؟\n\n` +
+        `تعداد بارنامه‌ها: ${barnamehCount}\n` +
+        `تعداد فیلدهای پر شده: ${filledFields.length}\n\n` +
+        `برخی از فیلدهای پر شده:\n• ${fieldsList}${moreFields}\n\n` +
+        `⚠️ توجه: این عملیات قابل برگشت نیست!`;
+    
+    return confirm(confirmMessage);
+}
+
+// تابع ارسال بروزرسانی همه بارنامه‌ها
+function submitUpdateAllBarnamehs() {
+    if (!confirmUpdateAllBarnamehs()) {
+        return;
+    }
+    
+    // ایجاد فرم جدید برای ارسال همه داده‌ها
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = window.location.href;
+    
+    // اضافه کردن CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = csrfToken.value;
+        form.appendChild(csrfInput);
+    }
+    
+    // اضافه کردن فیلد اکشن
+    const actionInput = document.createElement('input');
+    actionInput.type = 'hidden';
+    actionInput.name = 'update_all_barnamehs';
+    actionInput.value = 'true';
+    form.appendChild(actionInput);
+    
+    // جمع‌آوری همه فیلدهای بارنامه با استفاده از class selector
+    const allInputs = document.querySelectorAll('.barnameh-field');
+    console.log('تعداد فیلدهای بارنامه یافت شده:', allInputs.length);
+    
+    let addedFields = 0;
+    allInputs.forEach(input => {
+        if (input.value.trim() !== '') {
+            const barnamehId = input.getAttribute('data-barnameh-id');
+            const fieldName = input.getAttribute('data-field-name');
+            
+            if (barnamehId && fieldName) {
+                const hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `barnameh_${barnamehId}_${fieldName}`;
+                hiddenInput.value = input.value;
+                form.appendChild(hiddenInput);
+                addedFields++;
+                console.log('اضافه شد:', hiddenInput.name, '=', input.value);
+            }
+        }
+    });
+    
+    console.log('تعداد فیلدهای اضافه شده به فرم:', addedFields);
+    
+    // اضافه کردن فرم به صفحه و ارسال
+    document.body.appendChild(form);
+    form.submit();
+}
