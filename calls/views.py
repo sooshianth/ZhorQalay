@@ -1279,7 +1279,7 @@ def asterisk_call_event_webhook(request):
             total_queue_items = CallQueue.objects.filter(session_id=uniqueid).count()
             completed_items = CallQueue.objects.filter(
                 session_id=uniqueid, 
-                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'hung_up_in_queue']
+                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'rejected', 'hung_up_in_queue']
             ).count()
             
             if completed_items >= total_queue_items:
@@ -1302,7 +1302,7 @@ def asterisk_call_event_webhook(request):
             status_map = {
                 'customer_busy': 'busy',
                 'customer_no_answer': 'not_answered',
-                'call_rejected': 'failed',
+                'call_rejected': 'rejected',
                 'call_failed': 'failed'
             }
             
@@ -1323,7 +1323,7 @@ def asterisk_call_event_webhook(request):
             total_queue_items = CallQueue.objects.filter(session_id=uniqueid).count()
             completed_items = CallQueue.objects.filter(
                 session_id=uniqueid, 
-                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'hung_up_in_queue']
+                status__in=['answered_ivr', 'answered_no_ivr', 'not_answered', 'busy', 'failed', 'rejected', 'hung_up_in_queue']
             ).count()
             
             if completed_items >= total_queue_items:
@@ -1419,6 +1419,8 @@ def get_call_queue_status(request, call_id):
                 'answered_no_ivr': status_counts.get('answered_no_ivr', 0),
                 'not_answered': status_counts.get('not_answered', 0),
                 'busy': status_counts.get('busy', 0),
+                'failed': status_counts.get('failed', 0),
+                'rejected': status_counts.get('rejected', 0),
             }
         })
         

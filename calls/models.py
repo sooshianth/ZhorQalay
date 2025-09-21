@@ -27,6 +27,7 @@ class CallQueue(models.Model):
         ('answered_ivr', 'پاسخ داد و وارد IVR شد'),
         ('busy', 'مشغول'),
         ('failed', 'ناموفق'),
+        ('rejected', 'رد شده'),
         ('in_queue', 'در صف'),
         ('hung_up_in_queue', 'قطع در صف'),
     ]
