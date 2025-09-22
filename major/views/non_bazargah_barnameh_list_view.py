@@ -520,11 +520,10 @@ def apply_non_bazargah_barnameh_filter(request):
                         unique_dates = set([v for v in values if v and v.strip()])  # حذف تکراری‌ها
                         for date_str in unique_dates:
                             if '/' in date_str:
-                                parts = date_str.split('/')
-                                if len(parts) == 3:
-                                    year, month, day = parts
-                                    date_obj = datetime.datetime(int(year), int(month), int(day)).date()
-                                    date_conditions |= Q(barnameh_date=date_obj)
+                                # تبدیل تاریخ شمسی به میلادی
+                                gregorian_date = jalali_to_gregorian_date(date_str)
+                                if gregorian_date:
+                                    date_conditions |= Q(barnameh_date=gregorian_date)
                         
                         if date_conditions:
                             if filter_type == 'include':
@@ -609,11 +608,10 @@ def apply_non_bazargah_barnameh_filter(request):
                                 unique_dates = set([v for v in values if v and v.strip()])
                                 for date_str in unique_dates:
                                     if '/' in date_str:
-                                        parts = date_str.split('/')
-                                        if len(parts) == 3:
-                                            year, month, day = parts
-                                            date_obj = datetime.datetime(int(year), int(month), int(day)).date()
-                                            date_conditions |= Q(**{column_id: date_obj})
+                                        # تبدیل تاریخ شمسی به میلادی
+                                        gregorian_date = jalali_to_gregorian_date(date_str)
+                                        if gregorian_date:
+                                            date_conditions |= Q(**{column_id: gregorian_date})
                                 
                                 if date_conditions:
                                     if filter_type == 'include':
