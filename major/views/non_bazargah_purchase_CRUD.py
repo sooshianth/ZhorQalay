@@ -12,6 +12,7 @@ from django.views.decorators.http import require_http_methods
 from django.http import HttpResponse
 import io
 import xlsxwriter
+import jdatetime
 
 from major.models.NonBazargahPurchase import NonBazargahPurchase
 from major.models.NonBazargahAllocation import NonBazargahAllocation
@@ -30,6 +31,51 @@ import os
 from django.conf import settings
 
 logger = logging.getLogger("major_non_bazargah_crud")
+
+
+class PersianDateInput(forms.DateInput):
+    """Widget سفارشی برای انتخاب تاریخ شمسی"""
+    
+    def __init__(self, attrs=None):
+        if attrs is None:
+            attrs = {}
+        attrs.update({
+            'type': 'text',
+            'class': 'form-control persian-date-input',
+            'placeholder': '1403/01/01',
+            'readonly': 'readonly'
+        })
+        super().__init__(attrs)
+    
+    def format_value(self, value):
+        """تبدیل تاریخ میلادی به شمسی برای نمایش"""
+        if value:
+            try:
+                if isinstance(value, str):
+                    # اگر رشته است، ابتدا به datetime تبدیل کن
+                    from datetime import datetime
+                    value = datetime.strptime(value, '%Y-%m-%d').date()
+                
+                # تبدیل تاریخ میلادی به شمسی
+                persian_date = jdatetime.date.fromgregorian(date=value)
+                return persian_date.strftime('%Y/%m/%d')
+            except (ValueError, TypeError):
+                return ''
+        return ''
+    
+    class Media:
+        css = {
+            'all': (
+                'admin/jquery.ui.datepicker.jalali/themes/base/jquery-ui.css',
+                'admin/jquery.ui.datepicker.jalali/themes/base/jquery.ui.theme.css',
+            )
+        }
+        js = (
+            'admin/js/jquery.init.js',
+            'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.core.js',
+            'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.datepicker-cc.js',
+            'admin/jquery.ui.datepicker.jalali/scripts/jquery.ui.datepicker-cc-fa.js',
+        )
 
 
 class ExcelAllocationUploadForm(forms.Form):
@@ -736,7 +782,7 @@ class BarnamehForm(forms.ModelForm):
             'loaded_vehicle_weight': forms.NumberInput(attrs={'placeholder': 'وزن پر (کیلوگرم)', 'step': '0.01'}),
             'final_delivered_weight': forms.NumberInput(attrs={'placeholder': 'وزن نهایی تحویل (کیلوگرم)', 'step': '0.01'}),
             'tonnage': forms.NumberInput(attrs={'placeholder': 'وزن (تن)', 'step': '0.01'}),
-            'barnameh_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'barnameh_date': PersianDateInput(),
         }
         labels = {
             'number': 'شماره بارنامه',
@@ -767,6 +813,29 @@ class BarnamehForm(forms.ModelForm):
             raise ValidationError('وزن پر باید از وزن خالی بیشتر باشد')
         
         return loaded
+    
+    def clean_barnameh_date(self):
+        """تبدیل تاریخ شمسی به میلادی"""
+        date_value = self.cleaned_data.get('barnameh_date')
+        
+        if date_value:
+            try:
+                if isinstance(date_value, str):
+                    # اگر رشته است، احتمالاً تاریخ شمسی است
+                    if '/' in date_value:
+                        # تبدیل تاریخ شمسی به میلادی
+                        year, month, day = map(int, date_value.split('/'))
+                        persian_date = jdatetime.date(year, month, day)
+                        return persian_date.togregorian()
+                    else:
+                        # اگر فرمت میلادی است
+                        from datetime import datetime
+                        return datetime.strptime(date_value, '%Y-%m-%d').date()
+                return date_value
+            except (ValueError, TypeError) as e:
+                raise ValidationError(f'فرمت تاریخ نادرست است: {str(e)}')
+        
+        return date_value
 
 
 class RoleBasedNonBazargahPurchaseForm(forms.ModelForm):
@@ -1495,7 +1564,16 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             
                             if barnameh_date:
                                 try:
-                                    date_val = datetime.strptime(barnameh_date, '%Y-%m-%d').date()
+                                    # بررسی اینکه آیا تاریخ شمسی است یا میلادی
+                                    if '/' in barnameh_date:
+                                        # تبدیل تاریخ شمسی به میلادی
+                                        year, month, day = map(int, barnameh_date.split('/'))
+                                        persian_date = jdatetime.date(year, month, day)
+                                        date_val = persian_date.togregorian()
+                                    else:
+                                        # تاریخ میلادی
+                                        date_val = datetime.strptime(barnameh_date, '%Y-%m-%d').date()
+                                    
                                     if date_val != barnameh.barnameh_date:
                                         barnameh.barnameh_date = date_val
                                         updated = True

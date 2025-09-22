@@ -637,10 +637,11 @@
                       {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
                       <div class="form-group">
                         <label><i class="fas fa-calendar"></i> تاریخ بارنامه:</label>
-                        <input type="date" name="barnameh_date" 
-                               value="{% if barnameh.barnameh_date %}{{ barnameh.barnameh_date|date:'Y-m-d' }}{% endif %}" 
-                               class="form-control barnameh-field"
+                        <input type="text" name="barnameh_date" 
+                               value="{% if barnameh.barnameh_date %}{{ barnameh.barnameh_date|date:'Y/m/d' }}{% endif %}" 
+                               class="form-control barnameh-field persian-date-input"
                                data-barnameh-id="{{ barnameh.id }}" data-field-name="barnameh_date"
+                               placeholder="1403/01/01"
                                {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
                         <small class="form-text text-muted">تاریخ رسمی صدور بارنامه (مهم برای گزارش‌گیری)</small>
                       </div>
