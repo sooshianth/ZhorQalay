@@ -345,6 +345,9 @@
     </div>
 </div>
 
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+
 <script>
 // نمایش/مخفی کردن فیلد دوره تکرار بر اساس انتخاب هزینه تکراری
 document.addEventListener('DOMContentLoaded', function() {
@@ -405,6 +408,29 @@ document.addEventListener('DOMContentLoaded', function() {
         costTypeSelect.addEventListener('change', toggleAmountRequirement);
         toggleAmountRequirement(); // اجرای اولیه
     }
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلدهای مبلغ
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            // اضافه کردن نمایش لایو برای فیلد مبلغ اصلی
+            const amountField = document.getElementById('{{ hazinah_form.amount.id_for_label }}');
+            if (amountField) {
+                window.livePriceDisplay.attachToInput('#{{ hazinah_form.amount.id_for_label }}');
+            }
+
+            // اضافه کردن نمایش لایو برای فیلد مالیات
+            const taxField = document.getElementById('{{ hazinah_form.tax_amount.id_for_label }}');
+            if (taxField) {
+                window.livePriceDisplay.attachToInput('#{{ hazinah_form.tax_amount.id_for_label }}');
+            }
+
+            // اضافه کردن نمایش لایو برای فیلد تخفیف
+            const discountField = document.getElementById('{{ hazinah_form.discount_amount.id_for_label }}');
+            if (discountField) {
+                window.livePriceDisplay.attachToInput('#{{ hazinah_form.discount_amount.id_for_label }}');
+            }
+        }
+    }, 500);
 });
 </script>
 {% endblock %}

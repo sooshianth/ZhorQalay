@@ -200,6 +200,9 @@
     </div>
 </div>
 
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+
 <script>
 // محاسبه خودکار مبلغ باقی‌مانده پس از پرداخت
 document.addEventListener('DOMContentLoaded', function() {
@@ -219,6 +222,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلد مبلغ پرداخت
+    setTimeout(() => {
+        if (window.livePriceDisplay && amountInput) {
+            window.livePriceDisplay.attachToInput('#{{ form.amount.id_for_label }}');
+        }
+    }, 500);
 });
 </script>
 {% endblock %}

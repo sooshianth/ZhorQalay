@@ -162,6 +162,9 @@
         </form>
     </div>
 
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+
 <script>
 // Debug: لاگ کردن validation در browser
 document.addEventListener('DOMContentLoaded', function() {
@@ -195,6 +198,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Form passed client-side validation');
         }
     });
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلد مبلغ تراکنش
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+            if (amountField) {
+                window.livePriceDisplay.attachToInput('#{{ form.amount.id_for_label }}');
+            }
+        }
+    }, 500);
 });
 </script>
 </div>

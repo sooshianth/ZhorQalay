@@ -102,4 +102,21 @@
         </form>
     </div>
 </div>
+
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+
+<script>
+// فعال‌سازی نمایش لایو قیمت برای فیلد مبلغ تراکنش
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+            if (amountField) {
+                window.livePriceDisplay.attachToInput('#{{ form.amount.id_for_label }}');
+            }
+        }
+    }, 500);
+});
+</script>
 {% endblock %} 

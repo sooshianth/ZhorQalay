@@ -328,6 +328,9 @@
     </div>
 </div>
 
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // مخفی/نمایش فیلد مشتری بر اساس نوع هزینه
@@ -349,6 +352,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // اجرای اولیه
     toggleCustomerField();
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلدهای قیمت در فاکتور
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            // اضافه کردن نمایش لایو برای تمام فیلدهای قیمت در فرم‌ست
+            const priceInputs = document.querySelectorAll('input[name$="-price"], input[id*="price"]');
+            priceInputs.forEach(input => {
+                if (!input.hasAttribute('data-live-price-attached')) {
+                    window.livePriceDisplay.attachToInput(`#${input.id}`);
+                }
+            });
+        }
+    }, 500);
 });
 </script>
 {% endblock %}
