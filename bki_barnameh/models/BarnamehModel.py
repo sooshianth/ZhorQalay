@@ -471,8 +471,10 @@ class Barnameh(models.Model):
 
         if self.purchase and not self.non_bazargah_purchase and not self.non_bazargah_allocation:
             self.type = 'Bazargah'
-        else:
+        elif self.non_bazargah_purchase and not self.purchase:
             self.type = 'Non_Bazargah'
+        else:
+            self.type = 'Bazargah'
 
         # محاسبه مبالغ کل فقط اگر tonnage موجود باشد
         if self.tonnage:
