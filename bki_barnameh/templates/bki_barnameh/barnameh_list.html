@@ -239,7 +239,7 @@
     }
     
     .table thead th {
-        background: linear-gradient(135deg, #38a169 0%, #2f855a 100%) !important;
+        background: linear-gradient(135deg, rgb(14, 95, 52) 0%, #086a4e 100%) !important;
         color: white !important;
         font-weight: 700 !important;
         text-align: center !important;
@@ -254,11 +254,11 @@
     }
     
     .table thead th:first-child {
-        border-radius: 15px 0 0 0 !important;
+        border-radius: 0px 0 0 0 !important;
     }
     
     .table thead th:last-child {
-        border-radius: 0 15px 0 0 !important;
+        border-radius: 0 0px 0 0 !important;
     }
     
     .table tbody tr {
@@ -1413,6 +1413,8 @@
                                     <th data-column-id="is_factored" data-column-type="boolean">فاکتور صادر شده</th>
                                 {% elif column.id == 'is_created_by_excel' %}
                                     <th data-column-id="is_created_by_excel" data-column-type="boolean">ایجاد توسط اکسل</th>
+                                {% elif column.id == 'factor_date' %}
+                                    <th data-column-id="factor_date" data-column-type="date">تاریخ ثبت فاکتور در سامانه مؤدیان</th>
                                 {% endif %}
                             {% endif %}
                         {% endfor %}
@@ -1556,6 +1558,8 @@
                                             <span class="badge bg-secondary">خیر</span>
                                         {% endif %}
                                     </td>
+                                {% elif column.id == 'factor_date' %}
+                                    <td class="column-factor_date">{{ barnameh.factor_date|date:"Y/m/d"|default:"-" }}</td>
                                 {% elif column.id == 'created_at' %}
                                     <td class="column-created_at">{{ barnameh.barnameh_created_at|date:"Y/m/d"|default:"-" }}</td>
                                 {% elif column.id == 'actions' %}

@@ -2,6 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum
 from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse, JsonResponse
 import json
@@ -20,8 +21,137 @@ from django.core.cache import cache
 from core.PurchaseModel import Purchase, PurchaseEditLog
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .managers_profile_view import get_client_ip
+import jdatetime
 
 logger = logging.getLogger("erp_purchase_list_view")
+
+def persian_digits_to_english(persian_text):
+    """تبدیل اعداد فارسی به انگلیسی"""
+    persian_digits = '۰۱۲۳۴۵۶۷۸۹'
+    english_digits = '0123456789'
+    
+    if not persian_text:
+        return persian_text
+    
+    for persian, english in zip(persian_digits, english_digits):
+        persian_text = persian_text.replace(persian, english)
+    
+    return persian_text
+
+def jalali_to_gregorian_date(jalali_date_str):
+    """
+    تبدیل رشته تاریخ جلالی به تاریخ میلادی
+    پشتیبانی از فرمت‌های مختلف: 1403/01/01، 1403-01-01، 1403.01.01
+    """
+    if not jalali_date_str or not isinstance(jalali_date_str, str):
+        return None
+    
+    try:
+        # تبدیل اعداد فارسی به انگلیسی
+        jalali_date_str_en = persian_digits_to_english(jalali_date_str)
+        
+        # حذف فاصله‌ها و تبدیل جداکننده‌های مختلف به /
+        jalali_date_str_en = jalali_date_str_en.strip().replace('-', '/').replace('.', '/')
+        
+        # تقسیم تاریخ به بخش‌های مختلف
+        parts = jalali_date_str_en.split('/')
+        if len(parts) != 3:
+            raise ValueError("فرمت تاریخ باید به صورت YYYY/MM/DD باشد")
+        
+        year, month, day = int(parts[0]), int(parts[1]), int(parts[2])
+        
+        # بررسی معتبر بودن تاریخ
+        if year < 1300 or year > 1500:
+            raise ValueError("سال باید بین 1300 تا 1500 باشد")
+        if month < 1 or month > 12:
+            raise ValueError("ماه باید بین 1 تا 12 باشد")
+        if day < 1 or day > 31:
+            raise ValueError("روز باید بین 1 تا 31 باشد")
+        
+        # تبدیل تاریخ جلالی به میلادی
+        jalali_date = jdatetime.date(year, month, day)
+        gregorian_date = jalali_date.togregorian()
+        
+        return gregorian_date
+        
+    except ValueError as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"فرمت تاریخ نامعتبر: {jalali_date_str}. {str(e)}")
+    except Exception as e:
+        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
+
+def get_all_purchase_columns():
+    """دریافت تمام ستون‌های موجود برای خریدها"""
+    return [
+        {'id': 'purchase_number', 'name': 'شماره خرید بازارگاه'},
+        {'id': 'invoice_id', 'name': 'کد درون سازمانی'},
+        {'id': 'shenase_takhsis', 'name': 'شناسه‌های تخصیص'},
+        {'id': 'date', 'name': 'تاریخ'},
+        {'id': 'sales_agent', 'name': 'نماینده فروش'},
+        {'id': 'customer', 'name': 'نام مشتری'},
+        {'id': 'weight', 'name': 'وزن (کیلوگرم)'},
+        {'id': 'cargo', 'name': 'کوتاژ'},
+        {'id': 'importer', 'name': 'واردکننده'},
+        {'id': 'status', 'name': 'وضعیت'},
+        {'id': 'address', 'name': 'آدرس'},
+        {'id': 'description', 'name': 'توضیحات'},
+        {'id': 'factor_code', 'name': 'فاکتور مبنا'},
+        {'id': 'unique_buyer_id', 'name': 'شناسه یکتا خریدار'},
+        {'id': 'factor_status', 'name': 'وضعیت فاکتور'},
+        {'id': 'code_melli_tahvil', 'name': 'کد ملی تحویل'},
+        {'id': 'bazaargah_phone_number', 'name': 'شماره تلفن بازارگاه'},
+        {'id': 'buyer_name', 'name': 'نام خریدار'},
+        {'id': 'tahvil_phone_number', 'name': 'شماره تلفن تحویل'},
+        {'id': 'send_cottage_sms', 'name': 'ارسال پیامک کوتاژ'},
+        {'id': 'total_weight', 'name': 'وزن کل (کیلوگرم)'},
+        {'id': 'total_barnameh_weight', 'name': 'مجموع وزن بارنامه‌ها (کیلوگرم)'},
+        {'id': 'delivered_weight', 'name': 'وزن بارنامه شده (کیلوگرم)'},
+        {'id': 'type', 'name': 'نوع خرید'},
+        {'id': 'payment_method', 'name': 'شیوه پرداخت'},
+        {'id': 'updated_at', 'name': 'تاریخ بروزرسانی'},
+        {'id': 'is_weight_costed', 'name': 'کسر از وزن موجود'},
+        {'id': 'is_ap_af', 'name': 'اتوکامپلیت شده'},
+        {'id': 'extelaf_type', 'name': 'نوع اختلاف'},
+        {'id': 'extelaf_weight', 'name': 'وزن اختلاف (کیلوگرم)'},
+        {'id': 'extelaf_amount', 'name': 'مبلغ اختلاف (ریال)'},
+        {'id': 'is_urgent', 'name': 'فوری'},
+        {'id': 'is_canceled', 'name': 'لغو شده'},
+        {'id': 'is_archived', 'name': 'آرشیو شده'},
+        {'id': 'is_fully_tasvied', 'name': 'تسویه کامل'},
+        {'id': 'is_factored', 'name': 'ثبت فاکتور'},
+        {'id': 'ready_for_invoice', 'name': 'آماده فاکتور'},
+        {'id': 'purchase_mabna_invoice', 'name': 'فاکتور خرید مبنا (ریال)'},
+        {'id': 'sales_mabna_invoice', 'name': 'فاکتور فروش مبنا (ریال)'},
+        {'id': 'mabna_profit', 'name': 'سود مبنا (ریال)'},
+        {'id': 'priority', 'name': 'اولویت'},
+        {'id': 'priority_reason', 'name': 'دلیل اولویت'},
+        {'id': 'barbary', 'name': 'نام باربری'},
+        {'id': 'barbary_phone', 'name': 'شماره باربری'},
+        {'id': 'product_type', 'name': 'نام محصول'},
+        {'id': 'first_barnameh_date', 'name': 'تاریخ اولین بارنامه'},
+        {'id': 'last_barnameh_date', 'name': 'تاریخ آخرین بارنامه'},
+        {'id': 'company_price', 'name': 'فی خرید (ریال)'},
+        {'id': 'customer_price', 'name': 'فی فروش (ریال)'},
+        {'id': 'amount_paid', 'name': 'مبلغ پرداختی (ریال)'},
+        {'id': 'barbary_confidential_number', 'name': 'شماره محرمانه باربری'},
+        {'id': 'barbary_customer_number', 'name': 'شماره مشتری باربری'},
+        {'id': 'delivery_receiver_name', 'name': 'نام تحویل گیرنده'},
+        {'id': 'buyer_national_id', 'name': 'کد ملی خریدار'},
+        {'id': 'buyer_user_type', 'name': 'نوع کاربر خریدار'},
+        {'id': 'unique_delivery_id', 'name': 'شناسه یکتا تحویل'},
+        {'id': 'delivery_address', 'name': 'آدرس تحویل'},
+        {'id': 'delivery_postal_code', 'name': 'کد پستی تحویل'},
+        {'id': 'vehicle_type', 'name': 'نوع خودرو حمل'},
+        {'id': 'buyer_account', 'name': 'حساب خریدار'},
+        {'id': 'country', 'name': 'کشور محصول'},
+        {'id': 'created_at', 'name': 'تاریخ ایجاد'},
+        {'id': 'tracking_number', 'name': 'شماره پیگیری'},
+        {'id': 'order_weight', 'name': 'وزن سفارش (کیلوگرم)'},
+        {'id': 'wallet_index', 'name': 'شاخص محاسبه کیف پول'},
+        {'id': 'is_address_sent', 'name': 'آدرس ارسال شده'},
+        {'id': 'is_naghes_factored', 'name': 'فاکتور ناقص'},
+    ]
 
 def get_allowed_columns(user_role):
     allowed_columns = []
@@ -1020,9 +1150,9 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
         'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
         'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
-        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'cottage') and p.cargo.cottage else "-"),
-        'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
-        'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
+        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'get_product_type_display') else "-"),
+        'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
+        'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
         'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
         'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
         'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
@@ -1036,7 +1166,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
         'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
         'buyer_account': ('حساب خریدار', lambda p: p.buyer_account or "-"),
-        'country': ('کشور محصول', lambda p: p.cargo.get_country_display() or "-"),
+        'country': ('کشور محصول', lambda p: p.cargo.get_country_display() if p.cargo and hasattr(p.cargo, 'get_country_display') else "-"),
     }
     
     # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
@@ -2957,4 +3087,302 @@ def get_purchase_column_values(request):
         return JsonResponse({
             'status': 'error',
             'message': "error"
-        }, status=500)  
+        }, status=500)
+
+# @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@login_required
+def export_full_purchase_excel(request):
+    """
+    خروجی اکسل کامل از همه خریدها با تمام ستون‌ها و امکان انتخاب بازه تاریخ
+    """
+    logger.warning(f"خروجی اکسل کامل خریدها توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
+    
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
+    
+    try:
+        # دریافت پارامترهای تاریخ
+        from_date = request.POST.get('from_date')
+        to_date = request.POST.get('to_date')
+        
+        logger.warning(f"بازه تاریخی درخواستی: از {from_date} تا {to_date}")
+        
+        # تست تبدیل تاریخ برای دیباگ
+        if from_date:
+            try:
+                test_from = jalali_to_gregorian_date(from_date)
+                logger.warning(f"تست تبدیل از تاریخ: {from_date} -> {test_from}")
+            except Exception as e:
+                logger.error(f"خطا در تست تبدیل از تاریخ: {e}")
+        
+        if to_date:
+            try:
+                test_to = jalali_to_gregorian_date(to_date)
+                logger.warning(f"تست تبدیل تا تاریخ: {to_date} -> {test_to}")
+            except Exception as e:
+                logger.error(f"خطا در تست تبدیل تا تاریخ: {e}")
+        
+        # ایجاد QuerySet پایه با select_related برای بهینه‌سازی
+        base_queryset = Purchase.objects.select_related(
+            'customer', 
+            'cargo',
+            'unique_sales_agent',
+            'cargo__vared_konandeh',
+            'cargo__barbary'
+        ).prefetch_related(
+            'shenase_takhsis_set'
+        ).order_by('-created_at')
+        
+        # اعمال فیلتر تاریخ اگر مشخص شده باشد
+        if from_date or to_date:
+            
+            if from_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    from_date_obj = jalali_to_gregorian_date(from_date)
+                    if from_date_obj:
+                        # فیلتر روی created_at (تاریخ ایجاد خرید)
+                        base_queryset = base_queryset.filter(created_at__date__gte=from_date_obj)
+                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ شروع نامعتبر: {from_date}'
+                    }, status=400)
+            
+            if to_date:
+                try:
+                    # تبدیل تاریخ شمسی به میلادی
+                    to_date_obj = jalali_to_gregorian_date(to_date)
+                    if to_date_obj:
+                        # فیلتر روی created_at (تاریخ ایجاد خرید)
+                        base_queryset = base_queryset.filter(created_at__date__lte=to_date_obj)
+                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
+                except ValueError as e:
+                    logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'فرمت تاریخ پایان نامعتبر: {to_date}'
+                    }, status=400)
+        
+        # شمارش کل خریدها
+        total_count = base_queryset.count()
+        logger.warning(f"تعداد کل خریدهای قابل خروجی: {total_count}")
+        
+        if total_count == 0:
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'هیچ خریدی در بازه تاریخی انتخاب شده یافت نشد'
+            }, status=400)
+        
+        # محدودیت تعداد برای جلوگیری از مشکلات عملکردی
+        max_export_limit = 50000  # حداکثر 50,000 خرید
+        if total_count > max_export_limit:
+            return JsonResponse({
+                'status': 'error',
+                'message': f'تعداد خریدها ({total_count:,}) بیش از حد مجاز ({max_export_limit:,}) است. لطفاً بازه تاریخی کوچک‌تری انتخاب کنید.'
+            }, status=400)
+        
+        # دریافت تمام ستون‌های موجود (بجز actions)
+        all_columns_data = get_all_purchase_columns()
+        all_column_ids = [col['id'] for col in all_columns_data if col['id'] != 'actions']
+        
+        logger.warning(f"تمام ستون‌های قابل خروجی: {len(all_column_ids)} ستون")
+        
+        # تولید فایل اکسل
+        return _export_purchase_excel_full(base_queryset, all_column_ids, from_date, to_date)
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"خطا در خروجی اکسل کامل: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({
+            'status': 'error', 
+            'message': f'خطا در تولید فایل اکسل: {str(e)}'
+        }, status=500)
+
+def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_date=None):
+    """پردازش و ایجاد فایل اکسل کامل برای همه خریدها"""
+    
+    logger.warning(f"شروع تولید فایل اکسل کامل برای {queryset.count()} خرید با {len(selected_columns)} ستون")
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "لیست کامل خریدها"
+    
+    # تنظیم گردش متن از راست به چپ
+    ws.sheet_view.rightToLeft = True
+    
+    # استایل‌های ساده برای scalability
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')  # خاکستری ساده
+    alignment = Alignment(horizontal='right', vertical='center')
+    
+    # مپینگ کامل ستون‌ها - ترتیب اولویت
+    column_mapping = {
+        'purchase_number': ('شماره خرید بازارگاه', lambda p: p.purchase_number or "تعیین نشده"),
+        'invoice_id': ('کد درون سازمانی', lambda p: p.invoice_id or "تعیین نشده"),
+        'shenase_takhsis': ('شناسه‌های تخصیص', lambda p: ", ".join([st.code for st in p.shenase_takhsis_set.all()]) if hasattr(p, 'shenase_takhsis_set') and p.shenase_takhsis_set.exists() else "-"),
+        'date': ('تاریخ', lambda p: p.created_at.strftime("%Y/%m/%d") if p.created_at else "-"),
+        'sales_agent': ('نماینده فروش', lambda p: p.unique_sales_agent.name if p.unique_sales_agent else (", ".join([agent.name for agent in p.customer.sales_agent.all()]) if p.customer and p.customer.sales_agent.exists() else "-")),
+        'customer': ('نام مشتری', lambda p: p.customer.name if p.customer else "نامشخص"),
+        'weight': ('وزن (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
+        'cargo': ('کوتاژ', lambda p: p.cargo.cottage if p.cargo and hasattr(p.cargo, 'cottage') else "-"),
+        'importer': ('واردکننده', lambda p: p.cargo.vared_konandeh.name if p.cargo and hasattr(p.cargo, 'vared_konandeh') and p.cargo.vared_konandeh else "-"),
+        'status': ('وضعیت', lambda p: dict(Purchase.STATUS_CHOICES).get(p.state, p.state) if p.state else "-"),
+        'address': ('آدرس', lambda p: p.address or "-"),
+        'description': ('توضیحات', lambda p: p.description or "-"),
+        'factor_code': ('فاکتور مبنا', lambda p: "بله" if p.factor_code else "خیر"),
+        'unique_buyer_id': ('شناسه یکتا خریدار', lambda p: p.unique_buyer_id or "-"),
+        'factor_status': ('وضعیت فاکتور', lambda p: p.get_factor_status_display() if p.factor_status else "-"),
+        'code_melli_tahvil': ('کد ملی تحویل', lambda p: p.code_melli_tahvil or "-"),
+        'bazaargah_phone_number': ('شماره تلفن بازارگاه', lambda p: p.bazaargah_phone_number or "-"),
+        'buyer_name': ('نام خریدار', lambda p: p.buyer_name or "-"),
+        'tahvil_phone_number': ('شماره تلفن تحویل', lambda p: p.tahvil_phone_number or "-"),
+        'send_cottage_sms': ('ارسال پیامک کوتاژ', lambda p: "بله" if p.send_cottage_sms else "خیر"),
+        'total_weight': ('وزن کل (کیلوگرم)', lambda p: f"{p.total_weight:,}" if p.total_weight else "0"),
+        'total_barnameh_weight': ('مجموع وزن بارنامه‌ها (کیلوگرم)', lambda p: f"{p.get_total_barnameh_weight():,}" if p.get_total_barnameh_weight() else "0"),
+        'delivered_weight': ('وزن بارنامه شده (کیلوگرم)', lambda p: f"{p.delivered_weight:,}" if p.delivered_weight else "0"),
+        'type': ('نوع خرید', lambda p: "بازارگاه" if p.type == "bazaargah" else "خارج از بازارگاه" if p.type == "non_bazaargah" else p.type or "-"),
+        'payment_method': ('شیوه پرداخت', lambda p: p.payment_method or "-"),
+        'updated_at': ('تاریخ بروزرسانی', lambda p: p.updated_at.strftime("%Y/%m/%d") if p.updated_at else "-"),
+        'is_weight_costed': ('کسر از وزن موجود', lambda p: "بله" if p.is_weight_costed else "خیر"),
+        'is_ap_af': ('اتوکامپلیت شده', lambda p: "بله" if p.is_ap_af else "خیر"),
+        'extelaf_type': ('نوع اختلاف', lambda p: p.extelaf_type or "-"),
+        'extelaf_weight': ('وزن اختلاف (کیلوگرم)', lambda p: f"{p.extelaf_weight:,}" if p.extelaf_weight else "0"),
+        'extelaf_amount': ('مبلغ اختلاف (ریال)', lambda p: f"{p.extelaf_amount:,}" if p.extelaf_amount else "0"),
+        'is_urgent': ('فوری', lambda p: "بله" if p.is_urgent else "خیر"),
+        'is_canceled': ('لغو شده', lambda p: "بله" if p.is_canceled else "خیر"),
+        'is_archived': ('آرشیو شده', lambda p: "بله" if p.is_archived else "خیر"),
+        'is_fully_tasvied': ('تسویه کامل', lambda p: "بله" if p.is_fully_tasvied else "خیر"),
+        'is_factored': ('ثبت فاکتور', lambda p: "بله" if p.is_factored else "خیر"),
+        'ready_for_invoice': ('آماده فاکتور', lambda p: "بله" if p.ready_for_invoice else "خیر"),
+        'purchase_mabna_invoice': ('فاکتور خرید مبنا (ریال)', lambda p: f"{p.purchase_mabna_invoice:,}" if p.purchase_mabna_invoice else "0"),
+        'sales_mabna_invoice': ('فاکتور فروش مبنا (ریال)', lambda p: f"{p.sales_mabna_invoice:,}" if p.sales_mabna_invoice else "0"),
+        'mabna_profit': ('سود مبنا (ریال)', lambda p: f"{p.mabna_profit:,}" if p.mabna_profit else "0"),
+        'priority': ('اولویت', lambda p: dict(Purchase.PRIORITY_CHOICES).get(p.priority, p.priority) if p.priority else "-"),
+        'priority_reason': ('دلیل اولویت', lambda p: p.priority_reason or "-"),
+        'barbary': ('نام باربری', lambda p: p.cargo.barbary.name if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary else "-"),
+        'barbary_phone': ('شماره باربری', lambda p: p.cargo.barbary.phone_number if p.cargo and hasattr(p.cargo, 'barbary') and p.cargo.barbary and p.cargo.barbary.phone_number else "-"),
+        'product_type': ('نام محصول', lambda p: p.cargo.get_product_type_display() if p.cargo and hasattr(p.cargo, 'get_product_type_display') else "-"),
+        'first_barnameh_date': ('تاریخ اولین بارنامه', lambda p: p.barnamehs.order_by('barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('barnameh_date').first() and p.barnamehs.order_by('barnameh_date').first().barnameh_date else "-"),
+        'last_barnameh_date': ('تاریخ آخرین بارنامه', lambda p: p.barnamehs.order_by('-barnameh_date').first().barnameh_date.strftime("%Y/%m/%d") if hasattr(p, 'barnamehs') and p.barnamehs.exists() and p.barnamehs.order_by('-barnameh_date').first() and p.barnamehs.order_by('-barnameh_date').first().barnameh_date else "-"),
+        'company_price': ('فی خرید (ریال)', lambda p: f"{p.company_price:,}" if p.company_price else "0"),
+        'customer_price': ('فی فروش (ریال)', lambda p: f"{p.customer_price:,}" if p.customer_price else "0"),
+        'amount_paid': ('مبلغ پرداختی (ریال)', lambda p: f"{p.amount_paid:,}" if p.amount_paid else "0"),
+        'barbary_confidential_number': ('شماره محرمانه باربری', lambda p: p.barbary_confidential_number or "-"),
+        'barbary_customer_number': ('شماره مشتری باربری', lambda p: p.barbary_customer_number or "-"),
+        'delivery_receiver_name': ('نام تحویل گیرنده', lambda p: p.delivery_receiver_name or "-"),
+        'buyer_national_id': ('کد ملی خریدار', lambda p: p.buyer_national_id or "-"),
+        'buyer_user_type': ('نوع کاربر خریدار', lambda p: p.buyer_user_type or "-"),
+        'unique_delivery_id': ('شناسه یکتا تحویل', lambda p: p.unique_delivery_id or "-"),
+        'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
+        'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
+        'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
+        'buyer_account': ('حساب خریدار', lambda p: p.buyer_account or "-"),
+        'country': ('کشور محصول', lambda p: p.cargo.get_country_display() if p.cargo and hasattr(p.cargo, 'get_country_display') else "-"),
+        'created_at': ('تاریخ ایجاد', lambda p: p.created_at.strftime("%Y/%m/%d %H:%M") if p.created_at else "-"),
+        'tracking_number': ('شماره پیگیری', lambda p: p.tracking_number or "-"),
+        'order_weight': ('وزن سفارش (کیلوگرم)', lambda p: f"{p.order_weight:,}" if p.order_weight else "0"),
+        'wallet_index': ('شاخص محاسبه کیف پول', lambda p: "وزن سفارش" if p.wallet_index == '0' else "وزن تحویلی" if p.wallet_index == '1' else p.wallet_index or "-"),
+        'is_address_sent': ('آدرس ارسال شده', lambda p: "ارسال شده" if p.is_address_sent == '1' else "ارسال نشده" if p.is_address_sent == '0' else p.is_address_sent or "-"),
+        'is_naghes_factored': ('فاکتور ناقص', lambda p: "بله" if p.is_naghes_factored else "خیر"),
+    }
+    
+    # فقط ستون‌های انتخاب شده را اضافه می‌کنیم
+    headers = []
+    for col in selected_columns:
+        if col in column_mapping:
+            headers.append(column_mapping[col][0])
+    
+    # اضافه کردن ردیف اطلاعات گزارش
+    info_row = [
+        f"گزارش کامل خریدها - تولید شده در {timezone.now().strftime('%Y/%m/%d %H:%M')}",
+        "",  # سلول خالی
+        f"تعداد کل: {queryset.count():,}",
+        "",  # سلول خالی
+    ]
+    
+    if from_date or to_date:
+        date_range = f"از {from_date or 'ابتدا'} تا {to_date or 'انتها'}"
+        info_row.extend(["", date_range])
+    
+    # اضافه کردن ردیف اطلاعات
+    ws.append(info_row)
+    
+    # استایل ساده برای ردیف اطلاعات
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = Font(bold=True)
+        cell.alignment = alignment
+    
+    # اضافه کردن ردیف خالی
+    ws.append([])
+    
+    # افزودن هدرها
+    ws.append(headers)
+    
+    # تنظیم استایل برای سطر هدر
+    header_row = ws.max_row
+    for i, cell in enumerate(ws[header_row], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+    
+    # پردازش داده‌ها در batch برای بهینه‌سازی حافظه
+    batch_size = 1000
+    processed_count = 0
+    
+    # دریافت تمام داده‌ها به صورت iterator
+    for purchase in queryset.iterator(chunk_size=batch_size):
+        row = []
+        for col in selected_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](purchase)
+                    row.append(value)
+                except Exception as e:
+                    logger.warning(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
+                    # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
+                    if col in ['company_price', 'customer_price', 'amount_paid', 'order_weight', 'total_weight', 'delivered_weight']:
+                        row.append("0")
+                    else:
+                        row.append("-")
+        
+        ws.append(row)
+        processed_count += 1
+        
+        # نمایش پیشرفت هر 1000 رکورد
+        if processed_count % batch_size == 0:
+            logger.info(f"پردازش شد: {processed_count:,} از {queryset.count():,} خرید")
+        
+        # تنظیم استایل برای سطرهای داده
+        current_row = ws.max_row
+        for j, cell in enumerate(ws[current_row], 1):
+            cell.alignment = alignment
+    
+    logger.warning(f"تمام {processed_count:,} خرید پردازش شد")
+    
+    # تنظیم عرض ستون‌ها - ساده
+    for i in range(1, len(headers) + 1):
+        column_letter = ws.cell(row=header_row, column=i).column_letter
+        ws.column_dimensions[column_letter].width = 12
+    
+    # اضافه کردن فریز به سطر هدر
+    ws.freeze_panes = f"A{header_row + 1}"
+    
+    # تولید نام فایل
+    current_time = timezone.now().strftime('%Y%m%d_%H%M%S')
+    date_suffix = ""
+    if from_date or to_date:
+        date_suffix = f"_{from_date or 'start'}_to_{to_date or 'end'}"
+    
+    filename = f"purchase_full_export{date_suffix}_{current_time}.xlsx"
+    
+    # تولید پاسخ HTTP
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    
+    logger.warning(f"فایل اکسل کامل با موفقیت تولید شد: {filename}")
+    return response  

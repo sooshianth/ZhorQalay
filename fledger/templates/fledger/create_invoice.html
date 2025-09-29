@@ -1,0 +1,515 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .create-invoice-hero {
+        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(124, 58, 237, 0.3);
+    }
+
+    .create-invoice-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+    }
+
+    .invoice-form-container {
+        background: white;
+        border-radius: 1.25rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border: 1px solid #f1f5f9;
+        overflow: hidden;
+    }
+
+    .form-section-header {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #e2e8f0;
+        margin: 0;
+    }
+
+    .form-section-header h3 {
+        margin: 0;
+        color: #1e293b;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .form-section-body {
+        padding: 2rem;
+    }
+
+    .invoice-item-card {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #bae6fd;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .invoice-item-card h4 {
+        color: #0c4a6e;
+        margin: 0 0 1.5rem 0;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .invoice-item-card h4::before {
+        content: '📦';
+        font-size: 1.2rem;
+    }
+
+    .form-actions-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 1.5rem 2rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .breadcrumb-nav {
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .breadcrumb-nav a {
+        color: #7c3aed;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: #6d28d9;
+        text-decoration: underline;
+    }
+
+    .breadcrumb-nav span {
+        color: #64748b;
+        margin: 0 0.5rem;
+    }
+
+    .form-help-text {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 1px solid #fbbf24;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: #92400e;
+    }
+
+    .form-help-text i {
+        margin-left: 0.5rem;
+        color: #d97706;
+    }
+
+    .dynamic-formset {
+        margin-top: 1rem;
+    }
+
+    .add-item-btn {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 2px dashed #3b82f6;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        width: 100%;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        margin-top: 1rem;
+    }
+
+    .add-item-btn:hover {
+        background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
+        border-color: #1d4ed8;
+        color: #1e3a8a;
+    }
+
+    /* مخفی کردن فیلدهای هزینه و درآمد در ابتدا */
+    #hazinah-field-container,
+    #income-field-container {
+        display: none;
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'fledger:fledger_dashboard' %}">داشبورد</a>
+        <span>/</span>
+        <a href="{% url 'fledger:invoice_list' %}">لیست فاکتورها</a>
+        <span>/</span>
+        <span>ایجاد فاکتور جدید</span>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="create-invoice-hero">
+        <div class="hero-content">
+            <h1>
+                <i class="fas fa-plus-circle"></i>
+                {{ title }}
+            </h1>
+            <p>ایجاد فاکتور جدید برای هزینه یا درآمد</p>
+        </div>
+    </div>
+
+    <!-- راهنما -->
+    <div class="form-help-text">
+        <i class="fas fa-info-circle"></i>
+        <strong>راهنما:</strong> 
+        شما می‌توانید فاکتور جدیدی ایجاد کنید و آن را به یک هزینه یا درآمد موجود متصل کنید، یا فاکتور مستقلی ایجاد کنید.
+    </div>
+
+    <div class="invoice-form-container">
+        <form method="post" enctype="multipart/form-data" id="invoice-form">
+            {% csrf_token %}
+            
+            <!-- اطلاعات فاکتور -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-file-invoice"></i>
+                    اطلاعات فاکتور
+                </h3>
+            </div>
+            <div class="form-section-body">
+                
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ invoice_form.invoice_id.label }}</label>
+                        {{ invoice_form.invoice_id }}
+                        {% if invoice_form.invoice_id.errors %}
+                            <div class="text-danger">{{ invoice_form.invoice_id.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-group-fledger">
+                        <label class="form-label-fledger">{{ invoice_form.type.label }}</label>
+                        {{ invoice_form.type }}
+                        {% if invoice_form.type.errors %}
+                            <div class="text-danger">{{ invoice_form.type.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="fledger-form-row">
+                    <div class="form-group-fledger" id="hazinah-field-container">
+                        <label class="form-label-fledger">{{ invoice_form.hazinah.label }} <span class="text-danger" id="hazinah-required" style="display: none;">*</span></label>
+                        {{ invoice_form.hazinah }}
+                        {% if invoice_form.hazinah.errors %}
+                            <div class="text-danger">{{ invoice_form.hazinah.errors }}</div>
+                        {% endif %}
+                        <div class="fledger-form-help">
+                            فقط در صورتی که نوع فاکتور "هزینه" باشد پر کنید
+                        </div>
+                    </div>
+                    
+                    <div class="form-group-fledger" id="income-field-container">
+                        <label class="form-label-fledger">{{ invoice_form.income.label }} <span class="text-danger" id="income-required" style="display: none;">*</span></label>
+                        {{ invoice_form.income }}
+                        {% if invoice_form.income.errors %}
+                            <div class="text-danger">{{ invoice_form.income.errors }}</div>
+                        {% endif %}
+                        <div class="fledger-form-help">
+                            فقط در صورتی که نوع فاکتور "درآمد" باشد پر کنید
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ invoice_form.issue_date.label }}</label>
+                    {{ invoice_form.issue_date }}
+                    {% if invoice_form.issue_date.errors %}
+                        <div class="text-danger">{{ invoice_form.issue_date.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ invoice_form.description.label }}</label>
+                    {{ invoice_form.description }}
+                    {% if invoice_form.description.errors %}
+                        <div class="text-danger">{{ invoice_form.description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ invoice_form.attachment.label }}</label>
+                    {{ invoice_form.attachment }}
+                    {% if invoice_form.attachment.errors %}
+                        <div class="text-danger">{{ invoice_form.attachment.errors }}</div>
+                    {% endif %}
+                    <div class="fledger-form-help">
+                        می‌توانید فایل اسکن شده فاکتور را ضمیمه کنید
+                    </div>
+                </div>
+            </div>
+
+            <!-- آیتم‌های فاکتور -->
+            <div class="form-section-header">
+                <h3>
+                    <i class="fas fa-list"></i>
+                    آیتم‌های فاکتور
+                </h3>
+            </div>
+            <div class="form-section-body">
+                {{ invoice_formset.management_form }}
+                
+                <div id="invoice-items-container">
+                    {% for form in invoice_formset %}
+                    <div class="invoice-item-card">
+                        <h4>آیتم {{ forloop.counter }}</h4>
+                        
+                        <div class="fledger-form-row">
+                            <div class="form-group-fledger">
+                                <label class="form-label-fledger">{{ form.product_type.label }}</label>
+                                {{ form.product_type }}
+                                {% if form.product_type.errors %}
+                                    <div class="text-danger">{{ form.product_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-group-fledger">
+                                <label class="form-label-fledger">{{ form.price.label }}</label>
+                                {{ form.price }}
+                                {% if form.price.errors %}
+                                    <div class="text-danger">{{ form.price.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="fledger-form-row">
+                            <div class="form-group-fledger">
+                                <label class="form-label-fledger">{{ form.cargo_product.label }}</label>
+                                {{ form.cargo_product }}
+                                {% if form.cargo_product.errors %}
+                                    <div class="text-danger">{{ form.cargo_product.errors }}</div>
+                                {% endif %}
+                                <div class="fledger-form-help">
+                                    فقط در صورت انتخاب "بازارگاهی" پر کنید
+                                </div>
+                            </div>
+                            
+                            <div class="form-group-fledger">
+                                <label class="form-label-fledger">{{ form.non_bazargah_product.label }}</label>
+                                {{ form.non_bazargah_product }}
+                                {% if form.non_bazargah_product.errors %}
+                                    <div class="text-danger">{{ form.non_bazargah_product.errors }}</div>
+                                {% endif %}
+                                <div class="fledger-form-help">
+                                    فقط در صورت انتخاب "غیر بازارگاهی" پر کنید
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group-fledger">
+                            <label class="form-label-fledger">{{ form.amount.label }}</label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                                <div class="text-danger">{{ form.amount.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        {% for hidden in form.hidden_fields %}
+                            {{ hidden }}
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- خطاهای کلی فرم -->
+            {% if invoice_form.non_field_errors %}
+            <div class="fledger-form-errors">
+                {% for error in invoice_form.non_field_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            {% if invoice_formset.non_form_errors %}
+            <div class="fledger-form-errors">
+                {% for error in invoice_formset.non_form_errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- دکمه‌های عملیات -->
+            <div class="form-actions-container">
+                <div class="fledger-form-actions">
+                    <a href="{% url 'fledger:invoice_list' %}" class="btn-fledger btn-fledger-secondary">
+                        <i class="fas fa-times"></i>
+                        انصراف
+                    </a>
+                    <button type="submit" class="btn-fledger btn-fledger-success">
+                        <i class="fas fa-save"></i>
+                        ایجاد فاکتور
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Dynamic form handling
+document.addEventListener('DOMContentLoaded', function() {
+    // تغییر خودکار فیلدها بر اساس نوع فاکتور
+    const typeField = document.querySelector('select[name="type"]');
+    const hazinahField = document.querySelector('select[name="hazinah"]');
+    const incomeField = document.querySelector('select[name="income"]');
+    const hazinahContainer = document.getElementById('hazinah-field-container');
+    const incomeContainer = document.getElementById('income-field-container');
+    
+    function toggleFields() {
+        const selectedType = typeField?.value;
+        const hazinahRequired = document.getElementById('hazinah-required');
+        const incomeRequired = document.getElementById('income-required');
+        
+        if (selectedType === 'Hazinah') {
+            // نمایش فیلد هزینه
+            if (hazinahContainer) {
+                hazinahContainer.style.display = 'block';
+                hazinahField.required = true;
+                if (hazinahRequired) hazinahRequired.style.display = 'inline';
+            }
+            // مخفی کردن فیلد درآمد
+            if (incomeContainer) {
+                incomeContainer.style.display = 'none';
+                incomeField.required = false;
+                incomeField.value = '';
+                if (incomeRequired) incomeRequired.style.display = 'none';
+            }
+        } else if (selectedType === 'Income') {
+            // نمایش فیلد درآمد
+            if (incomeContainer) {
+                incomeContainer.style.display = 'block';
+                incomeField.required = true;
+                if (incomeRequired) incomeRequired.style.display = 'inline';
+            }
+            // مخفی کردن فیلد هزینه
+            if (hazinahContainer) {
+                hazinahContainer.style.display = 'none';
+                hazinahField.required = false;
+                hazinahField.value = '';
+                if (hazinahRequired) hazinahRequired.style.display = 'none';
+            }
+        } else {
+            // اگر نوع انتخاب نشده، هر دو فیلد را مخفی کن
+            if (hazinahContainer) {
+                hazinahContainer.style.display = 'none';
+                hazinahField.required = false;
+                hazinahField.value = '';
+                if (hazinahRequired) hazinahRequired.style.display = 'none';
+            }
+            if (incomeContainer) {
+                incomeContainer.style.display = 'none';
+                incomeField.required = false;
+                incomeField.value = '';
+                if (incomeRequired) incomeRequired.style.display = 'none';
+            }
+        }
+    }
+    
+    if (typeField) {
+        typeField.addEventListener('change', toggleFields);
+        // اجرای اولیه - اگر قبلاً مقداری انتخاب شده
+        toggleFields();
+    }
+    
+    // تولید شماره فاکتور خودکار
+    const invoiceIdField = document.querySelector('input[name="invoice_id"]');
+    if (invoiceIdField && !invoiceIdField.value) {
+        const now = new Date();
+        const year = now.getFullYear().toString().substr(-2);
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        
+        invoiceIdField.value = `INV-${year}${month}${day}-${random}`;
+    }
+    
+    // Management forms for inline formsets
+    const formsetContainer = document.getElementById('invoice-items-formset');
+    const addButton = document.querySelector('.add-item-btn');
+    const totalFormsInput = document.querySelector('input[name="items-TOTAL_FORMS"]');
+    
+    if (addButton && formsetContainer && totalFormsInput) {
+        addButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            const formCount = parseInt(totalFormsInput.value);
+            const emptyForm = document.querySelector('.empty-form');
+            
+            if (emptyForm) {
+                const newForm = emptyForm.cloneNode(true);
+                newForm.classList.remove('empty-form');
+                newForm.style.display = 'block';
+                
+                // بروزرسانی نام‌های فیلدها
+                const formInputs = newForm.querySelectorAll('input, select, textarea');
+                formInputs.forEach(function(input) {
+                    if (input.name) {
+                        input.name = input.name.replace(/__prefix__/g, formCount);
+                        input.id = input.id?.replace(/__prefix__/g, formCount);
+                    }
+                });
+                
+                // بروزرسانی لیبل‌ها
+                const labels = newForm.querySelectorAll('label');
+                labels.forEach(function(label) {
+                    if (label.htmlFor) {
+                        label.htmlFor = label.htmlFor.replace(/__prefix__/g, formCount);
+                    }
+                });
+                
+                formsetContainer.appendChild(newForm);
+                totalFormsInput.value = formCount + 1;
+            }
+        });
+    }
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلدهای قیمت در فاکتور
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            // اضافه کردن نمایش لایو برای تمام فیلدهای قیمت در فرم‌ست
+            const priceInputs = document.querySelectorAll('input[name$="-price"], input[id*="price"]');
+            priceInputs.forEach(input => {
+                if (!input.hasAttribute('data-live-price-attached')) {
+                    window.livePriceDisplay.attachToInput(`#${input.id}`);
+                }
+            });
+        }
+    }, 500);
+});
+</script>
+
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
+{% endblock %}

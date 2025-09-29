@@ -348,6 +348,18 @@
         margin: 0;
     }
 
+    .file-attachment-link {
+        color: #d97706 !important;
+        text-decoration: underline !important;
+        font-weight: 600;
+        transition: color 0.3s ease;
+    }
+
+    .file-attachment-link:hover {
+        color: #92400e !important;
+        text-decoration: none !important;
+    }
+
     .empty-state {
         text-align: center;
         padding: 4rem 2rem;
@@ -573,26 +585,53 @@
                     </div>
                     {% endif %}
 
+                    <!-- File Attachment -->
+                    {% if transaction.file %}
+                    <div class="description-box" style="background: #fef3c7; border-color: #f59e0b;">
+                        <p class="description-text" style="color: #92400e;">
+                            <i class="fas fa-paperclip" style="margin-left: 0.5rem;"></i>
+                            فایل پیوست:
+                            <a href="{{ transaction.file.url }}" target="_blank" class="file-attachment-link" style="color: #d97706; text-decoration: underline; margin-right: 0.5rem;">
+                                {{ transaction.file.name|slice:"50" }}{% if transaction.file.name|length > 50 %}...{% endif %}
+                            </a>
+                        </p>
+                    </div>
+                    {% endif %}
+
                     <!-- Actions -->
                     <div class="transaction-actions">
-                        <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
-                            <i class="fas fa-eye"></i>
-                            مشاهده کیف پول
-                        </a>
+                        {% if transaction.wallet and transaction.wallet.id %}
+                            {% if transaction.wallet.varedkonandeh %}
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول واردکننده
+                                </a>
+                            {% elif transaction.wallet.customer %}
+                                <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول مشتری
+                                </a>
+                            {% else %}
+                                <a href="#" class="action-btn btn-view" style="opacity: 0.5; cursor: not-allowed;" title="نوع کیف پول نامشخص">
+                                    <i class="fas fa-eye"></i>
+                                    مشاهده کیف پول
+                                </a>
+                            {% endif %}
+                        {% endif %}
 
                         {% if transaction.status == 'pending' %}
                         <a href="{% url 'fledger:edit_transaction' transaction.id %}" class="action-btn btn-edit">
                             <i class="fas fa-edit"></i>
                             ویرایش
                         </a>
-                        <form method="post" action="{% url 'fledger:approve_transaction' transaction.id %}" style="flex: 1;">
+                        <form method="post" action="{% url 'fledger:approve_transaction' transaction.id %}" style="flex: 1;" onsubmit="return confirmApproval(event, this)" data-description="{{ transaction.description|default:'توضیحاتی ثبت نشده' }}" data-filename="{{ transaction.file.name|default:'' }}">
                             {% csrf_token %}
                             <button type="submit" class="action-btn btn-approve" style="width: 100%;">
                                 <i class="fas fa-check"></i>
                                 تایید
                             </button>
                         </form>
-                        <form method="post" action="{% url 'fledger:reject_transaction' transaction.id %}" style="flex: 1;">
+                        <form method="post" action="{% url 'fledger:reject_transaction' transaction.id %}" style="flex: 1;" onsubmit="return confirmRejection(event, this)" data-description="{{ transaction.description|default:'توضیحاتی ثبت نشده' }}" data-filename="{{ transaction.file.name|default:'' }}">
                             {% csrf_token %}
                             <button type="submit" class="action-btn btn-reject" style="width: 100%;">
                                 <i class="fas fa-times"></i>
@@ -677,6 +716,47 @@
 </div>
 
 <script>
+// Confirmation functions for transaction approval/rejection
+function confirmApproval(event, form) {
+    event.preventDefault();
+    
+    const description = form.dataset.description || 'توضیحاتی ثبت نشده';
+    const filename = form.dataset.filename || '';
+    
+    let message = 'آیا از تایید این تراکنش اطمینان دارید؟\n\n';
+    message += 'توضیحات: ' + description;
+    
+    if (filename) {
+        message += '\n\nفایل پیوست: ' + filename;
+    }
+    
+    if (confirm(message)) {
+        form.submit();
+    }
+    
+    return false;
+}
+
+function confirmRejection(event, form) {
+    event.preventDefault();
+    
+    const description = form.dataset.description || 'توضیحاتی ثبت نشده';
+    const filename = form.dataset.filename || '';
+    
+    let message = 'آیا از لغو این تراکنش اطمینان دارید؟\n\n';
+    message += 'توضیحات: ' + description;
+    
+    if (filename) {
+        message += '\n\nفایل پیوست: ' + filename;
+    }
+    
+    if (confirm(message)) {
+        form.submit();
+    }
+    
+    return false;
+}
+
 // Auto-submit form on filter change
 document.getElementById('status').addEventListener('change', function() {
     this.form.submit();

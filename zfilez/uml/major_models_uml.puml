@@ -1,0 +1,431 @@
+@startuml Major Models UML Diagram
+
+!theme plain
+skinparam classAttributeIconSize 0
+skinparam classFontSize 7
+skinparam classFontStyle bold
+skinparam packageFontSize 9
+skinparam packageFontStyle bold
+skinparam backgroundColor #F5F7FA
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #2C3E50
+skinparam packageBackgroundColor #ECF0F1
+skinparam packageBorderColor #34495E
+skinparam arrowColor #2C3E50
+skinparam arrowThickness 2
+skinparam linetype ortho
+skinparam roundcorner 10
+skinparam shadowing false
+skinparam noteBackgroundColor #FFF8DC
+skinparam noteBorderColor #DAA520
+skinparam classHeaderBackgroundColor #3498DB
+skinparam classHeaderFontColor #FFFFFF
+skinparam packageHeaderBackgroundColor #2C3E50
+skinparam packageHeaderFontColor #FFFFFF
+skinparam classPadding 5
+skinparam packagePadding 8
+skinparam classSpacing 5
+skinparam packageSpacing 8
+skinparam minClassWidth 120
+skinparam maxClassWidth 280
+skinparam classFontSize 16
+skinparam packageFontSize 10
+
+package "major" {
+    abstract class Product {
+        + name: CharField
+        + description: CharField
+        + created_at: jDateTimeField
+        + status: BooleanField
+        + type_of_product: CharField
+        + vared_konandeh: ForeignKey(VaredKonandeh)
+        --
+        + __str__(): str
+    }
+
+    class NonBazargahProduct {
+        --
+        + save(): void
+        + __str__(): str
+    }
+
+    abstract class BasePurchase {
+        + id: AutoField
+        + customer: ForeignKey(Customer)
+        + unique_sales_agent_code: CharField
+        + unique_sales_agent: ForeignKey(SalesAgent)
+        + description: TextField
+        + amount_paid: PositiveBigIntegerField
+        + total_weight: PositiveIntegerField
+        + type: CharField
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        + company_price: PositiveIntegerField
+        + customer_price: PositiveIntegerField
+        + address: TextField
+        + buyer_name: CharField
+        + buyer_postal_code: CharField
+        + buyer_national_id: CharField
+        + buyer_user_type: CharField
+        + tahvil_phone_number: CharField
+        + code_melli_tahvil: CharField
+        + delivery_address: TextField
+        + delivery_postal_code: CharField
+        + delivery_receiver_name: CharField
+        + barbary_confidential_number: CharField
+        + barbary_customer_number: CharField
+        + vehicle_type: CharField
+    }
+
+    class NonBazargahPurchase {
+        + customer: ForeignKey(Customer)
+        + purchase_number: CharField
+        + product: ForeignKey(NonBazargahProduct)
+        + unit: CharField
+        + state: CharField
+        --
+        + __str__(): str
+    }
+
+    class Hazinah {
+        + title: CharField
+        + description: TextField
+        + cost_type: CharField
+        + amount: DecimalField
+        + approval_status: CharField
+        + approved_by: ForeignKey(User)
+        + approval_date: jDateTimeField
+        + approval_notes: TextField
+        + tax_amount: DecimalField
+        + discount_amount: DecimalField
+        + final_amount: DecimalField
+        + expense_date: jDateField
+        + due_date: jDateField
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        + created_by: ForeignKey(User)
+        + is_recurring: BooleanField
+        + recurring_period: CharField
+        + priority: CharField
+        + attachment: FileField
+        --
+        + clean(): void
+        + save(): void
+        + update_amount_from_invoices(): void
+        + __str__(): str
+        + payment_status: str
+        + total_transactions_amount: Decimal
+        + remaining_amount: Decimal
+        + has_transactions: bool
+        + approved_transactions: QuerySet
+        + pending_transactions: QuerySet
+        + get_cost_type_display(): str
+        + get_approval_status_display_color(): str
+        + get_payment_status_display_color(): str
+        + can_be_approved(): bool
+        + can_be_paid(): bool
+        + _get_auto_approval_status(): str
+        + get_required_approval_level(): str
+        + can_be_approved_by(user): bool
+        + get_approval_info(): dict
+        + approve(approved_by_user, notes): bool
+        + reject(rejected_by_user, notes): bool
+        + create_payment_transaction(amount, wallet, ...): Transaction
+        + get_payment_history(): QuerySet
+        + get_payment_summary(): dict
+        + calculate_amount_from_invoices(): Decimal
+        + has_invoices: bool
+        + invoices: QuerySet
+        + total_invoice_amount: Decimal
+        + get_invoice_summary(): dict
+    }
+
+    class Invoice {
+        + hazinah: ForeignKey(Hazinah)
+        + income: ForeignKey(Barnameh)
+        + type: CharField
+        + issue_date: jDateField
+        + invoice_id: CharField
+        + description: CharField
+        + attachment: FileField
+        + created_at: jDateField
+        + customer: ForeignKey(Customer)
+        --
+        + clean(): void
+        + save(): void
+        + __str__(): str
+        + get_total_amount(): int
+        + get_items_count(): int
+        + get_related_object(): object
+    }
+
+    class InvoiceItem {
+        + invoice: ForeignKey(Invoice)
+        + product_type: CharField
+        + non_bazargah_product: ForeignKey(NonBazargahProduct)
+        + cargo_product: ForeignKey(CargoProduct)
+        + price: BigIntegerField
+        + amount: BigIntegerField
+        --
+        + clean(): void
+        + save(): void
+        + __str__(): str
+        + get_product_name(): str
+        + get_total_price(): int
+        + get_formatted_total_price(): str
+    }
+}
+
+package "fledger" {
+    class Wallet {
+        + varedkonandeh: ForeignKey(VaredKonandeh)
+        + customer: ForeignKey(Customer)
+        + description: TextField
+        + balance: BigIntegerField
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        --
+        + clean(): void
+        + __str__(): str
+        + calculate_balance(): BigIntegerField
+        + get_purchase_summary(): dict
+    }
+
+    class Transaction {
+        + wallet: ForeignKey(Wallet)
+        + transaction_type: CharField
+        + amount: BigIntegerField
+        + description: TextField
+        + file: FileField
+        + status: CharField
+        + created_by: ForeignKey(User)
+        + approved_by: ForeignKey(User)
+        + approved_at: jDateTimeField
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        + hazinah: ForeignKey(Hazinah)
+        + income: ForeignKey(Barnameh)
+        + payment_method: CharField
+        --
+        + clean(): void
+        + save(): void
+        + __str__(): str
+        + get_transaction_type_display(): str
+        + approve(approved_by_user): bool
+        + reject(rejected_by_user): bool
+        + cancel(): bool
+    }
+
+    class LedgerEntry {
+        + varedkonandeh: ForeignKey(VaredKonandeh)
+        + purchase: ForeignKey(Purchase)
+        + weight: PositiveIntegerField
+        + price_per_kg: PositiveIntegerField
+        + total_amount: BigIntegerField
+        + wallet_index_used: CharField
+        + created_at: jDateTimeField
+        + notes: TextField
+        --
+        + __str__(): str
+        + create_or_update_entry(purchase): LedgerEntry
+    }
+}
+
+package "core" {
+    class Customer {
+        + phone_number: CharField
+        + sales_agent: ManyToManyField(SalesAgent)
+        + name: CharField
+        + city: CharField
+        + whatsapp_preference: BooleanField
+        + field_of_activity: ManyToManyField(ActivityField)
+        + purchase_preferences: ManyToManyField(PaymentPreference)
+        + product_preferences: ManyToManyField(ProductPreference)
+        + contact_start_time: TimeField
+        + contact_end_time: TimeField
+        + social_media: CharField
+        + added_description: TextField
+        + sms_preference: BooleanField
+        + day_of_week: PositiveSmallIntegerField
+        + quota: CharField
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        + is_bazaargah_enjoyer: BooleanField
+        + is_favorite: BooleanField
+        + is_active: BooleanField
+        + is_blocked: BooleanField
+        --
+        + get_customer_by_phone(phone_number): Customer
+    }
+
+    class VaredKonandeh {
+        + name: CharField
+        + phone_number: CharField
+        + email: EmailField
+        + website: URLField
+        + balance: IntegerField
+        + address: CharField
+        + is_active: BooleanField
+        --
+        + __str__(): str
+    }
+
+    class CargoProduct {
+        + product_type: CharField
+        + country: CharField
+        + vared_konandeh: ForeignKey(VaredKonandeh)
+        + barbary: ForeignKey(Barbary)
+        + created_at: jDateTimeField
+        + updated_at: jDateTimeField
+        --
+        + __str__(): str
+        + get_product_type_display(): str
+        + get_country_display(): str
+    }
+
+    class Purchase {
+        + cargo: ForeignKey(CargoProduct)
+        + invoice_id: CharField
+        + order_weight: PositiveIntegerField
+        + delivered_weight: PositiveIntegerField
+        + company_price: PositiveIntegerField
+        + customer_price: PositiveIntegerField
+        + is_canceled: BooleanField
+        + is_archived: BooleanField
+        + is_address_sent: CharField
+        + wallet_index: CharField
+        --
+        + __str__(): str
+    }
+
+    class SalesAgent {
+        + name: CharField
+        + phone_number: CharField
+        + email: EmailField
+        + dakheli_number: CharField
+        + is_active: BooleanField
+        --
+        + __str__(): str
+    }
+}
+
+package "bki_barnameh" {
+    class Barnameh {
+        + file: FileField
+        + purchase: ForeignKey(Purchase)
+        + purchase_number: CharField
+        + shenase_takhsis: ForeignKey(ShenaseTakhsis)
+        + shenase_takhsis_code: CharField
+        + number: CharField
+        + serial: CharField
+        + tonnage: DecimalField
+        + driver_phone: CharField
+        + driver_name: CharField
+        + vehicle_plate: CharField
+        + receiver_name: CharField
+        --
+        + __str__(): str
+    }
+}
+
+package "auth" {
+    class User {
+        + username: CharField
+        + email: EmailField
+        + first_name: CharField
+        + last_name: CharField
+        + is_active: BooleanField
+        + is_staff: BooleanField
+        + is_superuser: BooleanField
+        + date_joined: DateTimeField
+        --
+        + __str__(): str
+    }
+}
+
+' تنظیم موقعیت مدل‌ها برای نمایش بهتر و کاهش تداخل خطوط
+
+' Inheritance relationships (ارث‌بری) - خطوط مستقیم
+Product <|-- NonBazargahProduct : extends
+BasePurchase <|-- NonBazargahPurchase : extends
+BasePurchase <|-- Purchase : extends
+
+' Core business relationships - خطوط مستقیم
+Customer --> SalesAgent : sales_agent (ManyToMany)
+VaredKonandeh --> CargoProduct : vared_konandeh
+CargoProduct --> Purchase : cargo
+Purchase --> Barnameh : purchase
+
+' Major app relationships - خطوط مستقیم
+NonBazargahProduct --> VaredKonandeh : vared_konandeh
+NonBazargahPurchase --> Customer : customer
+NonBazargahPurchase --> NonBazargahProduct : product
+NonBazargahPurchase --> SalesAgent : unique_sales_agent
+
+' Hazinah and Invoice relationships - خطوط مستقیم
+Hazinah --> User : approved_by
+Hazinah --> User : created_by
+Invoice --> Hazinah : hazinah
+Invoice --> Barnameh : income
+Invoice --> Customer : customer
+InvoiceItem --> Invoice : invoice
+InvoiceItem --> NonBazargahProduct : non_bazargah_product
+InvoiceItem --> CargoProduct : cargo_product
+
+' Fledger relationships - خطوط مستقیم
+Wallet --> VaredKonandeh : varedkonandeh
+Wallet --> Customer : customer
+Transaction --> Wallet : wallet
+Transaction --> User : created_by
+Transaction --> User : approved_by
+Transaction --> Hazinah : hazinah
+Transaction --> Barnameh : income
+LedgerEntry --> VaredKonandeh : varedkonandeh
+LedgerEntry --> Purchase : purchase
+
+' Signals and relationships (سیگنال‌ها و روابط)
+note right of Hazinah : "Signals: post_save, post_delete\nfor Invoice and InvoiceItem"
+note right of Wallet : "Signals: post_save, post_delete\nfor Purchase"
+note right of Transaction : "Signals: post_save\nfor Transaction"
+
+' Complete Guide for Lines and Relationships
+note bottom
+**Complete Guide for Lines and Relationships:**
+
+**Inheritance Lines:**
+- <|-- : Child class inherits from parent class
+- Example: NonBazargahProduct inherits from Product
+
+**Foreign Key Relationships:**
+- --> : One model points to another model
+- Example: Invoice --> Hazinah means invoice points to expense
+
+**Many-to-Many Relationships:**
+- }-- : Two models have many-to-many relationship
+- Example: Customer }-- SalesAgent means customer and sales agent
+
+**Django Signals:**
+- Django signals for automatic model updates
+- post_save: when model is saved
+- post_delete: when model is deleted
+
+**Color Scheme:**
+- Green: Inheritance relationships
+- Blue: Core business relationships
+- Orange: Major app relationships
+- Red: Hazinah and Invoice relationships
+- Purple: Fledger relationships
+- White: Model backgrounds
+- Gray: Package backgrounds
+
+**Model Symbols:**
+- A: Abstract Class
+- C: Concrete Class
+
+**Field Symbols:**
+- + : Public Field
+- - : Private Field
+- # : Protected Field
+end note
+
+@enduml

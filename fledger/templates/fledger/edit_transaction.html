@@ -131,10 +131,29 @@
             </div>
 
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <a href="{% url 'fledger:wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
-                    <i class="fas fa-times"></i>
-                    انصراف
-                </a>
+                {% if transaction.wallet and transaction.wallet.id %}
+                    {% if transaction.wallet.varedkonandeh %}
+                        <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
+                            <i class="fas fa-times"></i>
+                            انصراف
+                        </a>
+                    {% elif transaction.wallet.customer %}
+                        <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="btn-fledger btn-fledger-secondary">
+                            <i class="fas fa-times"></i>
+                            انصراف
+                        </a>
+                    {% else %}
+                        <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                            <i class="fas fa-times"></i>
+                            انصراف
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                        <i class="fas fa-times"></i>
+                        انصراف
+                    </a>
+                {% endif %}
                 <button type="submit" class="btn-fledger btn-fledger-success">
                     <i class="fas fa-save"></i>
                     ذخیره تغییرات
@@ -142,6 +161,9 @@
             </div>
         </form>
     </div>
+
+<!-- اضافه کردن اسکریپت نمایش لایو قیمت -->
+<script src="{% static 'fledger/js/live_price_display.js' %}"></script>
 
 <script>
 // Debug: لاگ کردن validation در browser
@@ -176,6 +198,16 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('✅ Form passed client-side validation');
         }
     });
+
+    // فعال‌سازی نمایش لایو قیمت برای فیلد مبلغ تراکنش
+    setTimeout(() => {
+        if (window.livePriceDisplay) {
+            const amountField = document.getElementById('{{ form.amount.id_for_label }}');
+            if (amountField) {
+                window.livePriceDisplay.attachToInput('#{{ form.amount.id_for_label }}');
+            }
+        }
+    }, 500);
 });
 </script>
 </div>

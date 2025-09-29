@@ -1,0 +1,1247 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+{% load static %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="{% static 'css/non_bazargah_purchase_crud.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+<div class="container">
+  <!-- هدر خاص خرید خارج بازارگاه -->
+  <div class="non-bazargah-container">
+    <h1 class="non-bazargah-header">
+      <span class="non-bazargah-badge">
+        <i class="fas fa-store-slash"></i> خارج بازارگاه
+      </span>
+      <span class="purchase-title">
+        <i class="fas fa-shopping-cart"></i> خرید {{ purchase.purchase_number|default:"بدون شماره" }}
+      </span>
+    </h1>
+    
+    <!-- اطلاعات اولیه -->
+    <div class="purchase-info">
+      <div class="info-card">
+        <h3>مشتری</h3>
+        <p>{{ purchase.customer.name|default:"نامشخص" }}</p>
+        <p>{{ purchase.customer.city|default:"نامشخص" }}</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>محصول</h3>
+        <p>{{ purchase.product.name|default:"نامشخص" }}</p>
+        <p>{{ purchase.quantity|default:"0" }} {{ purchase.get_unit_display|default:"واحد" }}</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>مبلغ</h3>
+        <p>{% if purchase.amount_paid %}{{ purchase.amount_paid|add_commas }} ریال{% else %}نامشخص{% endif %}</p>
+        <p>مبلغ کل پرداختی</p>
+      </div>
+      
+      <div class="info-card">
+        <h3>وضعیت</h3>
+        <p>
+          {% if purchase.state == 'initiated' %}
+          <span class="badge bg-info">شروع شده</span>
+          {% elif purchase.state == 'payment_verification_pending' %}
+          <span class="badge bg-warning">انتظار تایید پرداخت</span>
+          {% elif purchase.state == 'payment_verified' %}
+          <span class="badge bg-success">تایید پرداخت</span>
+          {% elif purchase.state == 'address_assigned' %}
+          <span class="badge bg-primary">تخصیص آدرس</span>
+          {% elif purchase.state == 'sent_to_warehouse' %}
+          <span class="badge bg-info">ارسال به انبار</span>
+          {% elif purchase.state == 'carrier_notified' %}
+          <span class="badge bg-warning">اعلام بار</span>
+          {% elif purchase.state == 'vehicle_arrived' %}
+          <span class="badge bg-secondary">ورود ماشین</span>
+          {% elif purchase.state == 'empty_weighed' %}
+          <span class="badge bg-info">وزن خالی</span>
+          {% elif purchase.state == 'loaded_weighed' %}
+          <span class="badge bg-primary">وزن پر</span>
+          {% elif purchase.state == 'barnameh_issued' %}
+          <span class="badge bg-success">صدور بارنامه</span>
+          {% elif purchase.state == 'delivered' %}
+          <span class="badge bg-success">تحویل شده</span>
+          {% elif purchase.state == 'purchase_closed' %}
+          <span class="badge bg-dark">بسته شده</span>
+          {% elif purchase.state == 'canceled' %}
+          <span class="badge bg-danger">لغو شده</span>
+          {% elif purchase.state == 'archived' %}
+          <span class="badge bg-secondary">آرشیو شده</span>
+          {% else %}
+          <span class="badge bg-secondary">{{ purchase.get_state_display }}</span>
+          {% endif %}
+        </p>
+        <p>آخرین بروزرسانی: {{ purchase.updated_at|date:"Y/m/d H:i" }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- تایم‌لاین پیشرفت -->
+  <div class="timeline-container">
+    <div class="timeline-scroll">
+      {% for step in progress_steps %}
+      <div class="timeline-item {% if step.status %}completed{% else %}pending{% endif %}" 
+      data-step-info="{{ step.name }} {% if step.status %}- تکمیل شده {% else %}- در انتظار {% endif %}">
+        <div class="timeline-icon">
+          <i class="{% if 'تایید پرداخت' in step.name %}fas fa-credit-card
+            {% elif 'تخصیص آدرس' in step.name %}fas fa-map-marker-alt
+            {% elif 'انبار' in step.name %}fas fa-warehouse
+            {% elif 'باربری' in step.name %}fas fa-truck
+            {% elif 'ماشین' in step.name %}fas fa-car
+            {% elif 'وزن خالی' in step.name %}fas fa-weight-hanging
+            {% elif 'وزن پر' in step.name %}fas fa-balance-scale
+            {% elif 'بارنامه' in step.name %}fas fa-file-invoice
+            {% elif 'تحویل' in step.name %}fas fa-handshake
+            {% elif 'بستن' in step.name %}fas fa-check-circle
+            {% else %}fas fa-arrow-right
+            {% endif %}"></i>
+        </div>
+        <div class="timeline-label">{{ step.name }}</div>
+        <div class="timeline-status">
+          {% if step.status %}✓{% else %}...{% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- باکس مرحله بعد -->
+  <div class="next-step-container">
+    <div class="next-step-box">
+      {% if purchase.state == 'initiated' %}
+        <div class="step-info">
+          <i class="fas fa-credit-card"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید پرداخت</strong> - مدیر مالی</span>
+        </div>
+      {% elif purchase.state == 'payment_verification_pending' %}
+        <div class="step-info">
+          <i class="fas fa-check-circle"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید پرداخت</strong> - مدیر مالی</span>
+        </div>
+      {% elif purchase.state == 'payment_verified' %}
+        <div class="step-info">
+          <i class="fas fa-map-marker-alt"></i>
+          <span class="step-text">مرحله بعد: <strong>تخصیص آدرس</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'address_assigned' %}
+        <div class="step-info">
+          <i class="fas fa-warehouse"></i>
+          <span class="step-text">مرحله بعد: <strong>ارسال به انبار</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'sent_to_warehouse' %}
+        <div class="step-info">
+          <i class="fas fa-truck"></i>
+          <span class="step-text">مرحله بعد: <strong>اعلام بار به باربری</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'carrier_notified' %}
+        <div class="step-info">
+          <i class="fas fa-car"></i>
+          <span class="step-text">مرحله بعد: <strong>اضافه کردن بارنامه‌ها و تایید ورود ماشین</strong> - برای هر تخصیص حداقل یک بارنامه</span>
+        </div>
+      {% elif purchase.state == 'vehicle_arrived' %}
+        <div class="step-info">
+          <i class="fas fa-weight-hanging"></i>
+          <span class="step-text">مرحله بعد: <strong>تکمیل اطلاعات ماشین‌ها و ثبت وزن خالی</strong> - برای همه بارنامه‌ها</span>
+        </div>
+      {% elif purchase.state == 'empty_weighed' %}
+        <div class="step-info">
+          <i class="fas fa-balance-scale"></i>
+          <span class="step-text">مرحله بعد: <strong>ثبت وزن پر برای همه بارنامه‌ها</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'loaded_weighed' %}
+        <div class="step-info">
+          <i class="fas fa-file-invoice"></i>
+          <span class="step-text">مرحله بعد: <strong>صدور بارنامه</strong> - وزن پر همه بارنامه‌ها تکمیل شده</span>
+        </div>
+      {% elif purchase.state == 'barnameh_issued' %}
+        <div class="step-info">
+          <i class="fas fa-handshake"></i>
+          <span class="step-text">مرحله بعد: <strong>تایید تحویل</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'delivered' %}
+        <div class="step-info">
+          <i class="fas fa-check-circle"></i>
+          <span class="step-text">مرحله بعد: <strong>بستن خرید</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'purchase_closed' %}
+        <div class="step-info completed">
+          <i class="fas fa-trophy"></i>
+          <span class="step-text">خرید با موفقیت تکمیل شده است</span>
+        </div>
+      {% else %}
+        <div class="step-info">
+          <i class="fas fa-question-circle"></i>
+          <span class="step-text">وضعیت فعلی نامشخص است</span>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- فرم ویرایش -->
+  <form method="post" enctype="multipart/form-data" class="purchase-form">
+    {% csrf_token %}
+    
+    <!-- Hidden inputs برای فیلدهای readonly -->
+    <input type="hidden" name="customer" value="{{ purchase.customer.id|default:'' }}">
+    <input type="hidden" name="product" value="{{ purchase.product.id|default:'' }}">
+    <input type="hidden" name="quantity" value="{{ purchase.quantity|default:'' }}">
+    <input type="hidden" name="customer_price" value="{{ purchase.customer_price|default:'' }}">
+    <input type="hidden" name="amount_paid" value="{{ purchase.amount_paid|default:'' }}">
+    <input type="hidden" name="bag_weight" value="{{ purchase.bag_weight|default:'' }}">
+    <input type="hidden" name="unit" value="{{ purchase.unit|default:'' }}">
+    <input type="hidden" name="company_price" value="{{ purchase.company_price|default:'' }}">
+    
+    <!-- اطلاعات اساسی خرید -->
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-shopping-cart"></i> اطلاعات اساسی خرید
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content expanded">
+        <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'customer,product,unit,quantity,bag_weight'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'مشتری' in field.label %}fas fa-user
+                {% elif 'محصول' in field.label %}fas fa-box
+                {% elif 'مقدار' in field.label or 'کیسه' in field.label %}fas fa-calculator
+                {% elif 'واحد' in field.label %}fas fa-weight
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        
+        <!-- نمایش وزن کل محاسبه شده -->
+        {% if purchase.quantity %}
+        <div class="form-group readonly">
+          <label>
+            <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+            <i class="fas fa-weight"></i> وزن کل محاسبه شده
+          </label>
+          <div class="input-container">
+            <div class="calculated-weight-display">
+              {% if purchase.unit == 'Ton' %}
+                {{ purchase.quantity|mul:1000|floatformat:0 }} کیلوگرم
+              {% elif purchase.unit == 'Kiseh' and purchase.bag_weight %}
+                 {{ purchase.quantity|mul:purchase.bag_weight|floatformat:0 }} کیلوگرم
+              {% else %}
+                {{ purchase.quantity|floatformat:0 }} کیلوگرم
+              {% endif %}
+            </div>
+          </div>
+          <small class="form-helptext">
+            <i class="fas fa-info-circle"></i> این مقدار بر اساس واحد و مقدار خرید محاسبه می‌شود
+          </small>
+        </div>
+        {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- اطلاعات مالی -->
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-money-bill-wave"></i> اطلاعات مالی
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'company_price,customer_price,amount_paid,payment_notes'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'قیمت' in field.label or 'مبلغ' in field.label %}fas fa-money-bill-wave
+                {% elif 'توضیحات' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        
+        <!-- فیلد آپلود مدرک پرداخت -->
+        {% if user_role == "financial_manager" or user_role == "admin" %}
+        <div class="form-group">
+          <label>
+            <i class="fas fa-file-upload"></i> مدرک پرداخت
+          </label>
+          <div class="payment-document-upload">
+            {% if purchase.payment_document %}
+            <div class="current-document">
+              <i class="fas fa-file-check text-success"></i>
+              <span>مدرک موجود: </span>
+              <a href="{{ purchase.payment_document.url }}" target="_blank" class="document-link">
+                <i class="fas fa-download"></i> دانلود
+              </a>
+            </div>
+            {% endif %}
+            
+            <!-- فیلد آپلود درون همین فرم -->
+            <div class="upload-container">
+              <input type="file" name="payment_document_upload" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
+              <button type="submit" name="upload_document" class="btn btn-upload" formnovalidate>
+                <i class="fas fa-upload"></i> آپلود مدرک
+              </button>
+            </div>
+            <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
+          </div>
+        </div>
+        {% endif %}
+        </div>
+      </div>
+    </div>
+
+
+    <!-- تخصیص آدرس‌ها -->
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-map-marked-alt"></i> تخصیص آدرس‌ها
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+      
+      <!-- نمایش وضعیت وزن -->
+      <div class="allocation-status">
+        <div class="weight-info-cards">
+          <div class="weight-card">
+            <h4>وزن درخواستی</h4>
+            <p>{{ requested_weight_kg|default:"0" }} کیلوگرم</p>
+          </div>
+          <div class="weight-card">
+            <h4>وزن تخصیص شده</h4>
+            <p>{{ total_allocated_weight|default:"0" }} کیلوگرم</p>
+          </div>
+          <div class="weight-card">
+            <h4>وزن باقی‌مانده</h4>
+            <p class="{% if remaining_weight == 0 %}text-success{% else %}text-warning{% endif %}">
+              {{ remaining_weight|default:"0" }} کیلوگرم
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- فرم آپلود اکسل تخصیص‌ها -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.can_assign_addresses %}
+          <div class="excel-upload-form">
+            <h4 class="allocation-form-title">
+              <i class="fas fa-file-excel"></i> آپلود فایل اکسل تخصیص‌ها
+            </h4>
+            <div class="excel-upload-info">
+              <div class="excel-info-card">
+                <h5><i class="fas fa-info-circle"></i> راهنمای استفاده</h5>
+                <ul>
+                  <li>فایل اکسل باید شامل ستون‌های زیر باشد:</li>
+                  <li><strong>آدرس تحویل</strong> - آدرس کامل محل تحویل</li>
+                  <li><strong>کد پستی</strong> - کد پستی 10 رقمی</li>
+                  <li><strong>نام گیرنده</strong> - نام شخص گیرنده کالا</li>
+                  <li><strong>شماره هماهنگی</strong> - شماره تماس برای هماهنگی</li>
+                  <li><strong>وزن تخصیص یافته</strong> - وزن به کیلوگرم</li>
+                  <li><strong>شماره تخصیص</strong> - (اختیاری) شماره شناسایی تخصیص</li>
+                  <li><strong>توضیحات</strong> - (اختیاری) توضیحات اضافی</li>
+                </ul>
+                <p class="excel-note">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <strong>توجه:</strong> وزن کل تخصیص‌ها نباید از وزن باقی‌مانده ({{ remaining_weight }} کیلوگرم) بیشتر باشد.
+                </p>
+              </div>
+              
+              <form method="post" enctype="multipart/form-data" class="excel-upload-form-inline">
+                {% csrf_token %}
+                <div class="excel-upload-container">
+                  <div class="form-group">
+                    <label for="{{ excel_upload_form.excel_file.id_for_label }}">
+                      <i class="fas fa-file-excel"></i> {{ excel_upload_form.excel_file.label }}
+                    </label>
+                    {{ excel_upload_form.excel_file }}
+                    {% if excel_upload_form.excel_file.help_text %}
+                    <small class="form-helptext">{{ excel_upload_form.excel_file.help_text }}</small>
+                    {% endif %}
+                  </div>
+                  
+                  <div class="excel-upload-actions">
+                    <button type="submit" name="upload_allocation_excel" class="button excel-upload-btn" {% if remaining_weight == 0 %}disabled title="همه وزن تخصیص شده است"{% endif %}>
+                      <i class="fas fa-upload"></i> آپلود و پردازش اکسل
+                    </button>
+                    <a href="{% url 'download_allocation_excel_template' %}" class="button download-template-btn" target="_blank">
+                      <i class="fas fa-download"></i> دانلود قالب اکسل
+                    </a>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- فرم اضافه کردن تخصیص جدید -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.can_assign_addresses %}
+          <div class="add-allocation-form">
+            <h4 class="allocation-form-title">
+              <i class="fas fa-plus-circle"></i> افزودن تخصیص دستی
+            </h4>
+            <form method="post" class="allocation-form-inline">
+              {% csrf_token %}
+              <div class="allocation-form-grid">
+                {% for field in allocation_form %}
+                <div class="form-group">
+                  <label>{{ field.label }}</label>
+                  {{ field }}
+                  {% if field.help_text %}
+                  <small class="form-helptext">{{ field.help_text }}</small>
+                  {% endif %}
+                </div>
+                {% endfor %}
+              </div>
+              <div class="allocation-form-actions">
+                <button type="submit" name="add_allocation" class="button allocation-add-btn" {% if remaining_weight == 0 %}disabled{% endif %}>
+                  <i class="fas fa-plus"></i> افزودن تخصیص
+                </button>
+              </div>
+            </form>
+          </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- لیست تخصیص‌های موجود -->
+      {% if allocations %}
+      <div class="allocations-list">
+        <h4 class="allocations-title">
+          <i class="fas fa-list"></i> تخصیص‌های موجود ({{ allocations.count }} تخصیص)
+        </h4>
+        {% for allocation in allocations %}
+        <div class="allocation-item">
+          <div class="allocation-header">
+            <span class="allocation-weight">{{ allocation.allocated_weight }} کیلوگرم</span>
+            <span class="allocation-receiver">
+              {% if allocation.allocation_number %}
+                #{{ allocation.allocation_number }} - {{ allocation.delivery_receiver_name }}
+              {% else %}
+                {{ allocation.delivery_receiver_name }}
+              {% endif %}
+            </span>
+            {% if user_role == "logistics_manager" or user_role == "admin" %}
+              {% if purchase.can_assign_addresses %}
+              <form method="post" class="delete-allocation-form">
+                {% csrf_token %}
+                <input type="hidden" name="allocation_id" value="{{ allocation.id }}">
+                <button type="submit" name="delete_allocation" class="btn-delete-allocation" 
+                        onclick="return confirm('آیا از حذف این تخصیص اطمینان دارید؟');">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            {% endif %}
+          </div>
+          <div class="allocation-details">
+            {% if allocation.allocation_number %}
+            <div class="allocation-detail">
+              <strong>شماره تخصیص:</strong> #{{ allocation.allocation_number }}
+            </div>
+            {% endif %}
+            <div class="allocation-detail">
+              <strong>آدرس:</strong> {{ allocation.delivery_address }}
+            </div>
+            <div class="allocation-detail">
+              <strong>کد پستی:</strong> {{ allocation.delivery_postal_code }}
+            </div>
+            <div class="allocation-detail">
+              <strong>شماره هماهنگی:</strong> {{ allocation.coordination_phone }}
+            </div>
+            {% if allocation.notes %}
+            <div class="allocation-detail">
+              <strong>توضیحات:</strong> {{ allocation.notes }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="no-allocations">
+        <i class="fas fa-info-circle"></i>
+        <p>هنوز هیچ تخصیصی اضافه نشده است</p>
+        {% if purchase.can_assign_addresses and user_role in "logistics_manager,admin"|split:"," %}
+        <p><small>از فرم بالا برای افزودن تخصیص استفاده کنید</small></p>
+        {% endif %}
+      </div>
+      {% endif %}
+      </div>
+    </div>
+
+    <!-- مدیریت بارنامه‌ها -->
+    {% if purchase.state in 'carrier_notified,vehicle_arrived,empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-file-invoice"></i> مدیریت بارنامه‌ها
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        
+        <!-- فرم آپلود اکسل بارنامه‌ها -->
+        {% if user_role == "logistics_manager" or user_role == "admin" %}
+          {% if purchase.state in 'carrier_notified,vehicle_arrived'|split:',' %}
+            <div class="barnameh-excel-upload-form">
+              <h4 class="barnameh-excel-form-title">
+                <i class="fas fa-file-excel"></i> آپلود فایل اکسل بارنامه‌ها
+              </h4>
+              <div class="barnameh-excel-upload-info">
+                <div class="barnameh-excel-info-card">
+                  <h5><i class="fas fa-info-circle"></i> راهنمای استفاده</h5>
+                  <ul>
+                    <li>فایل اکسل باید شامل ستون‌های زیر باشد:</li>
+                    <li><strong>شناسه تخصیص</strong> - شماره تخصیص موجود (از لیست زیر)</li>
+                    <li><strong>شماره بارنامه</strong> - (اختیاری) شماره بارنامه دلخواه</li>
+                    <li><strong>نام راننده</strong> - نام کامل راننده</li>
+                    <li><strong>شماره تلفن راننده</strong> - شماره تماس راننده</li>
+                    <li><strong>پلاک خودرو</strong> - پلاک ماشین</li>
+                    <li><strong>وزن خالی</strong> - (اختیاری) وزن ماشین خالی</li>
+                    <li><strong>وزن پر</strong> - (اختیاری) وزن ماشین پر</li>
+                    <li><strong>وزن تحویلی</strong> - (اختیاری) وزن نهایی تحویل</li>
+                    <li><strong>توضیحات</strong> - (اختیاری) توضیحات اضافی</li>
+                  </ul>
+                  <div class="auto-stage-info">
+                    <h6><i class="fas fa-magic"></i> تشخیص خودکار مرحله:</h6>
+                    <ul class="stage-list">
+                      <li><strong>فقط اطلاعات راننده:</strong> وضعیت به "ورود ماشین" تغییر می‌کند</li>
+                      <li><strong>+ وزن خالی:</strong> وضعیت به "وزن خالی" تغییر می‌کند</li>
+                      <li><strong>+ وزن پر:</strong> وضعیت به "وزن پر" تغییر می‌کند</li>
+                      <li><strong>+ وزن تحویلی:</strong> وضعیت به "تحویل به مشتری" تغییر می‌کند</li>
+                    </ul>
+                  </div>
+                  <p class="barnameh-excel-note">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>توجه:</strong> شناسه تخصیص باید از تخصیص‌های موجود در لیست زیر انتخاب شود.
+                  </p>
+                  <div class="available-allocations">
+                    <strong>شماره‌های تخصیص موجود:</strong>
+                    {% for allocation in allocations %}
+                      {% if allocation.allocation_number %}
+                        <span class="allocation-id">{{ allocation.allocation_number }}</span>{% if not forloop.last %}, {% endif %}
+                      {% endif %}
+                    {% endfor %}
+                  </div>
+                </div>
+                
+                <form method="post" enctype="multipart/form-data" class="barnameh-excel-upload-form-inline">
+                  {% csrf_token %}
+                  <div class="barnameh-excel-upload-container">
+                    <div class="form-group">
+                      <label for="barnameh_excel_file">
+                        <i class="fas fa-file-excel"></i> فایل اکسل بارنامه‌ها
+                      </label>
+                      <input type="file" name="barnameh_excel_file" id="barnameh_excel_file" 
+                             accept=".xls,.xlsx" class="form-control" required>
+                      <small class="form-helptext">فایل اکسل حاوی اطلاعات بارنامه‌ها (فرمت‌های مجاز: .xls, .xlsx)</small>
+                    </div>
+                    
+                    <div class="barnameh-excel-upload-actions">
+                      <button type="submit" name="upload_barnameh_excel" class="button barnameh-excel-upload-btn">
+                        <i class="fas fa-upload"></i> آپلود و پردازش اکسل بارنامه‌ها
+                      </button>
+                      <a href="{% url 'download_barnameh_excel_template' %}" class="button download-barnameh-template-btn" target="_blank">
+                        <i class="fas fa-download"></i> دانلود قالب اکسل
+                      </a>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+        
+        {% for item in allocations_with_barnamehs %}
+        <div class="allocation-barnameh-container">
+          <div class="allocation-barnameh-header">
+            <h4>تخصیص: {{ item.allocation.delivery_receiver_name }} - {{ item.allocation.allocated_weight }} کیلوگرم</h4>
+            {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
+              <button type="button" class="btn btn-add-barnameh" onclick="showAddBarnamehForm('{{ item.allocation.id }}')"
+                <i class="fas fa-plus"></i> اضافه کردن بارنامه
+              </button>
+            {% endif %}
+          </div>
+          
+          {% if item.barnamehs %}
+            {% for barnameh in item.barnamehs %}
+            <div class="barnameh-item">
+              <div class="barnameh-header">
+                <h5>بارنامه #{{ barnameh.number|default:barnameh.id }} 
+                  {% if barnameh.vehicle_plate %}- پلاک: {{ barnameh.vehicle_plate }}{% endif %}
+                </h5>
+                {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state == 'carrier_notified' %}
+                  <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="barnameh_id" value="{{ barnameh.id }}">
+                    <button type="submit" name="delete_barnameh" class="btn-delete-barnameh"
+                            onclick="return confirm('آیا از حذف این بارنامه اطمینان دارید؟');">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+              
+              <form method="post" class="barnameh-form">
+                {% csrf_token %}
+                <input type="hidden" name="barnameh_id" value="{{ barnameh.id }}">
+                
+                <div class="barnameh-info-grid">
+                  <!-- اطلاعات بارنامه -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-file-invoice"></i> اطلاعات بارنامه</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>شماره بارنامه:</label>
+                        <input type="text" name="number" value="{{ barnameh.number|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="شماره بارنامه"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="number"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                        <small class="form-text text-muted">شماره بارنامه (قابل ویرایش در مراحل اولیه)</small>
+                      </div>
+                      <!-- فیلد تاریخ بارنامه - فقط در مراحل پایانی نمایش داده می‌شود -->
+                      {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="form-group">
+                        <label><i class="fas fa-calendar"></i> تاریخ بارنامه:</label>
+                        <input type="text" name="barnameh_date" 
+                               value="{% if barnameh.barnameh_date %}{{ barnameh.barnameh_date|date:'Y/m/d' }}{% endif %}" 
+                               class="form-control barnameh-field persian-date-input"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="barnameh_date"
+                               placeholder="1403/01/01"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                        <small class="form-text text-muted">تاریخ رسمی صدور بارنامه (مهم برای گزارش‌گیری)</small>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  
+                  <!-- اطلاعات ماشین -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>نام راننده:</label>
+                        <input type="text" name="driver_name" value="{{ barnameh.driver_name|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="نام راننده"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="driver_name"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>شماره راننده:</label>
+                        <input type="text" name="driver_phone" value="{{ barnameh.driver_phone|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="شماره تماس راننده"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="driver_phone"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>پلاک ماشین:</label>
+                        <input type="text" name="vehicle_plate" value="{{ barnameh.vehicle_plate|default:'' }}" 
+                               class="form-control barnameh-field" placeholder="پلاک ماشین"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="vehicle_plate"
+                               {% if purchase.state not in 'carrier_notified,vehicle_arrived'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- اطلاعات وزن -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-weight"></i> اطلاعات وزن</h6>
+                    <div class="barnameh-fields">
+                      <div class="form-group">
+                        <label>وزن خالی (کیلوگرم):</label>
+                        <input type="number" name="empty_vehicle_weight" value="{{ barnameh.empty_vehicle_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن خالی"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="empty_vehicle_weight"
+                               {% if purchase.state != 'vehicle_arrived' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>وزن پر (کیلوگرم):</label>
+                        <input type="number" name="loaded_vehicle_weight" value="{{ barnameh.loaded_vehicle_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن پر"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="loaded_vehicle_weight"
+                               {% if purchase.state != 'empty_weighed' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      <div class="form-group">
+                        <label>وزن تحویلی (کیلوگرم):</label>
+                        <input type="number" name="final_delivered_weight" value="{{ barnameh.final_delivered_weight|default:'' }}" 
+                               class="form-control barnameh-field" step="0.01" placeholder="وزن تحویلی"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="final_delivered_weight"
+                               {% if purchase.state not in 'loaded_weighed,barnameh_issued,delivered'|split:',' or user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% if barnameh.empty_vehicle_weight and barnameh.loaded_vehicle_weight %}
+                      <div class="form-group">
+                        <label>وزن خالص:</label>
+                        <div class="calculated-weight" id="net-weight-{{ barnameh.id }}">
+                          محاسبه خودکار پس از ذخیره
+                        </div>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                  
+                  <!-- اطلاعات زمانی -->
+                  <div class="barnameh-section">
+                    <h6><i class="fas fa-clock"></i> اطلاعات زمانی</h6>
+                    <div class="barnameh-time-fields">
+                      <!-- زمان ورود ماشین - فقط در مرحله vehicle_arrived و بعد از آن -->
+                      {% if purchase.state in 'vehicle_arrived,empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-car"></i> زمان ورود ماشین:</label>
+                        <input type="datetime-local" name="vehicle_arrival_time" 
+                               value="{% if barnameh.vehicle_arrival_time %}{{ barnameh.vehicle_arrival_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="vehicle_arrival_time"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان وزن خالی - فقط در مرحله empty_weighed و بعد از آن -->
+                      {% if purchase.state in 'empty_weighed,loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-weight-hanging"></i> زمان وزن خالی:</label>
+                        <input type="datetime-local" name="empty_weigh_time" 
+                               value="{% if barnameh.empty_weigh_time %}{{ barnameh.empty_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="empty_weigh_time"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان وزن پر - فقط در مرحله loaded_weighed و بعد از آن -->
+                      {% if purchase.state in 'loaded_weighed,barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-balance-scale"></i> زمان وزن پر:</label>
+                        <input type="datetime-local" name="loaded_weigh_time" 
+                               value="{% if barnameh.loaded_weigh_time %}{{ barnameh.loaded_weigh_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="loaded_weigh_time"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان خروج از انبار - فقط در مرحله barnameh_issued و بعد از آن -->
+                      {% if purchase.state in 'barnameh_issued,delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-truck-loading"></i> زمان خروج از انبار:</label>
+                        <input type="datetime-local" name="departure_time" 
+                               value="{% if barnameh.departure_time %}{{ barnameh.departure_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="departure_time"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                      
+                      <!-- زمان تحویل - فقط در مرحله delivered و بعد از آن -->
+                      {% if purchase.state in 'delivered,purchase_closed'|split:',' %}
+                      <div class="time-field-group">
+                        <label><i class="fas fa-handshake"></i> زمان تحویل:</label>
+                        <input type="datetime-local" name="delivery_time" 
+                               value="{% if barnameh.delivery_time %}{{ barnameh.delivery_time|date:'Y-m-d\TH:i' }}{% endif %}" 
+                               class="form-control time-input barnameh-field"
+                               data-barnameh-id="{{ barnameh.id }}" data-field-name="delivery_time"
+                               {% if user_role not in 'logistics_manager,admin'|split:',' %}readonly{% endif %}>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                
+                {% if user_role in 'logistics_manager,admin'|split:',' %}
+                  {% if purchase.state in 'carrier_notified,vehicle_arrived,empty_weighed,loaded_weighed'|split:',' %}
+                    <div class="barnameh-actions">
+                      <button type="submit" name="update_barnameh" class="btn-update-barnameh">
+                        <i class="fas fa-save"></i> بروزرسانی بارنامه
+                      </button>
+                    </div>
+                  {% endif %}
+                {% endif %}
+              </form>
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="no-barnamehs">
+              <i class="fas fa-info-circle"></i>
+              <p>هنوز بارنامه‌ای برای این تخصیص اضافه نشده است</p>
+              {% if purchase.state == 'carrier_notified' %}
+                <p><small>برای تایید ورود ماشین، ابتدا باید برای همه تخصیص‌ها حداقل یک بارنامه اضافه کنید</small></p>
+              {% endif %}
+            </div>
+          {% endif %}
+          
+          <!-- فرم اضافه کردن بارنامه جدید (مخفی) -->
+          <div class="add-barnameh-form" id="add-barnameh-form-{{ item.allocation.id }}" style="display: none;">
+            <div class="add-barnameh-form-header">
+              <h5><i class="fas fa-plus-circle"></i> افزودن بارنامه جدید</h5>
+              <button type="button" class="btn-close-form" onclick="hideAddBarnamehForm('{{ item.allocation.id }}')">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <form method="post" class="barnameh-form">
+              {% csrf_token %}
+              <input type="hidden" name="allocation_id" value="{{ item.allocation.id }}">
+              
+              <div class="barnameh-info-grid">
+                <!-- اطلاعات بارنامه -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-file-invoice"></i> اطلاعات بارنامه</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>شماره بارنامه:</label>
+                      <input type="text" name="number" class="form-control" placeholder="شماره بارنامه (اختیاری - در صورت خالی بودن خودکار تولید می‌شود)">
+                      <small class="form-text text-muted">اگر خالی بگذارید، شماره خودکار تولید خواهد شد</small>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- اطلاعات ماشین -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-truck"></i> اطلاعات ماشین</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>نام راننده: *</label>
+                      <input type="text" name="driver_name" class="form-control" placeholder="نام راننده" required>
+                    </div>
+                    <div class="form-group">
+                      <label>شماره راننده: *</label>
+                      <input type="text" name="driver_phone" class="form-control" placeholder="شماره تماس راننده" required>
+                    </div>
+                    <div class="form-group">
+                      <label>پلاک ماشین: *</label>
+                      <input type="text" name="vehicle_plate" class="form-control" placeholder="پلاک ماشین" required>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- اطلاعات وزن -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-weight"></i> اطلاعات وزن</h6>
+                  <div class="barnameh-fields">
+                    <div class="form-group">
+                      <label>وزن خالی (کیلوگرم):</label>
+                      <input type="number" name="empty_vehicle_weight" class="form-control" step="0.01" placeholder="وزن خالی" readonly>
+                      <small class="form-text text-muted">این فیلد در مرحله بعد قابل ویرایش خواهد بود</small>
+                    </div>
+                    <div class="form-group">
+                      <label>وزن پر (کیلوگرم):</label>
+                      <input type="number" name="loaded_vehicle_weight" class="form-control" step="0.01" placeholder="وزن پر" readonly>
+                      <small class="form-text text-muted">این فیلد در مراحل بعدی قابل ویرایش خواهد بود</small>
+                    </div>
+                    <div class="form-group">
+                      <label>وزن تحویلی (کیلوگرم):</label>
+                      <input type="number" name="final_delivered_weight" class="form-control" step="0.01" placeholder="وزن تحویلی" readonly>
+                      <small class="form-text text-muted">این فیلد در مراحل بعدی قابل ویرایش خواهد بود</small>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- اطلاعات زمانی - فقط فیلدهای مربوط به مرحله فعلی نمایش داده می‌شوند -->
+                <div class="barnameh-section">
+                  <h6><i class="fas fa-clock"></i> اطلاعات زمانی</h6>
+                  <div class="barnameh-time-fields">
+                    <!-- در مرحله carrier_notified فقط زمان ورود ماشین قابل تنظیم است -->
+                    <div class="time-field-group">
+                      <label><i class="fas fa-car"></i> زمان ورود ماشین:</label>
+                      <input type="datetime-local" name="vehicle_arrival_time" class="form-control time-input" step="60">
+                    </div>
+                    
+                    <div class="time-field-note">
+                      <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        سایر زمان‌ها بعد از ایجاد بارنامه و در مراحل مربوطه قابل تنظیم خواهند بود
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="barnameh-actions">
+                <button type="submit" name="add_barnameh" class="btn-update-barnameh">
+                  <i class="fas fa-save"></i> ایجاد بارنامه
+                </button>
+                <button type="button" class="btn-cancel-barnameh" onclick="hideAddBarnamehForm('{{ item.allocation.id }}')">
+                  <i class="fas fa-times"></i> انصراف
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+        
+        {% if not allocations_with_barnamehs %}
+          <div class="no-allocations">
+            <i class="fas fa-info-circle"></i>
+            <p>ابتدا باید تخصیص آدرس انجام شود</p>
+          </div>
+        {% else %}
+          <!-- دکمه بروزرسانی همه بارنامه‌ها -->
+          {% if user_role in 'logistics_manager,admin'|split:',' and purchase.state in 'carrier_notified,vehicle_arrived,empty_weighed,loaded_weighed'|split:',' %}
+            <div class="update-all-barnamehs-section">
+              <div class="update-all-barnamehs-header">
+                <h4><i class="fas fa-sync-alt"></i> بروزرسانی دسته‌ای</h4>
+                <p class="update-all-info">
+                  <i class="fas fa-info-circle"></i>
+                  با استفاده از این دکمه می‌توانید همه تغییرات انجام شده در فیلدهای بارنامه‌ها را همزمان اعمال کنید
+                </p>
+              </div>
+              
+              <button type="button" class="button update-all-barnamehs-btn" 
+                      onclick="submitUpdateAllBarnamehs();">
+                <i class="fas fa-sync-alt"></i> بروزرسانی همه بارنامه‌ها
+              </button>
+              
+              <div class="update-all-barnamehs-note">
+                <small class="text-muted">
+                  <i class="fas fa-exclamation-triangle"></i>
+                  <strong>توجه:</strong> فقط فیلدهایی که تغییر کرده‌اند بروزرسانی خواهند شد. 
+                  اطمینان حاصل کنید که تمام اطلاعات مورد نیاز را وارد کرده‌اید.
+                </small>
+              </div>
+            </div>
+          {% endif %}
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- اطلاعات لجستیک و حمل
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-truck"></i> اطلاعات لجستیک و حمل
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'vehicle_type,barbary_confidential_number,barbary_customer_number,logistics_notes'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'خودرو' in field.label or 'ماشین' in field.label %}fas fa-car
+                {% elif 'باربری' in field.label %}fas fa-truck
+                {% elif 'توضیحات' in field.label or 'یادداشت' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        </div>
+      </div>
+    </div> -->
+
+    <!-- اطلاعات وزن‌گیری -->
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-weight"></i> اطلاعات وزن‌گیری
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'empty_weight,loaded_weight,delivered_weight,weight_difference,weight_difference_amount'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="fas fa-weight"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- اطلاعات اضافی
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-info-circle"></i> اطلاعات اضافی
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+        {% for field in form %}
+          {% if field.name in 'state,description'|split:',' %}
+          <div class="form-group {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}readonly{% endif %}">
+            <label>
+              {% if field.field.widget.attrs.readonly or field.field.widget.attrs.disabled %}
+              <span class="readonly-indicator" title="این فیلد قابل ویرایش نیست"><i class="fas fa-lock"></i></span>
+              {% endif %}
+              <i class="{% if 'وضعیت' in field.label %}fas fa-flag
+                {% elif 'توضیحات' in field.label %}fas fa-comment
+                {% else %}fas fa-edit
+                {% endif %}"></i> {{ field.label }}
+            </label>
+            <div class="input-container">
+              {{ field }}
+            </div>
+            {% if field.help_text %}
+            <small class="form-helptext">{{ field.help_text }}</small>
+            {% endif %}
+          </div>
+          {% endif %}
+        {% endfor %}
+        </div>
+      </div>
+    </div> -->
+
+    <!-- دکمه‌های اکشن -->
+    <div class="form-actions">
+      <!-- دکمه ذخیره اصلی -->
+      <button type="submit" class="button save-button">
+        <i class="fas fa-save"></i> ذخیره تغییرات
+      </button>
+
+      <!-- دکمه‌های مخصوص مدیر مالی -->
+      {% if user_role == "financial_manager" or user_role == "admin" %}
+        {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+          {% if purchase.payment_document %}
+            <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
+              <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
+            </button>
+          {% else %}
+            <button type="button" class="button approve-btn financial" disabled title="ابتدا باید مدرک پرداخت آپلود شود">
+              <i class="fas fa-lock"></i> 🔒 تایید پرداخت (نیاز به مدرک)
+            </button>
+          {% endif %}
+        {% endif %}
+      {% endif %}
+
+      <!-- دکمه‌های مخصوص مدیر لجستیک - فرم جداگانه -->
+      {% if user_role == "logistics_manager" or user_role == "admin" %}
+        {% if purchase.state == 'payment_verified' %}
+          {% if purchase.can_approve_addresses %}
+            <!-- فرم جداگانه برای تایید تخصیص آدرس‌ها -->
+            <form method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <button type="submit" name="approve_allocations" class="button approve-btn logistics">
+                <i class="fas fa-check-double"></i> ✅ تایید تخصیص آدرس‌ها
+              </button>
+            </form>
+          {% else %}
+            {% if remaining_weight > 0 %}
+              <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید همه وزن تخصیص شود">
+                <i class="fas fa-lock"></i> 🔒 تایید تخصیص ({{ remaining_weight }} کیلوگرم باقی‌مانده)
+              </button>
+            {% elif not allocations %}
+              <button type="button" class="button approve-btn logistics" disabled title="ابتدا باید حداقل یک تخصیص اضافه کنید">
+                <i class="fas fa-lock"></i> 🔒 تایید تخصیص (نیاز به تخصیص)
+              </button>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+        
+        {% if purchase.state == 'address_assigned' %}
+          <!-- فرم جداگانه برای ارسال به انبار -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="send_to_warehouse" class="button approve-btn logistics">
+              <i class="fas fa-warehouse"></i> 🏭 ارسال به انبار
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'sent_to_warehouse' %}
+          <!-- فرم جداگانه برای اعلام بار به باربری -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="notify_carrier" class="button approve-btn logistics">
+              <i class="fas fa-truck"></i> 🚚 اعلام بار به باربری
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'carrier_notified' %}
+          <!-- فرم جداگانه برای تایید ورود ماشین -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="confirm_vehicle_arrival" class="button approve-btn logistics">
+              <i class="fas fa-car"></i> 🚗 تایید ورود ماشین
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'vehicle_arrived' %}
+          <!-- فرم جداگانه برای ثبت وزن خالی -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="record_empty_weight" class="button approve-btn logistics">
+              <i class="fas fa-weight-hanging"></i> ⚖️ ثبت وزن خالی
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'empty_weighed' %}
+          <!-- فرم جداگانه برای ثبت وزن پر -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="record_loaded_weight" class="button approve-btn logistics">
+              <i class="fas fa-balance-scale"></i> ⚖️ ثبت وزن پر
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'loaded_weighed' %}
+          <!-- فرم جداگانه برای صدور بارنامه -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="issue_barnameh" class="button approve-btn logistics">
+              <i class="fas fa-file-invoice"></i> 📋 صدور بارنامه
+            </button>
+          </form>
+        {% endif %}
+
+        <!-- دکمه تولید PDF جامع (همیشه در دسترس) -->
+        <a href="{% url 'generate_comprehensive_purchase_pdf' purchase.id %}" class="button pdf-btn" target="_blank">
+          <i class="fas fa-file-pdf"></i> 📋 گزارش جامع PDF
+        </a>
+
+        {% if purchase.state in 'barnameh_issued,delivered,purchase_closed' %}
+          <!-- دکمه تولید PDF بارنامه‌ها -->
+          <a href="{% url 'generate_barnameh_pdf' purchase.id %}" class="button pdf-btn" target="_blank">
+            <i class="fas fa-file-pdf"></i> 📄 تولید PDF بارنامه‌ها
+          </a>
+        {% endif %}
+        
+        {% if purchase.state == 'barnameh_issued' %}
+          <!-- فرم جداگانه برای تایید تحویل -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="confirm_delivery" class="button approve-btn logistics">
+              <i class="fas fa-handshake"></i> 🤝 تایید تحویل
+            </button>
+          </form>
+        {% endif %}
+        
+        {% if purchase.state == 'delivered' %}
+          <!-- فرم جداگانه برای بستن خرید -->
+          <form method="post" style="display: inline-block;">
+            {% csrf_token %}
+            <button type="submit" name="close_purchase" class="button approve-btn logistics">
+              <i class="fas fa-check-circle"></i> ✅ بستن خرید
+            </button>
+          </form>
+        {% endif %}
+      {% endif %}
+
+      <!-- دکمه‌های مخصوص ادمین -->
+      {% if user_role == "admin" %}
+        <!-- فرم جداگانه برای لغو خرید -->
+        <form method="post" style="display: inline-block;">
+          {% csrf_token %}
+          <button type="submit" name="cancel_purchase" class="button approve-btn danger"
+                  onclick="return confirm('آیا از لغو کردن این خرید اطمینان دارید؟');">
+            <i class="fas fa-times-circle"></i> ❌ لغو خرید
+          </button>
+        </form>
+        
+        <!-- فرم جداگانه برای آرشیو خرید -->
+        <form method="post" style="display: inline-block;">
+          {% csrf_token %}
+          <button type="submit" name="archive_purchase" class="button approve-btn warning"
+                  onclick="return confirm('آیا از آرشیو کردن این خرید اطمینان دارید؟');">
+            <i class="fas fa-archive"></i> 📦 آرشیو خرید
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </form>
+
+</div>
+
+<script src="{% static 'js/non_bazargah_purchase_crud.js' %}"></script>
+
+<script>
+// بهبود رابط کاربری آپلود فایل
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[name="excel_file"]');
+    const uploadBtn = document.querySelector('button[name="upload_allocation_excel"]');
+    
+    if (fileInput && uploadBtn) {
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const fileName = this.files[0].name;
+                const fileSize = (this.files[0].size / 1024 / 1024).toFixed(2);
+                
+                // نمایش اطلاعات فایل
+                const fileInfo = document.createElement('div');
+                fileInfo.className = 'file-info';
+                fileInfo.innerHTML = `
+                    <i class="fas fa-file-excel text-success"></i>
+                    <span>فایل انتخاب شده: ${fileName} (${fileSize} MB)</span>
+                `;
+                
+                // حذف اطلاعات قبلی
+                const existingInfo = document.querySelector('.file-info');
+                if (existingInfo) {
+                    existingInfo.remove();
+                }
+                
+                // اضافه کردن اطلاعات جدید
+                fileInput.parentNode.appendChild(fileInfo);
+                
+                // فعال کردن دکمه آپلود
+                uploadBtn.disabled = false;
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

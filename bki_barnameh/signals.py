@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils import timezone
 from sms_api.apis import queue_sms
@@ -15,6 +15,23 @@ except ImportError:
     HAS_PANDAS = False
 
 logger = logging.getLogger('bki_barnameh_signals')
+
+# دیکشنری برای ذخیره مقادیر قبلی is_sent_to_bki
+_old_is_sent_to_bki_values = {}
+
+@receiver(pre_save, sender=Barnameh)
+def store_old_is_sent_to_bki(sender, instance, **kwargs):
+    """
+    ذخیره مقدار قبلی is_sent_to_bki قبل از ذخیره
+    """
+    if instance.pk:
+        try:
+            old_instance = Barnameh.objects.get(pk=instance.pk)
+            _old_is_sent_to_bki_values[instance.pk] = old_instance.is_sent_to_bki
+            logger.debug(f"Stored old is_sent_to_bki value for barnameh {instance.pk}: {old_instance.is_sent_to_bki}")
+        except Barnameh.DoesNotExist:
+            _old_is_sent_to_bki_values[instance.pk] = False
+            logger.debug(f"Barnameh {instance.pk} not found, assuming old is_sent_to_bki = False")
 
 def create_default_barnameh_template():
     """
@@ -63,28 +80,32 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     
     # اگر این یک آپدیت است، بررسی کنیم که آیا is_sent_to_bki تازه تغییر کرده یا نه
     if not created:
-        # بررسی تغییرات فیلد از دیتابیس
-        try:
-            old_instance = Barnameh.objects.get(pk=instance.pk)
-            # اگر قبلاً is_sent_to_bki برابر True بوده، پیامک ارسال نکن
-            if old_instance.is_sent_to_bki:
-                logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - already was sent to BKI before this update")
-                return
-        except Barnameh.DoesNotExist:
-            # اگر بارنامه در دیتابیس پیدا نشد، احتمالاً جدید است
-            pass
+        # بررسی تغییرات فیلد با استفاده از مقدار ذخیره شده در pre_save
+        old_is_sent_to_bki = _old_is_sent_to_bki_values.get(instance.pk, False)
+        
+        # اگر قبلاً is_sent_to_bki برابر True بوده، پیامک ارسال نکن
+        if old_is_sent_to_bki:
+            logger.info(f"⏭️ Skipping SMS for barnameh {instance.id} - already was sent to BKI before this update (old_value={old_is_sent_to_bki}, new_value={instance.is_sent_to_bki})")
+            # پاک کردن مقدار ذخیره شده
+            _old_is_sent_to_bki_values.pop(instance.pk, None)
+            return
+        
+        logger.info(f"🔄 Barnameh {instance.id} is_sent_to_bki changed from {old_is_sent_to_bki} to {instance.is_sent_to_bki}")
+        
+        # پاک کردن مقدار ذخیره شده
+        _old_is_sent_to_bki_values.pop(instance.pk, None)
     
     logger.info(f"✅ Barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
     
     # بررسی تاریخ بارنامه 
-    # شرط: اگر تاریخ بارنامه 3 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
+    # شرط: اگر تاریخ بارنامه 5 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
     if instance.barnameh_date:
         today = jdate.today()
         # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
         past_days = (today - instance.barnameh_date).days
-        if past_days >= 3:
+        if past_days >= 5:
             logger.info(
-                f"Barnameh {instance.id} is older than or equal to 3 days (past_days={past_days}), skipping SMS"
+                f"Barnameh {instance.id} is older than or equal to 5 days (past_days={past_days}), skipping SMS"
             )
             return
     

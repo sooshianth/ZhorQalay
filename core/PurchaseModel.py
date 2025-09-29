@@ -18,11 +18,15 @@ from django.db.models import Sum, Q, F
 import re
 from core.decorators.det_user_role import determine_user_role
 import logging
+from major.models.BasePurchase import BasePurchase
 
 logger = logging.getLogger("core_purchase")
 
 
-class Purchase(models.Model):
+class Purchase(BasePurchase):
+    # Override customer field with specific related_name
+    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name='مشتری', null=True, blank=True, related_name='purchases_made')
+    
     # وضعیت‌های مختلف خرید
     STATUS_CHOICES = [
         ('INITIATED', 'شروع شده'), # system
@@ -43,66 +47,31 @@ class Purchase(models.Model):
         ('ARCHIVED', 'آرشیو شده'), # admin
     ]
     
-    id = models.AutoField(primary_key=True)
     state = models.CharField("وضعیت", max_length=50, choices=STATUS_CHOICES, default='INITIATED')
     invoice_id = models.CharField(max_length=20, verbose_name='کد درون سازمانی', unique=True, editable=False, blank=True, null=True)
-    customer = models.ForeignKey(Customer, on_delete=models.CASCADE, verbose_name="مشتری", help_text="ارتباط یک‌به‌یک با مشتری از طریق شماره تلفن یا آیدی", related_name='purchases_made', null=True, blank=True)
     sales_agent = models.ManyToManyField(SalesAgent, through='PuchaseSalesAgent', verbose_name="کارشناس فروش", blank=True, related_name='purchase_assignments')
     address = models.TextField("آدرس خریدار", blank=True, null=True)
-    description = models.TextField("توضیحات", blank=True, null=True)
-    company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)
-    customer_price = models.PositiveIntegerField("فی فروش(ریال)", default=0)
     factor_code = models.BooleanField("فاکتور کد", default=False)
     
     purchase_number = models.CharField("شماره خرید بازارگاه", max_length=7, blank=True, null=True, unique=True)
     tracking_number = models.CharField("شماره پیگیری", max_length=6, blank=True, null=True)
     shenase_takhsis = models.CharField("شناسه تخصیص", max_length=255, blank=True, null=True, unique=False)
     bazaargah_phone_number = models.CharField("شماره تلفن بازارگاه", max_length=15, blank=True, null=True)
-    buyer_name = models.CharField("نام خریدار", max_length=255, blank=True, null=True)
+    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
     bazaargah_customer = models.ForeignKey(Customer, on_delete=models.SET_NULL, verbose_name="مشتری بازارگاه", null=True, blank=True, related_name='bazaargah_purchases')
     unique_sales_agent_code = models.CharField("کد کارشناس فروش", max_length=50, blank=True, null=True)
     unique_sales_agent = models.ForeignKey(SalesAgent, on_delete=models.SET_NULL, verbose_name="کارشناس فروش", null=True, blank=True, related_name='unique_sales_agent_purchases')
 
     send_cottage_sms = models.BooleanField('ارسال پیامک کوتاژ', default=True)
-    total_weight = models.PositiveIntegerField("وزن کل (کیلوگرم)", default=0, null=True, blank=True)
     order_weight = models.PositiveIntegerField("وزن سفارش (کیلوگرم)", default=0)
     delivered_weight = models.PositiveIntegerField("وزن بارنامه شده (کیلوگرم)", default=0)
     cargo = models.ForeignKey(CargoProduct,on_delete=models.SET_NULL, verbose_name="کوتاژ", null=True, blank=True, related_name='purchases')
-    type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=[('bazaargah', 'بازارگاه'), ('non_bazaargah', 'خارج از بازارگاه')])
-    amount_paid = models.PositiveBigIntegerField("مبلغ پرداختی(ریال)", blank=True, null=True)
     payment_method = models.CharField("شیوۀ پرداخت", max_length=6, choices=[('نقدی', 'نقدی'), ('توافقی', 'توافقی')], default="نقدی")
-    created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)
-    updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی", auto_now=True, blank=True, null=True)
-    
-    barbary_confidential_number = models.CharField("شماره باربری محرمانه", max_length=50, blank=True, null=True, 
-                                                  help_text="شماره محرمانه باربری برای ادمین یا مالی  ")
-    barbary_customer_number = models.CharField("شماره باربری مشتری", max_length=50, blank=True, null=True,
-                                             help_text="شماره ارائه شده به مشتری از طرف باربری")
-    
-    code_melli_tahvil = models.CharField("کد ملی تحویل", max_length=255, blank=True, null=True)
-    tahvil_phone_number = models.CharField("شماره تلفن تحویل", max_length=15, blank=True, null=True)
-    delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
-    delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
-    delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
-
-    buyer_national_id = models.CharField("شناسه ملی خریدار", max_length=20, blank=True, null=True)
-    buyer_user_type = models.CharField("نوع کاربری خریدار", max_length=20, choices=FIELD_OF_ACTIVITY, blank=True, null=True)
-    buyer_account = models.CharField("حساب خریدار", max_length=100, blank=True, null=True, help_text="حساب خریدار دریافت شده از BKI API")
     
     # فیلدهای آدرس و تحویل
     unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)
     unique_buyer_id = models.CharField("شناسه یکتا خریدار", max_length=50, blank=True, null=True, unique=True)
-    buyer_postal_code = models.CharField("کد پستی خریدار", max_length=10, blank=True, null=True)
     
-    # نوع خودرو حمل
-    VEHICLE_TYPE_CHOICES = [
-        ('trailer', 'تریلی'),
-        ('single', 'تک'),
-        ('double', 'جفت'),
-    ]
-    vehicle_type = models.CharField("نوع خودرو حمل", max_length=20, choices=VEHICLE_TYPE_CHOICES,blank=True, null=True)
-
-
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
     is_ap_af = models.BooleanField("آیا مبلغ خرید اتوکامپلیت شده است؟", default=False)
     extelaf_type = models.CharField("نوع اختلاف (کسری یا سرک)", max_length=4, choices=[('کسری', 'کسری'), ('سرک', 'سرک')], null=True, blank=True)
@@ -120,6 +89,7 @@ class Purchase(models.Model):
     purchase_mabna_invoice = models.PositiveBigIntegerField("فاکتور خرید مبنا", blank=True, null=True)
     sales_mabna_invoice = models.PositiveBigIntegerField("فاکتور فروش مبنا", blank=True, null=True)
     mabna_profit = models.PositiveBigIntegerField("سود مبنا", blank=True, null=True)
+    buyer_account = models.CharField("حساب خریدار", max_length=100, blank=True, null=True, help_text="حساب خریدار دریافت شده از BKI API")
 
     wallet_index = models.CharField("شاخص محاسبه کیف پول", max_length=1, default='0', choices=[('0', 'وزن سفارش'), ('1', 'وزن تحویلی')])
     is_address_sent = models.CharField('آیا آدرس به واردکننده ارسال شده اس؟', max_length=1, default='0', choices=[('0', "ارسال نشده"),('1', "ارسال شده")])
@@ -730,11 +700,13 @@ class Purchase(models.Model):
             self.invoice_id = f"{factor_code}{str(new_serial).zfill(6)}"
 
         if self.cargo:
-            self.type = self.cargo.type
+            self.type = self.cargo.type_of_product
             if self.customer_price == 0:
                 self.price = self.cargo.customer_price
             if self.company_price == 0:
                 self.company_price = self.cargo.company_price
+
+        self.type = 'bazaargah'
                 
         super().save(*args, **kwargs)
         

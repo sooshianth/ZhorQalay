@@ -245,4 +245,15 @@ def length(value):
     try:
         return len(value)
     except (ValueError, TypeError):
+        return 0
+
+@register.filter
+def mul(value, arg):
+    """
+    ضرب دو عدد در template
+    مثال: {{ 5|mul:3 }} -> 15
+    """
+    try:
+        return float(value) * float(arg)
+    except (ValueError, TypeError):
         return 0 

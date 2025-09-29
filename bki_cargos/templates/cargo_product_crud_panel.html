@@ -50,41 +50,75 @@
     <form method='post'>
         {% csrf_token %}
         <div class='form-group'>
-            <label for='type'>نوع خرید:</label>
-            <select id='type' name='type'>
-                {% for value, label in purchase_types %}
-                    <option value='{{ value }}'>{{ label }}</option>
-                {% endfor %}
+            <label for='product_category'>دسته‌بندی محصول:</label>
+            <select id='product_category' name='product_category' onchange='toggleProductFields()'>
+                <option value='bazargah'>بازارگاهی</option>
+                <option value='non_bazargah'>خارج از بازارگاه</option>
             </select>
         </div>
+        
+        <!-- فیلدهای مشترک -->
         <div class='form-group'>
-            <label for='cottage'>کوتاژ:</label>
-            <input type='text' id='cottage' name='cottage' value=''>
+            <label for='product_name'>نام محصول:</label>
+            <input type='text' id='product_name' name='product_name' required>
         </div>
-        <div class='form-group'>
-            <label for='company_price'>فی خرید (ریال):</label>
-            <input type='number' id='company_price' name='company_price' value='0'>
+        
+        <!-- فیلدهای مخصوص محصولات بازارگاهی -->
+        <div id='bazargah_fields'>
+            <div class='form-group'>
+                <label for='cottage'>کوتاژ:</label>
+                <input type='text' id='cottage' name='cottage' value=''>
+            </div>
+            <div class='form-group'>
+                <label for='company_price'>فی خرید (ریال):</label>
+                <input type='number' id='company_price' name='company_price' value='0'>
+            </div>
+            <div class='form-group'>
+                <label for='customer_price'>فی فروش (ریال):</label>
+                <input type='number' id='customer_price' name='customer_price' value='0'>
+            </div>
+            <div class='form-group'>
+                <label for='product_type'>نوع محصول:</label>
+                <select id='product_type' name='product_type'>
+                    {% for value, label in product_types %}
+                        <option value='{{ value }}'>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class='form-group'>
+                <label for='country'>کشور:</label>
+                <select id='country' name='country'>
+                    {% for value, label in countries %}
+                        <option value='{{ value }}'>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class='form-group'>
+                <label for='port'>محل بارگیری:</label>
+                <select id='port' name='port'>
+                    {% for value, label in ports %}
+                        <option value='{{ value }}'>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class='form-group'>
+                <label for='loading_time'>زمان بارگیری:</label>
+                <input type='text' id='loading_time' name='loading_time' value=''>
+            </div>
+            <div class='form-group'>
+                <label for='weight'>وزن موجود:</label>
+                <input type='number' id='weight' name='weight' value='100000'>
+            </div>
         </div>
-        <div class='form-group'>
-            <label for='customer_price'>فی فروش (ریال):</label>
-            <input type='number' id='customer_price' name='customer_price' value='0'>
+        
+        <!-- فیلدهای مخصوص محصولات خارج از بازارگاه -->
+        <div id='non_bazargah_fields' style='display: none;'>
+            <div class='form-group'>
+                <label for='purchase_price'>فی خرید (ریال):</label>
+                <input type='number' id='purchase_price' name='purchase_price' value='0'>
+            </div>
         </div>
-        <div class='form-group'>
-            <label for='product_type'>نوع محصول:</label>
-            <select id='product_type' name='product_type'>
-                {% for value, label in product_types %}
-                    <option value='{{ value }}'>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class='form-group'>
-            <label for='country'>کشور:</label>
-            <select id='country' name='country'>
-                {% for value, label in countries %}
-                    <option value='{{ value }}'>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
+        <!-- فیلدهای مشترک ادامه -->
         <div class='form-group'>
             <label for='vared_konandeh'>واردکننده:</label>
             <select id='vared_konandeh' name='vared_konandeh'>
@@ -94,7 +128,7 @@
                 {% endfor %}
             </select>
         </div>
-        <div class='form-group'>
+        <div class='form-group' id='barbary_field'>
             <label for='barbary'>باربری:</label>
             <select id='barbary' name='barbary'>
                 <option value=''>انتخاب کنید</option>
@@ -104,24 +138,8 @@
             </select>
         </div>
         <div class='form-group'>
-            <label for='port'>محل بارگیری:</label>
-            <select id='port' name='port'>
-                {% for value, label in ports %}
-                    <option value='{{ value }}'>{{ label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class='form-group'>
-            <label for='loading_time'>زمان بارگیری:</label>
-            <input type='text' id='loading_time' name='loading_time' value=''>
-        </div>
-        <div class='form-group'>
             <label for='description'>توضیحات:</label>
             <textarea id='description' name='description'></textarea>
-        </div>
-        <div class='form-group'>
-            <label for='weight'>وزن موجود:</label>
-            <input type='number' id='weight' name='weight' value='100000'>
         </div>
         <div class='form-group'>
             <label for='status'>وضعیت:</label>
@@ -130,4 +148,46 @@
         <button type='submit' class='btn-submit'>ایجاد</button>
     </form>
 </div>
+
+<script>
+function toggleProductFields() {
+    const category = document.getElementById('product_category').value;
+    const bazargahFields = document.getElementById('bazargah_fields');
+    const nonBazargahFields = document.getElementById('non_bazargah_fields');
+    const barbaryField = document.getElementById('barbary_field');
+    
+    if (category === 'bazargah') {
+        bazargahFields.style.display = 'block';
+        nonBazargahFields.style.display = 'none';
+        barbaryField.style.display = 'block';
+        
+        // فعال کردن فیلدهای بازارگاهی
+        document.getElementById('cottage').required = true;
+        document.getElementById('product_type').required = true;
+        document.getElementById('country').required = true;
+        document.getElementById('port').required = true;
+        
+        // غیرفعال کردن فیلدهای غیربازارگاهی
+        document.getElementById('purchase_price').required = false;
+    } else {
+        bazargahFields.style.display = 'none';
+        nonBazargahFields.style.display = 'block';
+        barbaryField.style.display = 'none';
+        
+        // غیرفعال کردن فیلدهای بازارگاهی
+        document.getElementById('cottage').required = false;
+        document.getElementById('product_type').required = false;
+        document.getElementById('country').required = false;
+        document.getElementById('port').required = false;
+        
+        // فعال کردن فیلدهای غیربازارگاهی
+        document.getElementById('purchase_price').required = true;
+    }
+}
+
+// اجرای تابع در بارگذاری اولیه صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    toggleProductFields();
+});
+</script>
 {% endblock %} 

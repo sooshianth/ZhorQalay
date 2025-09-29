@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<style>
+    .invoice-detail-hero {
+        background: linear-gradient(135deg, #059669 0%, #047857 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2.5rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(5, 150, 105, 0.3);
+    }
+
+    .invoice-detail-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .hero-info h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 2rem;
+        font-weight: 800;
+    }
+
+    .hero-info p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1.1rem;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .breadcrumb-nav {
+        background: white;
+        padding: 1rem 2rem;
+        border-radius: 1rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f1f5f9;
+    }
+
+    .breadcrumb-nav a {
+        color: #059669;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .breadcrumb-nav a:hover {
+        color: #047857;
+        text-decoration: underline;
+    }
+
+    .breadcrumb-nav span {
+        color: #64748b;
+        margin: 0 0.5rem;
+    }
+
+    .invoice-type-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        border-radius: 0.75rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .invoice-type-badge.expense {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        color: #991b1b;
+        border: 2px solid #fecaca;
+    }
+
+    .invoice-type-badge.income {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        color: #166534;
+        border: 2px solid #bbf7d0;
+    }
+
+    .invoice-items-grid {
+        display: grid;
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .invoice-item-card {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        transition: transform 0.2s ease;
+    }
+
+    .invoice-item-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+
+    .item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+
+    .item-type {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.7rem;
+        border-radius: 0.5rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        gap: 0.3rem;
+    }
+
+    .item-type.bazargah {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+        border: 1px solid #93c5fd;
+    }
+
+    .item-type.non-bazargah {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #92400e;
+        border: 1px solid #fbbf24;
+    }
+
+    .item-amount {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: #059669;
+        font-family: 'Courier New', monospace;
+    }
+
+    .product-info {
+        background: white;
+        border-radius: 0.75rem;
+        padding: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+
+    .product-name {
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+        font-size: 1.1rem;
+    }
+
+    .quantity-price {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 1rem;
+    }
+
+    .quantity {
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    .unit-price {
+        color: #374151;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+    }
+
+    .summary-card {
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+        border: 2px solid #10b981;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        margin-top: 2rem;
+    }
+
+    .summary-title {
+        font-size: 1.3rem;
+        font-weight: 800;
+        color: #065f46;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .summary-item {
+        text-align: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 0.75rem;
+        border: 1px solid #bbf7d0;
+    }
+
+    .summary-label {
+        color: #065f46;
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .summary-value {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #047857;
+        font-family: 'Courier New', monospace;
+    }
+
+    .related-object-card {
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+        border: 2px solid #f59e0b;
+        border-radius: 1.25rem;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .related-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #92400e;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .related-link {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.75rem 1.25rem;
+        background: white;
+        color: #92400e;
+        text-decoration: none;
+        border-radius: 0.75rem;
+        border: 2px solid #fbbf24;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        gap: 0.5rem;
+    }
+
+    .related-link:hover {
+        background: #fbbf24;
+        color: #78350f;
+        text-decoration: none;
+        transform: translateY(-2px);
+    }
+
+    @media (max-width: 768px) {
+        .hero-content {
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .summary-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .quantity-price {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<div class="fledger-container">
+    <!-- Breadcrumb Navigation -->
+    <div class="breadcrumb-nav">
+        <a href="{% url 'fledger:fledger_dashboard' %}">داشبورد</a>
+        <span>/</span>
+        <a href="{% url 'fledger:invoice_list' %}">لیست فاکتورها</a>
+        <span>/</span>
+        <span>{{ invoice.invoice_id }}</span>
+    </div>
+
+    <!-- Hero Section -->
+    <div class="invoice-detail-hero">
+        <div class="hero-content">
+            <div class="hero-info">
+                <h1>
+                    <i class="fas fa-file-invoice"></i>
+                    فاکتور {{ invoice.invoice_id }}
+                </h1>
+                <p>مشاهده جزئیات کامل فاکتور و آیتم‌های آن</p>
+            </div>
+            <div class="hero-actions">
+                <a href="{% url 'fledger:invoice_list' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-arrow-right"></i>
+                    بازگشت به لیست
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- نوع فاکتور -->
+    <div style="text-align: center; margin-bottom: 2rem;">
+        {% if invoice.type == 'Hazinah' %}
+            <div class="invoice-type-badge expense">
+                <i class="fas fa-minus-circle"></i>
+                فاکتور هزینه
+            </div>
+        {% else %}
+            <div class="invoice-type-badge income">
+                <i class="fas fa-plus-circle"></i>
+                فاکتور درآمد
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- اطلاعات کلی فاکتور -->
+    <div class="fledger-detail-card">
+        <h2>
+            <i class="fas fa-info-circle"></i>
+            اطلاعات کلی فاکتور
+        </h2>
+        
+        <div class="fledger-detail-grid">
+            <div class="fledger-detail-item">
+                <label>شماره فاکتور:</label>
+                <span class="invoice-id">{{ invoice.invoice_id }}</span>
+            </div>
+            
+            <div class="fledger-detail-item">
+                <label>نوع فاکتور:</label>
+                <span>{{ invoice.get_type_display }}</span>
+            </div>
+            
+            {% if invoice.issue_date %}
+            <div class="fledger-detail-item">
+                <label>تاریخ صدور:</label>
+                <span>{{ invoice.issue_date }}</span>
+            </div>
+            {% endif %}
+            
+            <div class="fledger-detail-item">
+                <label>تاریخ ثبت:</label>
+                <span>{{ invoice.created_at }}</span>
+            </div>
+        </div>
+        
+        {% if invoice.description %}
+        <div class="fledger-detail-description">
+            <label>توضیحات:</label>
+            <p>{{ invoice.description }}</p>
+        </div>
+        {% endif %}
+        
+        {% if invoice.attachment %}
+        <div class="fledger-detail-attachment">
+            <label>فایل پیوست:</label>
+            <a href="{{ invoice.attachment.url }}" target="_blank" class="btn-fledger btn-fledger-info btn-fledger-sm">
+                <i class="fas fa-download"></i>
+                دانلود فایل
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- فاکتور مرتبط با هزینه یا درآمد -->
+    {% if invoice.hazinah %}
+    <div class="related-object-card">
+        <div class="related-title">
+            <i class="fas fa-link"></i>
+            مرتبط با هزینه
+        </div>
+        <p><strong>{{ invoice.hazinah.title }}</strong></p>
+        <p>نوع: {{ invoice.hazinah.get_cost_type_display }}</p>
+        <p>وضعیت: {{ invoice.hazinah.get_approval_status_display }}</p>
+        <a href="{% url 'fledger:hazinah_detail' invoice.hazinah.id %}" class="related-link">
+            <i class="fas fa-eye"></i>
+            مشاهده جزئیات هزینه
+        </a>
+    </div>
+    {% elif invoice.income %}
+    <div class="related-object-card">
+        <div class="related-title">
+            <i class="fas fa-link"></i>
+            مرتبط با درآمد
+        </div>
+        <p><strong>{{ invoice.income.title }}</strong></p>
+        <a href="#" class="related-link">
+            <i class="fas fa-eye"></i>
+            مشاهده جزئیات درآمد
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- آیتم‌های فاکتور -->
+    <div class="fledger-detail-card">
+        <h2>
+            <i class="fas fa-list"></i>
+            آیتم‌های فاکتور ({{ invoice.get_items_count }} آیتم)
+        </h2>
+        
+        {% if invoice.items.exists %}
+        <div class="invoice-items-grid">
+            {% for item in invoice.items.all %}
+            <div class="invoice-item-card">
+                <div class="item-header">
+                    {% if item.product_type == 'Bazargah' %}
+                        <div class="item-type bazargah">
+                            <i class="fas fa-cube"></i>
+                            بازارگاهی
+                        </div>
+                    {% else %}
+                        <div class="item-type non-bazargah">
+                            <i class="fas fa-box"></i>
+                            غیر بازارگاهی
+                        </div>
+                    {% endif %}
+                    
+                    <div class="item-amount">
+                        {{ item.get_formatted_total_price }}
+                    </div>
+                </div>
+                
+                <div class="product-info">
+                    <div class="product-name">
+                        {{ item.get_product_name }}
+                    </div>
+                    
+                    <div class="quantity-price">
+                        <div class="quantity">
+                            مقدار: {{ item.amount|default:'نامشخص' }}
+                        </div>
+                        <div class="unit-price">
+                            قیمت واحد: {{ item.price|floatformat:0 }} ریال
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <p>هیچ آیتمی برای این فاکتور ثبت نشده است.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- خلاصه مالی -->
+    <div class="summary-card">
+        <div class="summary-title">
+            <i class="fas fa-calculator"></i>
+            خلاصه مالی فاکتور
+        </div>
+        
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-label">تعداد آیتم‌ها</div>
+                <div class="summary-value">{{ invoice.get_items_count }}</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-label">مبلغ کل (ریال)</div>
+                <div class="summary-value">{{ invoice.get_total_amount|floatformat:0 }}</div>
+            </div>
+            
+            <div class="summary-item">
+                <div class="summary-label">مبلغ کل (تومان)</div>
+                <div class="summary-value">{{ invoice.get_total_amount|floatformat:0|add:"0"|slice:":-1" }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.invoice-id {
+    font-weight: 700;
+    color: #059669;
+    font-family: 'Courier New', monospace;
+    font-size: 1.1rem;
+}
+</style>
+{% endblock %}
