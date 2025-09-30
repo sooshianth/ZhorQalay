@@ -63,7 +63,7 @@ class Barnameh(models.Model):
 
     origin = models.CharField(max_length=255, verbose_name='مبدا', null=True, blank=True)
     rent = models.PositiveBigIntegerField(verbose_name='کرایه', null=True, blank=True)
-    type = models.CharField(max_length=20, verbose_name='نوع بارنامه', choices=BARNAMEH_TYPE_CHOICES, null=True, blank=True, default='Bazargah')
+    type = models.CharField(max_length=20, verbose_name='نوع بارنامه', choices=BARNAMEH_TYPE_CHOICES, default='Bazargah')
     non_bazargah_purchase = models.ForeignKey(NonBazargahPurchase, on_delete=models.CASCADE, verbose_name='خرید غیر بازارگاهی', null=True, blank=True)
     non_bazargah_allocation = models.ForeignKey('major.NonBazargahAllocation', on_delete=models.CASCADE, verbose_name='تخصیص غیر بازارگاهی', related_name='barnamehs', null=True, blank=True)
     

@@ -13,6 +13,6 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='barnameh',
             name='type',
-            field=models.CharField(blank=True, choices=[('Bazargah', 'بازارگاهی'), ('Non_Bazargah', 'خارج بازارگاهی')], default='Bazargah', max_length=20, null=True, verbose_name='نوع بارنامه'),
+            field=models.CharField( choices=[('Bazargah', 'بازارگاهی'), ('Non_Bazargah', 'خارج بازارگاهی')], default='Bazargah', max_length=20, verbose_name='نوع بارنامه'),
         ),
     ]
