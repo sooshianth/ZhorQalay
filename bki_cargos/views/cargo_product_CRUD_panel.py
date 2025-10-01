@@ -85,6 +85,7 @@ def cargo_product_crud_panel(request, product_id=None):
             # ایجاد محصول خارج از بازارگاه (NonBazargahProduct)
             NonBazargahProduct.objects.create(
                 name=data.get('product_name', ''),
+                cottage=data.get('cottage') or None,
                 description=data.get('description'),
                 purchase_price=int(data.get('purchase_price', 0)),
                 vared_konandeh=vared_konandeh,

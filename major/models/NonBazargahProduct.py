@@ -3,6 +3,16 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 class NonBazargahProduct(Product):
+    # فیلد کوتاژ (کد یونیک محصول)
+    cottage = models.CharField(
+        _('کوتاژ'), 
+        unique=True, 
+        max_length=50, 
+        null=True, 
+        blank=True,
+        help_text=_('کد یونیک محصول')
+    )
+    
     # فیلد فی خرید (اطلاعات محرمانه)
     purchase_price = models.PositiveIntegerField(
         _('فی خرید (ریال)'), 
