@@ -426,6 +426,10 @@
                     <i class="fas fa-plus"></i>
                     تراکنش جدید
                 </a>
+                <a href="{% url 'fledger:upload_transactions_excel' %}" class="btn-fledger btn-fledger-primary" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+                    <i class="fas fa-file-excel"></i>
+                    آپلود از اکسل
+                </a>
                 <a href="{% url 'fledger:fledger_dashboard' %}" class="btn-fledger btn-fledger-secondary">
                     <i class="fas fa-arrow-right"></i>
                     بازگشت به داشبورد
@@ -585,6 +589,52 @@
                     </div>
                     {% endif %}
 
+                    <!-- اطلاعات بانکی -->
+                    {% if transaction.deposit_date or transaction.transaction_description or transaction.source_account or transaction.destination_account or transaction.destination_name %}
+                    <div style="margin-top: 1rem; padding: 1rem; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border-radius: 8px; border-right: 4px solid #0ea5e9;">
+                        <h6 style="margin-bottom: 0.75rem; color: #0c4a6e; font-weight: 600; display: flex; align-items: center;">
+                            <i class="fas fa-university" style="margin-left: 0.5rem; color: #0ea5e9;"></i>
+                            اطلاعات بانکی
+                        </h6>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; font-size: 0.875rem;">
+                            {% if transaction.deposit_date %}
+                            <div>
+                                <span style="color: #64748b; font-weight: 500;">تاریخ واریزی:</span>
+                                <span style="color: #0c4a6e;">{{ transaction.deposit_date|date:"Y/m/d" }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if transaction.destination_name %}
+                            <div>
+                                <span style="color: #64748b; font-weight: 500;">نام مقصد:</span>
+                                <span style="color: #0c4a6e;">{{ transaction.destination_name }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if transaction.source_account %}
+                            <div>
+                                <span style="color: #64748b; font-weight: 500;">حساب مبدأ:</span>
+                                <span style="color: #0c4a6e; direction: ltr;">{{ transaction.source_account }}</span>
+                            </div>
+                            {% endif %}
+                            
+                            {% if transaction.destination_account %}
+                            <div>
+                                <span style="color: #64748b; font-weight: 500;">حساب مقصد:</span>
+                                <span style="color: #0c4a6e; direction: ltr;">{{ transaction.destination_account }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if transaction.transaction_description %}
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #bae6fd;">
+                            <span style="color: #64748b; font-weight: 500; display: block; margin-bottom: 0.25rem;">شرح تراکنش:</span>
+                            <span style="color: #0c4a6e;">{{ transaction.transaction_description|truncatewords:20 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
                     <!-- File Attachment -->
                     {% if transaction.file %}
                     <div class="description-box" style="background: #fef3c7; border-color: #f59e0b;">
@@ -600,11 +650,16 @@
 
                     <!-- Actions -->
                     <div class="transaction-actions">
+                        <a href="{% url 'fledger:transaction_detail' transaction.id %}" class="action-btn btn-info" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; border: none;">
+                            <i class="fas fa-info-circle"></i>
+                            مشاهده جزئیات
+                        </a>
+                        
                         {% if transaction.wallet and transaction.wallet.id %}
                             {% if transaction.wallet.varedkonandeh %}
                                 <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">
-                                    <i class="fas fa-eye"></i>
-                                    مشاهده کیف پول واردکننده
+                                    <i class="fas fa-wallet"></i>
+                                    کیف پول
                                 </a>
                             {% elif transaction.wallet.customer %}
                                 <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="action-btn btn-view">

@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}آپلود تراکنش‌ها از اکسل{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-file-excel text-success"></i>
+            آپلود تراکنش‌ها از اکسل
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                <i class="fas fa-arrow-right"></i>
+                بازگشت به لیست
+            </a>
+        </div>
+    </div>
+
+    <!-- راهنمای استفاده -->
+    <div class="alert alert-info" style="margin-bottom: 2rem; background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white; border: none; border-radius: 12px; padding: 1.5rem;">
+        <h5 style="margin-bottom: 1rem;">
+            <i class="fas fa-info-circle"></i>
+            راهنمای آپلود فایل اکسل
+        </h5>
+        <p style="margin-bottom: 0.5rem;">
+            فایل اکسل شما باید شامل ستون‌های زیر باشد (سطر اول هدر):
+        </p>
+        <ul style="margin-bottom: 0; padding-right: 1.5rem;">
+            <li><strong>ستون 1:</strong> تاریخ واریزی (مثال: 1402/06/15 یا تاریخ میلادی)</li>
+            <li><strong>ستون 2:</strong> شرح</li>
+            <li><strong>ستون 3:</strong> مبلغ (عدد مثبت برای درآمد، منفی برای هزینه)</li>
+            <li><strong>ستون 4:</strong> شماره حساب مبدأ</li>
+            <li><strong>ستون 5:</strong> شماره حساب مقصد</li>
+            <li><strong>ستون 6:</strong> نام مقصد</li>
+        </ul>
+        <p style="margin-top: 1rem; margin-bottom: 0;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>توجه:</strong> فایل باید با فرمت .xlsx یا .xls باشد و حداکثر حجم 10 مگابایت.
+        </p>
+    </div>
+
+    <!-- دکمه دانلود قالب -->
+    <div style="margin-bottom: 2rem; text-align: center; padding: 1.5rem; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h5 style="margin-bottom: 1rem; color: #333;">
+            <i class="fas fa-download text-primary"></i>
+            نیاز به قالب اکسل دارید؟
+        </h5>
+        <p style="color: #666; margin-bottom: 1rem;">
+            می‌توانید قالب آماده اکسل را دانلود کرده و با پر کردن آن، تراکنش‌های خود را به راحتی وارد سیستم کنید.
+        </p>
+        <a href="{% url 'fledger:download_excel_template' %}" class="btn-fledger btn-fledger-primary" style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);">
+            <i class="fas fa-file-download"></i>
+            دانلود قالب اکسل
+        </a>
+    </div>
+
+    <!-- فرم آپلود -->
+    <div class="fledger-form">
+        <form method="post" enctype="multipart/form-data" style="max-width: 600px;">
+            {% csrf_token %}
+            
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">
+                    <i class="fas fa-file-upload"></i>
+                    {{ form.excel_file.label }}
+                </label>
+                {{ form.excel_file }}
+                {% if form.excel_file.help_text %}
+                    <small class="form-text text-muted" style="display: block; margin-top: 0.5rem; color: #6c757d;">
+                        {{ form.excel_file.help_text }}
+                    </small>
+                {% endif %}
+                {% if form.excel_file.errors %}
+                    <div class="text-danger" style="margin-top: 0.5rem;">
+                        {{ form.excel_file.errors }}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- نمایش نام فایل انتخاب شده -->
+            <div id="file-name-display" style="margin-top: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px; display: none;">
+                <i class="fas fa-file-excel text-success"></i>
+                <span id="file-name-text"></span>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-upload"></i>
+                    آپلود و پردازش
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- نمونه داده‌های اکسل -->
+    <div style="margin-top: 3rem; padding: 2rem; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h4 style="margin-bottom: 1rem; color: #333;">
+            <i class="fas fa-table text-primary"></i>
+            نمونه ساختار فایل اکسل
+        </h4>
+        <div style="overflow-x: auto;">
+            <table class="table table-bordered" style="width: 100%; font-size: 0.9rem;">
+                <thead style="background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); color: white;">
+                    <tr>
+                        <th style="padding: 0.75rem;">تاریخ واریزی</th>
+                        <th style="padding: 0.75rem;">شرح</th>
+                        <th style="padding: 0.75rem;">مبلغ</th>
+                        <th style="padding: 0.75rem;">شماره حساب مبدأ</th>
+                        <th style="padding: 0.75rem;">شماره حساب مقصد</th>
+                        <th style="padding: 0.75rem;">نام مقصد</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td style="padding: 0.75rem;">1402/06/15</td>
+                        <td style="padding: 0.75rem;">خرید مواد اولیه</td>
+                        <td style="padding: 0.75rem;">50000000</td>
+                        <td style="padding: 0.75rem;">9876543210</td>
+                        <td style="padding: 0.75rem;">1234567890</td>
+                        <td style="padding: 0.75rem;">شرکت ABC</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 0.75rem;">1402/06/16</td>
+                        <td style="padding: 0.75rem;">فروش محصول</td>
+                        <td style="padding: 0.75rem;">-30000000</td>
+                        <td style="padding: 0.75rem;">1234567890</td>
+                        <td style="padding: 0.75rem;">5555555555</td>
+                        <td style="padding: 0.75rem;">مشتری XYZ</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+// نمایش نام فایل انتخاب شده
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const fileNameDisplay = document.getElementById('file-name-display');
+    const fileNameText = document.getElementById('file-name-text');
+    
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                const fileSize = (e.target.files[0].size / 1024 / 1024).toFixed(2);
+                fileNameText.textContent = `${fileName} (${fileSize} MB)`;
+                fileNameDisplay.style.display = 'block';
+            } else {
+                fileNameDisplay.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+
+<style>
+.alert {
+    border-radius: 12px;
+}
+
+.table-bordered th, .table-bordered td {
+    border: 1px solid #dee2e6;
+}
+
+input[type="file"] {
+    padding: 0.75rem;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    background: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+input[type="file"]:hover {
+    border-color: #667eea;
+    background: #e8eaf6;
+}
+</style>
+
+{% endblock %}
+

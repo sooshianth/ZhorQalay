@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-link text-primary"></i>
+            تخصیص هزینه/درآمد به تراکنش #{{ transaction.id }}
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'fledger:transaction_detail' transaction.id %}" class="btn-fledger btn-fledger-secondary">
+                <i class="fas fa-arrow-right"></i>
+                بازگشت
+            </a>
+        </div>
+    </div>
+
+    <!-- اطلاعات کنونی تراکنش -->
+    <div class="info-card" style="margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px;">
+        <h4 style="margin-bottom: 1rem;">
+            <i class="fas fa-info-circle"></i>
+            اطلاعات کنونی تراکنش
+        </h4>
+        <div class="row">
+            <div class="col-md-3">
+                <strong>نوع:</strong> 
+                <span class="badge {% if transaction.transaction_type == 'Income' %}bg-success{% else %}bg-danger{% endif %}" style="margin-right: 0.5rem;">
+                    {{ transaction.get_transaction_type_display }}
+                </span>
+            </div>
+            <div class="col-md-3">
+                <strong>مبلغ:</strong> {{ transaction.amount|floatformat:0 }} ریال
+            </div>
+            <div class="col-md-3">
+                <strong>کیف پول:</strong> 
+                {% if transaction.wallet %}
+                    {{ transaction.wallet }}
+                {% else %}
+                    <span class="badge bg-warning">تخصیص نیافته</span>
+                {% endif %}
+            </div>
+            <div class="col-md-3">
+                <strong>وضعیت:</strong> 
+                <span class="badge {% if transaction.status == 'approved' %}bg-success{% elif transaction.status == 'pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                    {{ transaction.get_status_display }}
+                </span>
+            </div>
+        </div>
+        {% if transaction.transaction_description %}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255,255,255,0.2);">
+            <strong>شرح:</strong> {{ transaction.transaction_description }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- فرم تخصیص -->
+    <div class="fledger-form">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- انتخاب نوع تخصیص -->
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">
+                    <i class="fas fa-tasks"></i>
+                    نوع تخصیص
+                </label>
+                <select name="assignment_type" id="assignment-type" class="form-control-fledger" required>
+                    <option value="">-- انتخاب کنید --</option>
+                    <option value="hazinah">تخصیص به هزینه</option>
+                    <option value="income">تخصیص به درآمد</option>
+                </select>
+            </div>
+
+            <!-- انتخاب کیف پول -->
+            <div class="form-group-fledger">
+                <label class="form-label-fledger">
+                    <i class="fas fa-wallet"></i>
+                    کیف پول (اختیاری)
+                </label>
+                <select name="wallet_id" class="form-control-fledger">
+                    <option value="">-- هیچکدام --</option>
+                    {% for wallet in available_wallets %}
+                        <option value="{{ wallet.id }}" {% if transaction.wallet and transaction.wallet.id == wallet.id %}selected{% endif %}>
+                            {{ wallet }}
+                        </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">
+                    در صورت عدم انتخاب، کیف پول فعلی تراکنش حفظ می‌شود.
+                </small>
+            </div>
+
+            <!-- لیست هزینه‌ها -->
+            <div class="form-group-fledger" id="hazinah-selector" style="display: none;">
+                <label class="form-label-fledger">
+                    <i class="fas fa-money-bill-wave text-danger"></i>
+                    انتخاب هزینه
+                </label>
+                <select name="hazinah_id" class="form-control-fledger">
+                    <option value="">-- انتخاب کنید --</option>
+                    {% for expense in available_expenses %}
+                        <option value="{{ expense.id }}" {% if transaction.hazinah and transaction.hazinah.id == expense.id %}selected{% endif %}>
+                            {{ expense.title }} - {{ expense.final_amount|floatformat:0 }} ریال
+                            ({{ expense.get_cost_type_display }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <small class="form-text text-muted">
+                    فقط هزینه‌های تأیید شده نمایش داده می‌شوند.
+                </small>
+            </div>
+
+            <!-- لیست درآمدها (بارنامه‌ها) -->
+            <div class="form-group-fledger" id="income-selector" style="display: none;">
+                <label class="form-label-fledger">
+                    <i class="fas fa-arrow-up text-success"></i>
+                    انتخاب درآمد (بارنامه)
+                </label>
+                <select name="income_id" class="form-control-fledger">
+                    <option value="">-- انتخاب کنید --</option>
+                    {% for income in available_incomes %}
+                        <option value="{{ income.id }}" {% if transaction.income and transaction.income.id == income.id %}selected{% endif %}>
+                            بارنامه {{ income.number }} - 
+                            {{ income.tonnage|floatformat:0 }} کیلوگرم
+                            {% if income.purchase %}
+                                ({{ income.purchase.customer.name }})
+                            {% endif %}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <a href="{% url 'fledger:transaction_detail' transaction.id %}" class="btn-fledger btn-fledger-secondary">
+                    <i class="fas fa-times"></i>
+                    انصراف
+                </a>
+                <button type="submit" class="btn-fledger btn-fledger-success">
+                    <i class="fas fa-save"></i>
+                    ذخیره تخصیص
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const assignmentType = document.getElementById('assignment-type');
+    const hazinahSelector = document.getElementById('hazinah-selector');
+    const incomeSelector = document.getElementById('income-selector');
+    
+    assignmentType.addEventListener('change', function() {
+        const value = this.value;
+        
+        if (value === 'hazinah') {
+            hazinahSelector.style.display = 'block';
+            incomeSelector.style.display = 'none';
+        } else if (value === 'income') {
+            hazinahSelector.style.display = 'none';
+            incomeSelector.style.display = 'block';
+        } else {
+            hazinahSelector.style.display = 'none';
+            incomeSelector.style.display = 'none';
+        }
+    });
+    
+    // اگر تراکنش قبلاً تخصیص داشته، نمایش بده
+    {% if transaction.hazinah %}
+        assignmentType.value = 'hazinah';
+        hazinahSelector.style.display = 'block';
+    {% elif transaction.income %}
+        assignmentType.value = 'income';
+        incomeSelector.style.display = 'block';
+    {% endif %}
+});
+</script>
+
+<style>
+.info-card {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-weight: normal;
+}
+</style>
+
+{% endblock %}
+

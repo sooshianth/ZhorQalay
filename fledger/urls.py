@@ -20,10 +20,14 @@ urlpatterns = [
     # مدیریت تراکنش‌ها
     path('transactions/', views.transaction_list, name='transaction_list'),
     path('transactions/create/', views.create_transaction, name='create_transaction'),
+    path('transactions/<int:transaction_id>/', views.transaction_detail, name='transaction_detail'),
     path('transactions/<int:transaction_id>/edit/', views.edit_transaction, name='edit_transaction'),
     path('transactions/<int:transaction_id>/delete/', views.delete_transaction, name='delete_transaction'),
     path('transactions/<int:transaction_id>/approve/', views.approve_transaction, name='approve_transaction'),
     path('transactions/<int:transaction_id>/reject/', views.reject_transaction, name='reject_transaction'),
+    path('transactions/<int:transaction_id>/assign/', views.assign_expense_to_transaction, name='assign_expense_to_transaction'),
+    path('transactions/upload-excel/', views.upload_transactions_excel, name='upload_transactions_excel'),
+    path('transactions/download-excel-template/', views.download_excel_template, name='download_excel_template'),
     
     # مدیریت هزینه‌ها
     path('hazinah/', views.hazinah_list, name='hazinah_list'),

@@ -186,6 +186,13 @@ class Transaction(models.Model):
 
     payment_method = models.CharField(_('روش پرداخت'), max_length=20, choices=PAYMENT_METHOD, null=True , blank=True)
 
+    # فیلدهای بانکی برای آپلود از اکسل
+    deposit_date = jmodels.jDateField(_('تاریخ واریزی'), null=True, blank=True)
+    transaction_description = models.TextField(_('شرح تراکنش بانکی'), null=True, blank=True)
+    source_account = models.CharField(_('شماره حساب مبدأ'), max_length=50, null=True, blank=True)
+    destination_account = models.CharField(_('شماره حساب مقصد'), max_length=50, null=True, blank=True)
+    destination_name = models.CharField(_('نام مقصد'), max_length=255, null=True, blank=True)
+
     class Meta:
         verbose_name = _('تراکنش')
         verbose_name_plural = _('تراکنش ها')

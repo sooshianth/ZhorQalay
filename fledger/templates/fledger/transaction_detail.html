@@ -1,0 +1,379 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'fledger/css/fledger.css' %}">
+
+<div class="fledger-container">
+    <div class="fledger-header">
+        <h1>
+            <i class="fas fa-receipt text-primary"></i>
+            جزئیات تراکنش #{{ transaction.id }}
+        </h1>
+        <div class="header-actions">
+            <a href="{% url 'fledger:transaction_list' %}" class="btn-fledger btn-fledger-secondary">
+                <i class="fas fa-arrow-right"></i>
+                بازگشت به لیست
+            </a>
+            {% if transaction.status == 'pending' %}
+                <a href="{% url 'fledger:edit_transaction' transaction.id %}" class="btn-fledger btn-fledger-primary">
+                    <i class="fas fa-edit"></i>
+                    ویرایش
+                </a>
+            {% endif %}
+            <a href="{% url 'fledger:assign_expense_to_transaction' transaction.id %}" class="btn-fledger btn-fledger-success">
+                <i class="fas fa-link"></i>
+                تخصیص هزینه/درآمد
+            </a>
+        </div>
+    </div>
+
+    <!-- وضعیت تراکنش -->
+    <div class="status-banner" style="margin-bottom: 2rem; padding: 1.5rem; 
+        background: {% if transaction.status == 'approved' %}linear-gradient(135deg, #11998e 0%, #38ef7d 100%){% elif transaction.status == 'pending' %}linear-gradient(135deg, #f093fb 0%, #f5576c 100%){% else %}linear-gradient(135deg, #667eea 0%, #764ba2 100%){% endif %}; 
+        color: white; border-radius: 12px; text-align: center;">
+        <h3 style="margin: 0; font-size: 1.5rem;">
+            {% if transaction.status == 'approved' %}
+                <i class="fas fa-check-circle"></i> تراکنش تأیید شده
+            {% elif transaction.status == 'pending' %}
+                <i class="fas fa-clock"></i> در انتظار تأیید
+            {% elif transaction.status == 'rejected' %}
+                <i class="fas fa-times-circle"></i> رد شده
+            {% else %}
+                <i class="fas fa-info-circle"></i> {{ transaction.get_status_display }}
+            {% endif %}
+        </h3>
+    </div>
+
+    <div class="row">
+        <!-- اطلاعات اصلی تراکنش -->
+        <div class="col-md-6">
+            <div class="detail-card" style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #667eea; padding-bottom: 0.5rem;">
+                    <i class="fas fa-info-circle text-primary"></i>
+                    اطلاعات اصلی
+                </h4>
+                
+                <div class="detail-row">
+                    <span class="detail-label">نوع تراکنش:</span>
+                    <span class="detail-value">
+                        <span class="badge {% if transaction.transaction_type == 'Income' %}bg-success{% else %}bg-danger{% endif %}" style="padding: 0.5rem 1rem; border-radius: 8px;">
+                            {{ transaction.get_transaction_type_display }}
+                        </span>
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">مبلغ:</span>
+                    <span class="detail-value" style="font-size: 1.2rem; font-weight: bold; color: {% if transaction.transaction_type == 'Income' %}#28a745{% else %}#dc3545{% endif %};">
+                        {{ transaction.amount|floatformat:0 }} ریال
+                    </span>
+                </div>
+
+                <div class="detail-row">
+                    <span class="detail-label">وضعیت:</span>
+                    <span class="detail-value">
+                        <span class="badge 
+                            {% if transaction.status == 'approved' %}bg-success
+                            {% elif transaction.status == 'pending' %}bg-warning
+                            {% elif transaction.status == 'rejected' %}bg-danger
+                            {% else %}bg-secondary{% endif %}" 
+                            style="padding: 0.5rem 1rem; border-radius: 8px;">
+                            {{ transaction.get_status_display }}
+                        </span>
+                    </span>
+                </div>
+
+                {% if transaction.description %}
+                <div class="detail-row">
+                    <span class="detail-label">توضیحات:</span>
+                    <span class="detail-value">{{ transaction.description }}</span>
+                </div>
+                {% endif %}
+
+                <div class="detail-row">
+                    <span class="detail-label">تاریخ ایجاد:</span>
+                    <span class="detail-value">{{ transaction.created_at|date:"Y/m/d - H:i" }}</span>
+                </div>
+
+                {% if transaction.created_by %}
+                <div class="detail-row">
+                    <span class="detail-label">ایجاد شده توسط:</span>
+                    <span class="detail-value">{{ transaction.created_by.get_full_name|default:transaction.created_by.username }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.approved_at %}
+                <div class="detail-row">
+                    <span class="detail-label">تاریخ تأیید:</span>
+                    <span class="detail-value">{{ transaction.approved_at|date:"Y/m/d - H:i" }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.approved_by %}
+                <div class="detail-row">
+                    <span class="detail-label">تأیید شده توسط:</span>
+                    <span class="detail-value">{{ transaction.approved_by.get_full_name|default:transaction.approved_by.username }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- اطلاعات بانکی -->
+        <div class="col-md-6">
+            <div class="detail-card" style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #28a745; padding-bottom: 0.5rem;">
+                    <i class="fas fa-university text-success"></i>
+                    اطلاعات بانکی
+                </h4>
+
+                {% if transaction.deposit_date %}
+                <div class="detail-row">
+                    <span class="detail-label">تاریخ واریزی:</span>
+                    <span class="detail-value">{{ transaction.deposit_date|date:"Y/m/d" }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.source_account %}
+                <div class="detail-row">
+                    <span class="detail-label">شماره حساب مبدأ:</span>
+                    <span class="detail-value" style="direction: ltr; text-align: left;">{{ transaction.source_account }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.destination_account %}
+                <div class="detail-row">
+                    <span class="detail-label">شماره حساب مقصد:</span>
+                    <span class="detail-value" style="direction: ltr; text-align: left;">{{ transaction.destination_account }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.destination_name %}
+                <div class="detail-row">
+                    <span class="detail-label">نام مقصد:</span>
+                    <span class="detail-value">{{ transaction.destination_name }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.transaction_description %}
+                <div class="detail-row">
+                    <span class="detail-label">شرح تراکنش:</span>
+                    <span class="detail-value">{{ transaction.transaction_description }}</span>
+                </div>
+                {% endif %}
+
+                {% if transaction.payment_method %}
+                <div class="detail-row">
+                    <span class="detail-label">روش پرداخت:</span>
+                    <span class="detail-value">{{ transaction.get_payment_method_display }}</span>
+                </div>
+                {% endif %}
+
+                {% if not transaction.deposit_date and not transaction.source_account and not transaction.destination_account and not transaction.destination_name and not transaction.transaction_description %}
+                <div class="alert alert-info" style="margin: 0;">
+                    <i class="fas fa-info-circle"></i>
+                    اطلاعات بانکی ثبت نشده است.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ارتباطات تراکنش -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="detail-card" style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #ffc107; padding-bottom: 0.5rem;">
+                    <i class="fas fa-wallet text-warning"></i>
+                    کیف پول
+                </h4>
+
+                {% if transaction.wallet %}
+                    <div class="detail-row">
+                        <span class="detail-label">کیف پول:</span>
+                        <span class="detail-value">
+                            {% if transaction.wallet.varedkonandeh %}
+                                <a href="{% url 'fledger:varedkonandeh_wallet_detail' transaction.wallet.id %}" class="text-primary" style="text-decoration: none;">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    {{ transaction.wallet }}
+                                </a>
+                            {% elif transaction.wallet.customer %}
+                                <a href="{% url 'fledger:customer_wallet_detail' transaction.wallet.id %}" class="text-primary" style="text-decoration: none;">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    {{ transaction.wallet }}
+                                </a>
+                            {% else %}
+                                {{ transaction.wallet }}
+                            {% endif %}
+                        </span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">موجودی کیف پول:</span>
+                        <span class="detail-value" style="font-weight: bold; color: {% if transaction.wallet.balance >= 0 %}#28a745{% else %}#dc3545{% endif %};">
+                            {{ transaction.wallet.balance|floatformat:0 }} ریال
+                        </span>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" style="margin: 0;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        کیف پول تخصیص نیافته است.
+                        <a href="{% url 'fledger:assign_expense_to_transaction' transaction.id %}" class="btn-fledger btn-fledger-sm btn-fledger-primary" style="margin-right: 1rem;">
+                            تخصیص کیف پول
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="detail-card" style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                <h4 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #dc3545; padding-bottom: 0.5rem;">
+                    <i class="fas fa-link text-danger"></i>
+                    ارتباط با هزینه/درآمد
+                </h4>
+
+                {% if transaction.hazinah %}
+                    <div class="detail-row">
+                        <span class="detail-label">هزینه مرتبط:</span>
+                        <span class="detail-value">
+                            <a href="{% url 'fledger:hazinah_detail' transaction.hazinah.id %}" class="text-primary" style="text-decoration: none;">
+                                <i class="fas fa-external-link-alt"></i>
+                                {{ transaction.hazinah.title }}
+                            </a>
+                        </span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">نوع هزینه:</span>
+                        <span class="detail-value">{{ transaction.hazinah.get_cost_type_display }}</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">مبلغ هزینه:</span>
+                        <span class="detail-value">{{ transaction.hazinah.final_amount|floatformat:0 }} ریال</span>
+                    </div>
+                {% elif transaction.income %}
+                    <div class="detail-row">
+                        <span class="detail-label">درآمد مرتبط:</span>
+                        <span class="detail-value">
+                            بارنامه {{ transaction.income.number }}
+                            {% if transaction.income.purchase %}
+                                - {{ transaction.income.purchase.customer.name }}
+                            {% endif %}
+                        </span>
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning" style="margin: 0;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        هزینه یا درآمد تخصیص نیافته است.
+                        <a href="{% url 'fledger:assign_expense_to_transaction' transaction.id %}" class="btn-fledger btn-fledger-sm btn-fledger-success" style="margin-right: 1rem;">
+                            تخصیص هزینه/درآمد
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- فایل پیوست -->
+    {% if transaction.file %}
+    <div class="detail-card" style="background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+        <h4 style="margin-bottom: 1.5rem; color: #333; border-bottom: 2px solid #17a2b8; padding-bottom: 0.5rem;">
+            <i class="fas fa-file-alt text-info"></i>
+            فایل پیوست
+        </h4>
+        <a href="{{ transaction.file.url }}" target="_blank" class="btn-fledger btn-fledger-info" download>
+            <i class="fas fa-download"></i>
+            دانلود فایل پیوست
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- دکمه‌های عملیات -->
+    {% if transaction.status == 'pending' %}
+    <div style="margin-top: 2rem; padding: 1.5rem; background: #f8f9fa; border-radius: 12px; text-align: center;">
+        <h5 style="margin-bottom: 1rem;">عملیات تأیید</h5>
+        <form method="post" action="{% url 'fledger:approve_transaction' transaction.id %}" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" class="btn-fledger btn-fledger-success" onclick="return confirm('آیا از تأیید این تراکنش اطمینان دارید؟');">
+                <i class="fas fa-check"></i>
+                تأیید تراکنش
+            </button>
+        </form>
+        <form method="post" action="{% url 'fledger:reject_transaction' transaction.id %}" style="display: inline; margin-right: 1rem;">
+            {% csrf_token %}
+            <button type="submit" class="btn-fledger btn-fledger-danger" onclick="return confirm('آیا از رد این تراکنش اطمینان دارید؟');">
+                <i class="fas fa-times"></i>
+                رد تراکنش
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: #666;
+    min-width: 180px;
+}
+
+.detail-value {
+    color: #333;
+    text-align: left;
+    flex: 1;
+}
+
+.detail-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.status-banner {
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.btn-fledger-sm {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.875rem;
+}
+</style>
+
+{% endblock %}
+

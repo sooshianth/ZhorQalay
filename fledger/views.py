@@ -11,7 +11,7 @@ from core.decorators.decorators import role_required
 from core.PurchaseModel import Purchase
 from core.CargoProductModel import VaredKonandeh, CargoProduct
 from fledger.models import Wallet, Transaction, LedgerEntry
-from fledger.forms import TransactionForm, TransactionEditForm, HazinahForm, HazinahPaymentForm, InvoiceForm, InvoiceItemFormSet
+from fledger.forms import TransactionForm, TransactionEditForm, HazinahForm, HazinahPaymentForm, InvoiceForm, InvoiceItemFormSet, TransactionExcelUploadForm
 from major.models.Hazinah import Hazinah
 from major.models.Invoice import Invoice
 from major.models.InvoiceItem import InvoiceItem
@@ -1879,6 +1879,314 @@ def export_barnamehs_to_excel(request, bazargah_bills, non_bazargah_bills, start
     filename = f"barnamehs_{date}.xlsx"
 
     # پاسخ HTTP
+    response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    
+    wb.save(response)
+    return response
+
+
+# ==================== ویوهای مدیریت تراکنش‌ها از طریق اکسل ====================
+
+@role_required('admin', 'financial_manager')
+def upload_transactions_excel(request):
+    """
+    آپلود فایل اکسل و ایجاد تراکنش‌های دسته‌ای
+    """
+    import openpyxl
+    import jdatetime
+    from decimal import Decimal
+    
+    if request.method == 'POST':
+        form = TransactionExcelUploadForm(request.POST, request.FILES)
+        
+        if form.is_valid():
+            excel_file = form.cleaned_data['excel_file']
+            
+            try:
+                # خواندن فایل اکسل
+                wb = openpyxl.load_workbook(excel_file)
+                ws = wb.active
+                
+                # لیست تراکنش‌های ایجاد شده
+                created_transactions = []
+                errors = []
+                
+                # خواندن سطرها (سطر اول هدر است)
+                for row_idx, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
+                    try:
+                        # استخراج داده‌ها از ستون‌ها
+                        # فرض: ستون‌ها به ترتیب: تاریخ واریزی، شرح، مبلغ، شماره حساب مبدأ، شماره حساب مقصد، نام مقصد
+                        
+                        if not row or all(cell is None or str(cell).strip() == '' for cell in row):
+                            continue  # سطر خالی را رد کن
+                        
+                        deposit_date_str = row[0] if len(row) > 0 else None
+                        description = str(row[1]).strip() if len(row) > 1 and row[1] else None
+                        amount_str = row[2] if len(row) > 2 else None
+                        source_account = str(row[3]).strip() if len(row) > 3 and row[3] else None
+                        destination_account = str(row[4]).strip() if len(row) > 4 and row[4] else None
+                        destination_name = str(row[5]).strip() if len(row) > 5 and row[5] else None
+                        
+                        # اعتبارسنجی داده‌ها
+                        if not amount_str:
+                            errors.append(f'سطر {row_idx}: مبلغ الزامی است')
+                            continue
+                        
+                        # تبدیل مبلغ
+                        try:
+                            # حذف کاما و تبدیل به عدد
+                            amount_clean = str(amount_str).replace(',', '').replace('٬', '').strip()
+                            amount = int(float(amount_clean))
+                            if amount == 0:
+                                errors.append(f'سطر {row_idx}: مبلغ نمی‌تواند صفر باشد')
+                                continue
+                        except (ValueError, TypeError) as e:
+                            errors.append(f'سطر {row_idx}: مبلغ نامعتبر است ({amount_str})')
+                            continue
+                        
+                        # پردازش تاریخ
+                        deposit_date = None
+                        if deposit_date_str:
+                            try:
+                                # اگر تاریخ به صورت datetime object آمده
+                                if hasattr(deposit_date_str, 'date'):
+                                    from datetime import datetime
+                                    gregorian_date = deposit_date_str.date() if hasattr(deposit_date_str, 'date') else deposit_date_str
+                                    # تبدیل به جلالی
+                                    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
+                                    deposit_date = jalali_date
+                                # اگر به صورت string آمده
+                                elif isinstance(deposit_date_str, str):
+                                    # تلاش برای پارس فرمت‌های مختلف
+                                    date_str_clean = deposit_date_str.strip()
+                                    if '/' in date_str_clean:
+                                        parts = date_str_clean.split('/')
+                                        if len(parts) == 3:
+                                            deposit_date = jdatetime.date(int(parts[0]), int(parts[1]), int(parts[2]))
+                                    elif '-' in date_str_clean:
+                                        parts = date_str_clean.split('-')
+                                        if len(parts) == 3:
+                                            deposit_date = jdatetime.date(int(parts[0]), int(parts[1]), int(parts[2]))
+                            except Exception as e:
+                                errors.append(f'سطر {row_idx}: تاریخ نامعتبر است ({deposit_date_str})')
+                        
+                        # تعیین نوع تراکنش بر اساس علامت مبلغ
+                        transaction_type = 'Income' if amount > 0 else 'Hazinah'
+                        
+                        # ایجاد تراکنش
+                        new_transaction = Transaction.objects.create(
+                            wallet=None,  # در ابتدا بدون کیف پول (بعداً کاربر تخصیص می‌دهد)
+                            transaction_type=transaction_type,
+                            amount=abs(amount),  # ذخیره مقدار مثبت
+                            description=description or '',
+                            transaction_description=description or '',
+                            deposit_date=deposit_date,
+                            source_account=source_account,
+                            destination_account=destination_account,
+                            destination_name=destination_name,
+                            created_by=request.user,
+                            status='pending'  # وضعیت اولیه: در انتظار تایید
+                        )
+                        
+                        created_transactions.append(new_transaction)
+                        
+                    except Exception as e:
+                        errors.append(f'سطر {row_idx}: خطا در پردازش - {str(e)}')
+                        continue
+                
+                # نمایش نتایج
+                if created_transactions:
+                    messages.success(
+                        request, 
+                        f'✅ {len(created_transactions)} تراکنش با موفقیت ایجاد شد.'
+                    )
+                
+                if errors:
+                    for error in errors[:10]:  # نمایش حداکثر 10 خطا
+                        messages.warning(request, error)
+                    if len(errors) > 10:
+                        messages.warning(request, f'و {len(errors) - 10} خطای دیگر...')
+                
+                if created_transactions:
+                    return redirect('fledger:transaction_list')
+                    
+            except Exception as e:
+                messages.error(request, f'خطا در خواندن فایل اکسل: {str(e)}')
+        else:
+            messages.error(request, 'لطفاً خطاهای فرم را برطرف کنید.')
+    else:
+        form = TransactionExcelUploadForm()
+    
+    context = {
+        'form': form,
+        'title': 'آپلود تراکنش‌ها از اکسل'
+    }
+    
+    return render(request, 'fledger/upload_transactions_excel.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def assign_expense_to_transaction(request, transaction_id):
+    """
+    تخصیص هزینه یا درآمد به تراکنش موجود
+    """
+    trans = get_object_or_404(Transaction, id=transaction_id)
+    
+    if request.method == 'POST':
+        assignment_type = request.POST.get('assignment_type')
+        hazinah_id = request.POST.get('hazinah_id')
+        income_id = request.POST.get('income_id')
+        wallet_id = request.POST.get('wallet_id')
+        
+        try:
+            with transaction.atomic():
+                # تخصیص کیف پول
+                if wallet_id:
+                    wallet = Wallet.objects.get(id=wallet_id)
+                    trans.wallet = wallet
+                
+                # تخصیص هزینه یا درآمد
+                if assignment_type == 'hazinah' and hazinah_id:
+                    hazinah = Hazinah.objects.get(id=hazinah_id)
+                    trans.hazinah = hazinah
+                    trans.transaction_type = 'Hazinah'
+                    trans.income = None
+                elif assignment_type == 'income' and income_id:
+                    income = Barnameh.objects.get(id=income_id)
+                    trans.income = income
+                    trans.transaction_type = 'Income'
+                    trans.hazinah = None
+                
+                trans.save()
+                
+                messages.success(request, 'تراکنش با موفقیت به‌روزرسانی شد.')
+                return redirect('fledger:transaction_detail', transaction_id=trans.id)
+                
+        except Exception as e:
+            messages.error(request, f'خطا در تخصیص: {str(e)}')
+    
+    # لیست هزینه‌ها و درآمدها برای انتخاب
+    available_expenses = Hazinah.objects.filter(
+        approval_status__in=['approved', 'auto_approved']
+    ).order_by('-created_at')[:50]
+    
+    available_incomes = Barnameh.objects.all().order_by('-barnameh_created_at')[:50]
+    
+    available_wallets = Wallet.objects.select_related('varedkonandeh', 'customer').all()
+    
+    context = {
+        'transaction': trans,
+        'available_expenses': available_expenses,
+        'available_incomes': available_incomes,
+        'available_wallets': available_wallets,
+        'title': f'تخصیص هزینه/درآمد به تراکنش #{trans.id}'
+    }
+    
+    return render(request, 'fledger/assign_expense_to_transaction.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def transaction_detail(request, transaction_id):
+    """
+    نمایش جزئیات کامل یک تراکنش
+    """
+    trans = get_object_or_404(
+        Transaction.objects.select_related(
+            'wallet', 'wallet__varedkonandeh', 'wallet__customer',
+            'hazinah', 'income', 'created_by', 'approved_by'
+        ),
+        id=transaction_id
+    )
+    
+    context = {
+        'transaction': trans,
+        'title': f'جزئیات تراکنش #{trans.id}'
+    }
+    
+    return render(request, 'fledger/transaction_detail.html', context)
+
+
+@role_required('admin', 'financial_manager')
+def download_excel_template(request):
+    """
+    دانلود قالب اکسل برای آپلود تراکنش‌ها
+    """
+    import openpyxl
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from django.http import HttpResponse
+    import jdatetime
+    
+    # ایجاد فایل اکسل جدید
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "قالب تراکنش‌ها"
+    
+    # تنظیم جهت راست به چپ
+    ws.sheet_view.rightToLeft = True
+    
+    # تعریف استایل‌ها
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_fill = PatternFill(start_color="0ea5e9", end_color="2563eb", fill_type="solid")
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    border_style = Border(
+        left=Side(style='thin', color='CCCCCC'),
+        right=Side(style='thin', color='CCCCCC'),
+        top=Side(style='thin', color='CCCCCC'),
+        bottom=Side(style='thin', color='CCCCCC')
+    )
+    
+    # هدرها
+    headers = ['تاریخ واریزی', 'شرح', 'مبلغ', 'شماره حساب مبدأ', 'شماره حساب مقصد', 'نام مقصد']
+    
+    # نوشتن هدرها
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = header_alignment
+        cell.border = border_style
+    
+    # تنظیم عرض ستون‌ها
+    column_widths = [20, 40, 18, 20, 20, 30]
+    for col_num, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(col_num)].width = width
+    
+    # اضافه کردن چند سطر نمونه
+    sample_data = [
+        ['1402/07/10', 'خرید مواد اولیه', 50000000, '1234567890', '9876543210', 'شرکت ABC'],
+        ['1402/07/11', 'دریافت از مشتری', -30000000, '9876543210', '1234567890', 'شرکت XYZ'],
+        ['1402/07/12', 'پرداخت حقوق', 100000000, '1234567890', '5555555555', 'کارمندان'],
+    ]
+    
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    
+    for row_num, row_data in enumerate(sample_data, 2):
+        for col_num, value in enumerate(row_data, 1):
+            cell = ws.cell(row=row_num, column=col_num, value=value)
+            cell.alignment = center_alignment
+            cell.border = border_style
+            
+            # رنگ زمینه برای سطرهای نمونه
+            cell.fill = PatternFill(start_color="E3F2FD", end_color="E3F2FD", fill_type="solid")
+    
+    # اضافه کردن توضیحات در پایین
+    instruction_row = len(sample_data) + 4
+    ws.merge_cells(f'A{instruction_row}:F{instruction_row}')
+    instruction_cell = ws.cell(row=instruction_row, column=1)
+    instruction_cell.value = "⚠️ توضیحات: سطرهای بالا نمونه هستند. می‌توانید آنها را حذف کرده و داده‌های خود را وارد کنید. مبلغ مثبت = درآمد، مبلغ منفی = هزینه"
+    instruction_cell.alignment = Alignment(horizontal="right", vertical="center", wrap_text=True)
+    instruction_cell.font = Font(size=10, color="FF0000", bold=True)
+    ws.row_dimensions[instruction_row].height = 40
+    
+    # نام فایل با تاریخ
+    current_date = jdatetime.datetime.now()
+    filename = f"قالب_تراکنش‌ها_{current_date.strftime('%Y%m%d_%H%M%S')}.xlsx"
+    
+    # ایجاد پاسخ HTTP
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )

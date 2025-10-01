@@ -106,7 +106,10 @@ class TransactionEditForm(forms.ModelForm):
     
     class Meta:
         model = Transaction
-        fields = ['transaction_type', 'amount', 'description', 'file', 'hazinah', 'income', 'payment_method']
+        fields = [
+            'transaction_type', 'amount', 'description', 'file', 'hazinah', 'income', 'payment_method',
+            'deposit_date', 'transaction_description', 'source_account', 'destination_account', 'destination_name'
+        ]
         
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -165,10 +168,44 @@ class TransactionEditForm(forms.ModelForm):
         self.fields['payment_method'].label = 'روش پرداخت (اختیاری)'
         self.fields['hazinah'].label = 'هزینه (اختیاری)'
         self.fields['income'].label = 'درآمد (اختیاری)'
+        self.fields['deposit_date'].label = 'تاریخ واریزی (اختیاری)'
+        self.fields['transaction_description'].label = 'شرح تراکنش بانکی (اختیاری)'
+        self.fields['source_account'].label = 'شماره حساب مبدأ (اختیاری)'
+        self.fields['destination_account'].label = 'شماره حساب مقصد (اختیاری)'
+        self.fields['destination_name'].label = 'نام مقصد (اختیاری)'
         
         # تنظیم queryset برای فیلدها
         self.fields['hazinah'].queryset = Hazinah.objects.filter(approval_status__in=['approved', 'auto_approved'])
         self.fields['income'].queryset = Barnameh.objects.all()
+        
+        # تنظیم ویجت‌های فیلدهای جدید
+        self.fields['deposit_date'].widget.attrs.update({
+            'class': 'form-control-fledger datepicker',
+            'placeholder': 'مثال: 1402/07/10'
+        })
+        
+        self.fields['transaction_description'].widget.attrs.update({
+            'class': 'form-control-fledger',
+            'rows': 2,
+            'placeholder': 'شرح تراکنش بانکی'
+        })
+        
+        self.fields['source_account'].widget.attrs.update({
+            'class': 'form-control-fledger',
+            'placeholder': 'شماره حساب مبدأ',
+            'dir': 'ltr'
+        })
+        
+        self.fields['destination_account'].widget.attrs.update({
+            'class': 'form-control-fledger',
+            'placeholder': 'شماره حساب مقصد',
+            'dir': 'ltr'
+        })
+        
+        self.fields['destination_name'].widget.attrs.update({
+            'class': 'form-control-fledger',
+            'placeholder': 'نام مقصد'
+        })
         
     def clean_amount(self):
         amount = self.cleaned_data.get('amount')
@@ -501,3 +538,33 @@ InvoiceItemFormSet = inlineformset_factory(
     can_delete=True,  # امکان حذف آیتم‌ها
     validate_min=True
 )
+
+
+class TransactionExcelUploadForm(forms.Form):
+    """
+    فرم آپلود فایل اکسل برای ایجاد تراکنش‌های دسته‌ای
+    """
+    excel_file = forms.FileField(
+        label='فایل اکسل',
+        help_text='فایل اکسل با فرمت .xlsx یا .xls حاوی ستون‌های: تاریخ واریزی، شرح، مبلغ، شماره حساب مبدأ، شماره حساب مقصد، نام مقصد',
+        widget=forms.FileInput(attrs={
+            'class': 'form-control-fledger',
+            'accept': '.xlsx,.xls',
+        })
+    )
+    
+    def clean_excel_file(self):
+        file = self.cleaned_data.get('excel_file')
+        
+        if not file:
+            raise forms.ValidationError('لطفاً یک فایل انتخاب کنید.')
+        
+        # بررسی پسوند فایل
+        if not file.name.endswith(('.xlsx', '.xls')):
+            raise forms.ValidationError('فقط فایل‌های اکسل با فرمت .xlsx یا .xls مجاز هستند.')
+        
+        # بررسی حجم فایل (حداکثر 10MB)
+        if file.size > 10 * 1024 * 1024:
+            raise forms.ValidationError('حجم فایل نباید بیشتر از 10 مگابایت باشد.')
+        
+        return file

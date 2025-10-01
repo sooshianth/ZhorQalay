@@ -130,6 +130,136 @@
                 {% endif %}
             </div>
 
+            <!-- فیلدهای اطلاعات بانکی -->
+            <div style="margin: 2rem 0; padding: 1.5rem; background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%); border-radius: 12px; border: 2px solid #0ea5e9;">
+                <h4 style="margin-bottom: 1.5rem; color: #0c4a6e; display: flex; align-items: center;">
+                    <i class="fas fa-university" style="margin-left: 0.5rem; color: #0ea5e9;"></i>
+                    اطلاعات بانکی (اختیاری)
+                </h4>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group-fledger">
+                            <label class="form-label-fledger">{{ form.deposit_date.label }}</label>
+                            {{ form.deposit_date }}
+                            {% if form.deposit_date.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.deposit_date.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group-fledger">
+                            <label class="form-label-fledger">{{ form.payment_method.label }}</label>
+                            {{ form.payment_method }}
+                            {% if form.payment_method.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.payment_method.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.transaction_description.label }}</label>
+                    {{ form.transaction_description }}
+                    {% if form.transaction_description.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.transaction_description.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group-fledger">
+                            <label class="form-label-fledger">{{ form.source_account.label }}</label>
+                            {{ form.source_account }}
+                            {% if form.source_account.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.source_account.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group-fledger">
+                            <label class="form-label-fledger">{{ form.destination_account.label }}</label>
+                            {{ form.destination_account }}
+                            {% if form.destination_account.errors %}
+                                <div class="text-danger mt-1">
+                                    {% for error in form.destination_account.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.destination_name.label }}</label>
+                    {{ form.destination_name }}
+                    {% if form.destination_name.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.destination_name.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- فیلدهای هزینه/درآمد -->
+            <div style="margin: 2rem 0; padding: 1.5rem; background: #f9fafb; border-radius: 12px; border: 1px solid #e5e7eb;">
+                <h4 style="margin-bottom: 1.5rem; color: #374151;">
+                    <i class="fas fa-link" style="margin-left: 0.5rem;"></i>
+                    ارتباط با هزینه/درآمد (اختیاری)
+                </h4>
+
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.hazinah.label }}</label>
+                    {{ form.hazinah }}
+                    {% if form.hazinah.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.hazinah.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small style="color: #666; display: block; margin-top: 0.5rem;">
+                        برای تراکنش‌های هزینه، می‌توانید هزینه مرتبط را انتخاب کنید.
+                    </small>
+                </div>
+
+                <div class="form-group-fledger">
+                    <label class="form-label-fledger">{{ form.income.label }}</label>
+                    {{ form.income }}
+                    {% if form.income.errors %}
+                        <div class="text-danger mt-1">
+                            {% for error in form.income.errors %}
+                                <small>{{ error }}</small>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    <small style="color: #666; display: block; margin-top: 0.5rem;">
+                        برای تراکنش‌های درآمد، می‌توانید بارنامه مرتبط را انتخاب کنید.
+                    </small>
+                </div>
+            </div>
+
             <div style="display: flex; gap: 1rem; margin-top: 2rem;">
                 {% if transaction.wallet and transaction.wallet.id %}
                     {% if transaction.wallet.varedkonandeh %}
