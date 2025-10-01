@@ -172,19 +172,26 @@ class PhishForm(forms.ModelForm):
     
     class Meta:
         model = Phish
-        fields = ['bank_name', 'account_number', 'depositor_name', 'amount', 'transaction_date', 'description']
+        fields = ['account', 'bank_name', 'account_number', 'depositor_name', 'amount', 'transaction_date', 'description']
         widgets = {
+            'account': forms.Select(attrs={
+                'class': 'form-control',
+                'id': 'phish_account_select'
+            }),
             'bank_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'نام بانک (مثال: ملی، ملت، صادرات)'
+                'placeholder': 'نام بانک (مثال: ملی، ملت، صادرات)',
+                'id': 'phish_bank_name'
             }),
             'account_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'شماره حساب یا کارت'
+                'placeholder': 'شماره حساب یا کارت',
+                'id': 'phish_account_number'
             }),
             'depositor_name': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'نام واریزکننده'
+                'placeholder': 'نام واریزکننده',
+                'id': 'phish_depositor_name'
             }),
             'amount': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -198,12 +205,70 @@ class PhishForm(forms.ModelForm):
             })
         }
         labels = {
+            'account': 'شماره حساب ذخیره شده',
             'bank_name': 'نام بانک',
             'account_number': 'شماره حساب',
             'depositor_name': 'نام واریزکننده',
             'amount': 'مبلغ (ریال)',
             'description': 'توضیحات'
         }
+    
+    def __init__(self, *args, customer=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # همه فیلدها را اختیاری می‌کنیم برای حالتی که account انتخاب می‌شود
+        self.fields['account'].required = False
+        self.fields['bank_name'].required = False
+        self.fields['account_number'].required = False
+        self.fields['depositor_name'].required = False
+        
+        # فیلتر کردن شماره‌های حساب بر اساس مشتری
+        if customer:
+            from core.AccountNumber import AccountNumber
+            self.fields['account'].queryset = AccountNumber.objects.filter(
+                customer=customer,
+                is_active=True
+            ).order_by('-created_at')
+            self.fields['account'].empty_label = "انتخاب شماره حساب (اختیاری)"
+        else:
+            self.fields['account'].queryset = self.fields['account'].queryset.none()
+            self.fields['account'].empty_label = "مشتری مشخص نیست"
+    
+    def clean_account(self):
+        """اعتبارسنجی فیلد account"""
+        account = self.cleaned_data.get('account')
+        
+        # اگر account ارسال شده، مطمئن شو که در queryset موجود است
+        if account:
+            # بررسی اینکه account در queryset باشد
+            if account not in self.fields['account'].queryset:
+                raise ValidationError('شماره حساب انتخاب شده معتبر نیست')
+        
+        return account
+    
+    def clean(self):
+        """اعتبارسنجی سفارشی - یا account یا فیلدهای دستی باید پر شوند"""
+        cleaned_data = super().clean()
+        account = cleaned_data.get('account')
+        bank_name = cleaned_data.get('bank_name')
+        account_number = cleaned_data.get('account_number')
+        depositor_name = cleaned_data.get('depositor_name')
+        
+        # اگر account انتخاب شده، اطلاعات را از آن بگیر
+        if account:
+            cleaned_data['bank_name'] = account.bank_name
+            cleaned_data['account_number'] = account.account_number
+            cleaned_data['depositor_name'] = account.account_holder_name
+        else:
+            # اگر account انتخاب نشده، فیلدهای دستی باید پر شده باشند
+            if not bank_name:
+                raise ValidationError({'bank_name': 'نام بانک الزامی است (یا شماره حساب ذخیره شده را انتخاب کنید)'})
+            if not account_number:
+                raise ValidationError({'account_number': 'شماره حساب الزامی است (یا شماره حساب ذخیره شده را انتخاب کنید)'})
+            if not depositor_name:
+                raise ValidationError({'depositor_name': 'نام واریزکننده الزامی است (یا شماره حساب ذخیره شده را انتخاب کنید)'})
+        
+        return cleaned_data
     
     def clean_transaction_date(self):
         """تبدیل تاریخ شمسی به میلادی"""
@@ -1299,7 +1364,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
             'close_purchase', 'cancel_purchase', 'archive_purchase', 
             'upload_payment_document', 'delete_payment_document', 'add_phish', 'delete_phish',
-            'delete_allocation', 'add_barnameh', 'update_barnameh', 'delete_barnameh'
+            'save_account_number', 'delete_allocation', 'add_barnameh', 'update_barnameh', 'delete_barnameh'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
@@ -1339,7 +1404,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         
         # پردازش اضافه کردن فیش
         if 'add_phish' in request.POST:
-            phish_form = PhishForm(request.POST)
+            phish_form = PhishForm(request.POST, customer=purchase.customer)
             if phish_form.is_valid():
                 try:
                     phish = phish_form.save(commit=False)
@@ -1371,6 +1436,41 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                 except Phish.DoesNotExist:
                     messages.error(request, 'فیش مورد نظر یافت نشد')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش افزودن شماره حساب جدید به لیست مشتری
+        if 'save_account_number' in request.POST:
+            bank_name = request.POST.get('save_bank_name', '').strip()
+            account_number = request.POST.get('save_account_number', '').strip()
+            account_holder = request.POST.get('save_account_holder', '').strip()
+            
+            if bank_name and account_number and account_holder and purchase.customer:
+                try:
+                    from core.AccountNumber import AccountNumber
+                    
+                    # بررسی عدم تکرار
+                    existing = AccountNumber.objects.filter(
+                        customer=purchase.customer,
+                        account_number=account_number
+                    ).first()
+                    
+                    if existing:
+                        messages.warning(request, f'این شماره حساب قبلاً برای مشتری {purchase.customer.name} ثبت شده است')
+                    else:
+                        # ایجاد شماره حساب جدید
+                        AccountNumber.objects.create(
+                            customer=purchase.customer,
+                            bank_name=bank_name,
+                            account_number=account_number,
+                            account_holder_name=account_holder,
+                            is_active=True
+                        )
+                        messages.success(request, f'شماره حساب {account_number} به لیست حساب‌های مشتری {purchase.customer.name} اضافه شد')
+                except Exception as e:
+                    messages.error(request, f'خطا در ذخیره شماره حساب: {str(e)}')
+            else:
+                messages.error(request, 'لطفاً همه فیلدهای نام بانک، شماره حساب و نام صاحب حساب را پر کنید')
+            
+            return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
         # پردازش آپلود فایل اکسل تخصیص‌ها
         if 'upload_allocation_excel' in request.POST and user_role in ['logistics_manager', 'admin']:
@@ -2261,7 +2361,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     
     # فرم‌های مربوط به پرداخت
     payment_document_form = PaymentDocumentUploadForm()
-    phish_form = PhishForm()
+    phish_form = PhishForm(customer=purchase.customer)
     
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
@@ -2432,6 +2532,37 @@ def download_allocation_excel_template(request):
     response['Content-Disposition'] = 'attachment; filename="template_allocations.xlsx"'
     
     return response
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_account_number_details_api(request):
+    """
+    API برای دریافت اطلاعات شماره حساب برای auto-fill
+    """
+    account_id = request.GET.get('account_id')
+    
+    if not account_id:
+        return JsonResponse({'error': 'شناسه شماره حساب ارسال نشده'}, status=400)
+    
+    try:
+        from core.AccountNumber import AccountNumber
+        account = AccountNumber.objects.select_related('customer').get(id=account_id)
+        
+        data = {
+            'bank_name': account.bank_name,
+            'account_number': account.account_number,
+            'account_holder_name': account.account_holder_name,
+            'customer_name': account.customer.name if account.customer else ''
+        }
+        
+        return JsonResponse(data)
+        
+    except AccountNumber.DoesNotExist:
+        return JsonResponse({'error': 'شماره حساب یافت نشد'}, status=404)
+    except Exception as e:
+        logger.error(f'خطا در دریافت اطلاعات شماره حساب: {str(e)}')
+        return JsonResponse({'error': f'خطای سرور: {str(e)}'}, status=500)
 
 
 @role_required('admin', 'logistics_manager')

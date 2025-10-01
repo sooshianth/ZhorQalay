@@ -411,11 +411,26 @@
                   </div>
                   {% endfor %}
                 </div>
+              <div class="phish-form-actions" style="display: flex; gap: 10px; align-items: center;">
                 <button type="submit" name="add_phish" class="btn btn-success">
                   <i class="fas fa-plus"></i> افزودن فیش
                 </button>
-              </form>
-            </div>
+                <button type="button" class="btn btn-secondary" id="saveAccountNumberBtn" 
+                        title="ذخیره این شماره حساب برای استفاده‌های بعدی">
+                  <i class="fas fa-save"></i> ذخیره شماره حساب برای مشتری
+                </button>
+              </div>
+            </form>
+            
+            <!-- فرم مخفی برای ذخیره شماره حساب -->
+            <form method="post" id="saveAccountForm" style="display: none;">
+              {% csrf_token %}
+              <input type="hidden" name="save_bank_name" id="save_bank_name">
+              <input type="hidden" name="save_account_number" id="save_account_number">
+              <input type="hidden" name="save_account_holder" id="save_account_holder">
+              <button type="submit" name="save_account_number"></button>
+            </form>
+          </div>
             {% else %}
             <div class="payment-complete-notice">
               <i class="fas fa-check-circle text-success"></i>
@@ -1440,6 +1455,76 @@ document.addEventListener('DOMContentLoaded', function() {
         // اگر jQuery UI موجود نبود، حداقل readonly را بردار
         document.querySelectorAll('.persian-date-input').forEach(function(input) {
             input.removeAttribute('readonly');
+        });
+    }
+    
+    // Auto-fill برای شماره حساب در فرم فیش
+    const accountSelect = document.getElementById('phish_account_select');
+    if (accountSelect) {
+        accountSelect.addEventListener('change', function() {
+            const accountId = this.value;
+            
+            if (accountId) {
+                // دریافت اطلاعات شماره حساب از API
+                fetch(`/major/api/account-number-details/?account_id=${accountId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            console.error('خطا در دریافت اطلاعات شماره حساب:', data.error);
+                            return;
+                        }
+                        
+                        // پر کردن خودکار فیلدها
+                        const bankNameInput = document.getElementById('phish_bank_name');
+                        const accountNumberInput = document.getElementById('phish_account_number');
+                        const depositorNameInput = document.getElementById('phish_depositor_name');
+                        
+                        if (bankNameInput) bankNameInput.value = data.bank_name || '';
+                        if (accountNumberInput) accountNumberInput.value = data.account_number || '';
+                        if (depositorNameInput) depositorNameInput.value = data.account_holder_name || '';
+                        
+                        // نمایش پیام موفقیت
+                        console.log('اطلاعات شماره حساب بارگذاری شد');
+                    })
+                    .catch(error => {
+                        console.error('خطا در دریافت اطلاعات:', error);
+                    });
+            } else {
+                // پاک کردن فیلدها اگر شماره حساب انتخاب نشود
+                const bankNameInput = document.getElementById('phish_bank_name');
+                const accountNumberInput = document.getElementById('phish_account_number');
+                const depositorNameInput = document.getElementById('phish_depositor_name');
+                
+                if (bankNameInput) bankNameInput.value = '';
+                if (accountNumberInput) accountNumberInput.value = '';
+                if (depositorNameInput) depositorNameInput.value = '';
+            }
+        });
+    }
+    
+    // دکمه ذخیره شماره حساب جدید
+    const saveAccountBtn = document.getElementById('saveAccountNumberBtn');
+    if (saveAccountBtn) {
+        saveAccountBtn.addEventListener('click', function() {
+            const bankName = document.getElementById('phish_bank_name')?.value.trim();
+            const accountNumber = document.getElementById('phish_account_number')?.value.trim();
+            const depositorName = document.getElementById('phish_depositor_name')?.value.trim();
+            
+            if (!bankName || !accountNumber || !depositorName) {
+                alert('لطفاً ابتدا نام بانک، شماره حساب و نام واریزکننده را پر کنید');
+                return;
+            }
+            
+            // تایید از کاربر
+            if (confirm(`آیا می‌خواهید این شماره حساب را برای مشتری ذخیره کنید؟\n\nبانک: ${bankName}\nشماره حساب: ${accountNumber}\nصاحب حساب: ${depositorName}`)) {
+                // پر کردن فرم مخفی
+                document.getElementById('save_bank_name').value = bankName;
+                document.getElementById('save_account_number').value = accountNumber;
+                document.getElementById('save_account_holder').value = depositorName;
+                
+                // ارسال فرم
+                document.getElementById('saveAccountForm').submit();
+            }
         });
     }
 });

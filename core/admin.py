@@ -15,6 +15,7 @@ from .TaskModel import Task
 from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
 from .SupportAgentTask import SupportAgentTask
+from .AccountNumber import AccountNumber
 from sms_api.models import SmsQueue
 from sms_api.apis import queue_sms
 from django.urls import path
@@ -617,5 +618,44 @@ class PhoneAssignmentAdmin(ListChartMixin, admin.ModelAdmin):
     date_hierarchy = 'created_at'
 
 
+@admin.register(AccountNumber)
+class AccountNumberAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'customer', 'bank_name', 'account_number',
+        'account_holder_name', 'is_active', 'created_at'
+    )
+    list_filter = ('bank_name', 'is_active', 'created_at')
+    search_fields = (
+        'customer__name', 'customer__phone_number',
+        'bank_name', 'account_number', 'account_holder_name'
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    list_per_page = 25
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('اطلاعات مشتری', {
+            'fields': ('customer',)
+        }),
+        ('اطلاعات حساب بانکی', {
+            'fields': (
+                'bank_name', 'account_number', 'account_holder_name'
+            )
+        }),
+        ('وضعیت', {
+            'fields': ('is_active',)
+        }),
+        ('توضیحات', {
+            'fields': ('description',),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('customer')
 
 

@@ -15,6 +15,17 @@ class Phish(models.Model):
         related_name='phishes'
     )
     
+    # ارتباط با شماره حساب (برای auto-fill)
+    account = models.ForeignKey(
+        'core.AccountNumber',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name='شماره حساب',
+        related_name='phishes',
+        help_text='انتخاب شماره حساب برای تکمیل خودکار اطلاعات'
+    )
+    
     # اطلاعات بانکی و پرداخت
     bank_name = models.CharField("نام بانک", max_length=100)
     account_number = models.CharField("شماره حساب", max_length=50)

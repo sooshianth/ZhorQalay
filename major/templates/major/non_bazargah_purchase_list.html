@@ -181,6 +181,9 @@
                             <th data-column-id="warehouse_contact_person" data-column-type="text" style="min-width: 150px; display: none;">رابط انبار</th>
                             <th data-column-id="warehouse_contact_phone" data-column-type="text" style="min-width: 120px; display: none;">تماس انبار</th>
                             <th data-column-id="logistics_notes" data-column-type="text" style="min-width: 200px; display: none;">یادداشت لجستیک</th>
+                            <th data-column-id="phish_accounts" data-column-type="text" style="min-width: 250px; display: none;">شماره حساب‌ها</th>
+                            <th data-column-id="phish_count" data-column-type="number" style="min-width: 100px; display: none;">تعداد فیش</th>
+                            <th data-column-id="total_phish_amount" data-column-type="number" style="min-width: 150px; display: none;">مجموع فیش‌ها</th>
                             <th data-column-id="actions" data-column-type="actions" style="min-width: 100px;">جزییات</th>
                         </tr>
                     </thead>
@@ -276,6 +279,19 @@
                                 <td data-column="warehouse_contact_person" style="display: none;">{{ purchase.warehouse_contact_person|default:"-" }}</td>
                                 <td data-column="warehouse_contact_phone" style="display: none;">{{ purchase.warehouse_contact_phone|default:"-" }}</td>
                                 <td data-column="logistics_notes" style="display: none;">{{ purchase.logistics_notes|default:"-" }}</td>
+                                <td data-column="phish_accounts" style="display: none;">
+                                    {% if purchase.phishes.exists %}
+                                        {% for phish in purchase.phishes.all %}
+                                            <div class="account-badge">{{ phish.bank_name }} - {{ phish.account_number }}</div>
+                                        {% endfor %}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td data-column="phish_count" style="display: none;">
+                                    <span class="badge bg-info">{{ purchase.phishes.count }}</span>
+                                </td>
+                                <td data-column="total_phish_amount" style="display: none;">{{ purchase.get_total_phish_amount|intcomma|default:"0" }}</td>
                                 <td data-column="actions">
                                     <a href="{% url 'non_bazargah_purchase_CRUD' purchase.id %}" 
                                        class="btn btn-sm btn-outline-primary" 
@@ -652,6 +668,42 @@
                                                 value="logistics_notes">
                                             <label class="form-check-label" for="col-logistics_notes">
                                                 یادداشت لجستیک
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون شماره حساب‌های استفاده شده -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-phish_accounts" name="columns[]" 
+                                                value="phish_accounts">
+                                            <label class="form-check-label" for="col-phish_accounts">
+                                                شماره حساب‌های استفاده شده
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون تعداد فیش‌ها -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-phish_count" name="columns[]" 
+                                                value="phish_count">
+                                            <label class="form-check-label" for="col-phish_count">
+                                                تعداد فیش‌ها
+                                            </label>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- ستون مجموع فیش‌ها -->
+                                    <div class="col-lg-4 col-md-6">
+                                        <div class="column-checkbox">
+                                            <input class="form-check-input" type="checkbox" 
+                                                id="col-total_phish_amount" name="columns[]" 
+                                                value="total_phish_amount">
+                                            <label class="form-check-label" for="col-total_phish_amount">
+                                                مجموع فیش‌ها (ریال)
                                             </label>
                                         </div>
                                     </div>

@@ -25,7 +25,7 @@ def non_bazargah_purchase_list(request):
     # ایجاد QuerySet پایه
     base_queryset = NonBazargahPurchase.objects.select_related(
         'customer', 'unique_sales_agent', 'product'
-    ).order_by('-created_at')
+    ).prefetch_related('phishes').order_by('-created_at')
     
     # اگر کاربر کارشناس فروش است، فقط خریدهای مربوطه را ببیند
     if user_role == 'sales_agent':
@@ -82,6 +82,9 @@ def get_column_mapping():
         'warehouse_contact_person': 'رابط انبار',
         'warehouse_contact_phone': 'تماس انبار',
         'logistics_notes': 'یادداشت لجستیک',
+        'phish_accounts': 'شماره حساب‌های استفاده شده',
+        'phish_count': 'تعداد فیش‌ها',
+        'total_phish_amount': 'مجموع فیش‌ها (ریال)',
         'actions': 'عملیات'
     }
 
@@ -140,6 +143,18 @@ def get_purchase_data(purchase, columns):
             data[column_mapping[column]] = purchase.warehouse_contact_phone or '-'
         elif column == 'logistics_notes':
             data[column_mapping[column]] = purchase.logistics_notes or '-'
+        elif column == 'phish_accounts':
+            # دریافت لیست شماره حساب‌های استفاده شده در فیش‌ها
+            accounts = []
+            for phish in purchase.phishes.all():
+                account_info = f"{phish.bank_name} - {phish.account_number}"
+                if account_info not in accounts:
+                    accounts.append(account_info)
+            data[column_mapping[column]] = ', '.join(accounts) if accounts else '-'
+        elif column == 'phish_count':
+            data[column_mapping[column]] = purchase.phishes.count()
+        elif column == 'total_phish_amount':
+            data[column_mapping[column]] = purchase.get_total_phish_amount() if hasattr(purchase, 'get_total_phish_amount') else 0
         elif column == 'actions':
             continue  # ستون عملیات را نادیده بگیر
     
@@ -166,7 +181,7 @@ def export_non_bazargah_purchases_excel(request):
         # ایجاد QuerySet
         base_queryset = NonBazargahPurchase.objects.select_related(
             'customer', 'unique_sales_agent', 'product'
-        ).order_by('-created_at')
+        ).prefetch_related('phishes').order_by('-created_at')
         
         # فیلتر کردن بر اساس شناسه‌های انتخاب شده
         if purchase_ids:

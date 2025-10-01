@@ -15,6 +15,7 @@ from .views.non_bazargah_purchase_CRUD import (
     delete_non_bazargah_purchase_view,
     download_allocation_excel_template,
     download_barnameh_excel_template,
+    get_account_number_details_api,
     # upload_non_bazargah_document  # منسوخ شده - حالا درون فرم اصلی handle می‌شود
 )
 from .views.pdf_views import generate_barnameh_pdf, generate_comprehensive_purchase_pdf
@@ -36,5 +37,6 @@ urlpatterns = [
     path('non-bazargah-purchase/<int:purchase_id>/comprehensive-pdf/', generate_comprehensive_purchase_pdf, name='generate_comprehensive_purchase_pdf'),
     path('download-allocation-excel-template/', download_allocation_excel_template, name='download_allocation_excel_template'),
     path('download-barnameh-excel-template/', download_barnameh_excel_template, name='download_barnameh_excel_template'),
+    path('api/account-number-details/', get_account_number_details_api, name='get_account_number_details_api'),
     # path('non-bazargah-purchase/<int:purchase_id>/upload/', upload_non_bazargah_document, name='upload_non_bazargah_document'),  # منسوخ
 ]
