@@ -624,7 +624,7 @@ def process_allocation_excel(file, purchase):
         # خواندن فایل اکسل با تنظیمات مناسب
         df = pd.read_excel(file, dtype=str)  # همه ستون‌ها را به صورت رشته بخوان
         
-        # بررسی وجود ستون‌های ضروری
+        # بررسی وجود ستون‌های ضروری (شماره تخصیص اختیاری است)
         required_columns = ['آدرس تحویل', 'کد پستی', 'نام گیرنده', 'شماره هماهنگی', 'وزن تخصیص یافته']
         missing_columns = [col for col in required_columns if col not in df.columns]
         
@@ -664,7 +664,10 @@ def process_allocation_excel(file, purchase):
                     coordination_phone = str(phone_raw).strip()
                 
                 allocated_weight = clean_numeric_value(row.get('وزن تخصیص یافته', 0))
-                allocation_number = str(row.get('شماره تخصیص', '')).strip() or None
+                # شماره تخصیص اختیاری است - اگر نباشد خودکار تولید می‌شود
+                allocation_number = None
+                if 'شماره تخصیص' in df.columns:
+                    allocation_number = str(row.get('شماره تخصیص', '')).strip() or None
                 notes = str(row.get('توضیحات', '')).strip() or None
                 
                 # اعتبارسنجی داده‌ها
@@ -789,11 +792,10 @@ class NonBazargahAllocationForm(forms.ModelForm):
     class Meta:
         model = NonBazargahAllocation
         fields = [
-            'allocation_number', 'delivery_address', 'delivery_postal_code', 'delivery_receiver_name',
+            'delivery_address', 'delivery_postal_code', 'delivery_receiver_name',
             'coordination_phone', 'allocated_weight', 'notes'
         ]
         widgets = {
-            'allocation_number': forms.TextInput(attrs={'placeholder': 'شماره تخصیص (اختیاری)'}),
             'delivery_address': forms.Textarea(attrs={'rows': 3, 'placeholder': 'آدرس کامل محل تحویل کالا'}),
             'delivery_postal_code': forms.TextInput(attrs={'placeholder': 'کد پستی 10 رقمی'}),
             'delivery_receiver_name': forms.TextInput(attrs={'placeholder': 'نام شخص گیرنده کالا'}),
@@ -802,7 +804,6 @@ class NonBazargahAllocationForm(forms.ModelForm):
             'notes': forms.Textarea(attrs={'rows': 2, 'placeholder': 'توضیحات اضافی (اختیاری)'}),
         }
         labels = {
-            'allocation_number': 'شماره تخصیص',
             'delivery_address': 'آدرس تحویل',
             'delivery_postal_code': 'کد پستی',
             'delivery_receiver_name': 'نام گیرنده',
@@ -2376,19 +2377,18 @@ def download_allocation_excel_template(request):
     worksheet.set_column('C:C', 25)  # نام گیرنده
     worksheet.set_column('D:D', 20)  # شماره هماهنگی
     worksheet.set_column('E:E', 18)  # وزن تخصیص یافته
-    worksheet.set_column('F:F', 15)  # شماره تخصیص
-    worksheet.set_column('G:G', 30)  # توضیحات
+    worksheet.set_column('F:F', 30)  # توضیحات
     
-    # نوشتن هدرها
+    # نوشتن هدرها (شماره تخصیص حذف شد - خودکار تولید می‌شود)
     headers = [
         'آدرس تحویل', 'کد پستی', 'نام گیرنده', 
-        'شماره هماهنگی', 'وزن تخصیص یافته', 'شماره تخصیص', 'توضیحات'
+        'شماره هماهنگی', 'وزن تخصیص یافته', 'توضیحات'
     ]
     
     for col, header in enumerate(headers):
         worksheet.write(0, col, header, header_format)
     
-    # نوشتن نمونه داده‌ها
+    # نوشتن نمونه داده‌ها (شماره تخصیص حذف شد)
     sample_data = [
         [
             'تهران، خیابان ولیعصر، پلاک 123، طبقه 2',
@@ -2396,7 +2396,6 @@ def download_allocation_excel_template(request):
             'علی احمدی',
             '09123456789',
             500,
-            'A001',
             'تحویل در منزل - تماس قبل از تحویل'
         ],
         [
@@ -2405,7 +2404,6 @@ def download_allocation_excel_template(request):
             'فاطمه محمدی',
             '09987654321',
             300,
-            'A002',
             'تحویل در محل کار - ساعت کاری'
         ],
         [
@@ -2414,7 +2412,6 @@ def download_allocation_excel_template(request):
             'حسن رضایی',
             '09111111111',
             750,
-            'A003',
             'تحویل در منزل - عصر'
         ]
     ]

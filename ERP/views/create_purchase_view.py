@@ -152,23 +152,14 @@ def create_non_bazaargah_purchase(form_data, customer, sales_agent, description,
     # ثبت لاگ برای بررسی
     logger.info(f'محاسبه وزن خرید خارج از بازارگاه: واحد={unit}, مقدار={quantity}, وزن کیسه={bag_weight}, وزن کل={total_weight_kg} کیلوگرم')
     
-    # تولید شماره خرید یکتا
-    import random
-    import string
-    
-    # تولید شماره خرید 7 رقمی یکتا
-    while True:
-        purchase_number = ''.join(random.choices(string.digits, k=7))
-        if not NonBazargahPurchase.objects.filter(purchase_number=purchase_number).exists():
-            break
-    
+    # ایجاد خرید - شماره خرید به صورت خودکار تولید می‌شود (از 100000)
     purchase = NonBazargahPurchase.objects.create(
         customer=customer,
         product=product,
         unit=unit,
         quantity=quantity,
         bag_weight=bag_weight,
-        purchase_number=purchase_number,
+        # purchase_number حذف شد - مدل خودش خودکار تولید می‌کند
         description=description,
         customer_price=customer_price or product.customer_price,
         company_price=product.get_purchase_price(),

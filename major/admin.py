@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from .models.NonBazargahProduct import NonBazargahProduct
 from .models.NonBazargahPurchase import NonBazargahPurchase
+from .models.NonBazargahAllocation import NonBazargahAllocation
 from .models.Product import Product
 from .models.Hazinah import Hazinah
 from .models.Invoice import Invoice
@@ -80,6 +81,45 @@ class NonBazargahPurchaseAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
             'customer', 'product', 'unique_sales_agent'
+        )
+
+
+@admin.register(NonBazargahAllocation)
+class NonBazargahAllocationAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'allocation_number', 'purchase', 'delivery_receiver_name',
+        'allocated_weight', 'delivery_postal_code', 'coordination_phone'
+    )
+    list_filter = ('purchase__state', 'purchase__product')
+    search_fields = (
+        'allocation_number', 'delivery_receiver_name', 'delivery_address',
+        'delivery_postal_code', 'coordination_phone', 'purchase__purchase_number'
+    )
+    readonly_fields = ('allocation_number',)
+    list_per_page = 25
+    
+    fieldsets = (
+        ('اطلاعات خرید', {
+            'fields': ('purchase', 'allocation_number')
+        }),
+        ('اطلاعات تحویل', {
+            'fields': (
+                'delivery_receiver_name', 'delivery_address',
+                'delivery_postal_code', 'coordination_phone'
+            )
+        }),
+        ('وزن تخصیص', {
+            'fields': ('allocated_weight',)
+        }),
+        ('یادداشت‌ها', {
+            'fields': ('notes',),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'purchase', 'purchase__product', 'purchase__customer'
         )
 
 
