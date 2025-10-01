@@ -434,6 +434,24 @@ class NonBazargahPurchase(BasePurchase):
             self.save()
 
     def save(self, *args, **kwargs):
+        # تولید شماره خرید خودکار (از 100000 شروع)
+        if not self.purchase_number:
+            # دریافت آخرین شماره خرید
+            last_purchase = NonBazargahPurchase.objects.filter(
+                purchase_number__isnull=False
+            ).order_by('-purchase_number').first()
+            
+            if last_purchase and last_purchase.purchase_number:
+                try:
+                    last_number = int(last_purchase.purchase_number)
+                    self.purchase_number = str(last_number + 1)
+                except (ValueError, TypeError):
+                    # اگر شماره قبلی عدد نبود، از 100000 شروع کن
+                    self.purchase_number = '100000'
+            else:
+                # اولین خرید
+                self.purchase_number = '100000'
+        
         # تنظیم فی خرید از محصول
         if self.product and not self.company_price:
             self.company_price = self.get_product_purchase_price()

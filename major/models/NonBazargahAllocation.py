@@ -96,3 +96,24 @@ class NonBazargahAllocation(models.Model):
             total_allocated = 0
         
         return max(0, requested_weight_kg - total_allocated)
+    
+    def save(self, *args, **kwargs):
+        # تولید شماره تخصیص خودکار (از 500000 شروع)
+        if not self.allocation_number:
+            # دریافت آخرین شماره تخصیص
+            last_allocation = NonBazargahAllocation.objects.filter(
+                allocation_number__isnull=False
+            ).order_by('-allocation_number').first()
+            
+            if last_allocation and last_allocation.allocation_number:
+                try:
+                    last_number = int(last_allocation.allocation_number)
+                    self.allocation_number = str(last_number + 1)
+                except (ValueError, TypeError):
+                    # اگر شماره قبلی عدد نبود، از 500000 شروع کن
+                    self.allocation_number = '500000'
+            else:
+                # اولین تخصیص
+                self.allocation_number = '500000'
+        
+        super().save(*args, **kwargs)
