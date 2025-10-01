@@ -162,12 +162,44 @@ class NonBazargahPurchase(BasePurchase):
             logger.error(f"خطا در اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری {self.customer.id}: {str(e)}")
             return None
     
+    def get_total_phish_amount(self):
+        """محاسبه مجموع مبلغ فیش‌های پرداخت"""
+        return self.phishes.aggregate(total=models.Sum('amount'))['total'] or 0
+    
+    def get_remaining_phish_amount(self):
+        """محاسبه مبلغ باقی‌مانده که باید با فیش پوشش داده شود"""
+        total_phish = self.get_total_phish_amount()
+        if self.amount_paid:
+            return max(0, self.amount_paid - total_phish)
+        return 0
+    
     def can_verify_payment(self, user):
-        """بررسی امکان تایید پرداخت"""
+        """بررسی امکان تایید پرداخت - باید مجموع فیش‌ها با مبلغ خرید برابر باشد"""
         # فقط مدیر مالی یا ادمین می‌توانند پرداخت را تایید کنند
         from core.decorators.det_user_role import determine_user_role
         user_role = determine_user_role(user)
-        return user_role in ['financial_manager', 'admin'] and self.state in ['initiated', 'payment_verification_pending']
+        
+        # بررسی نقش کاربر و وضعیت خرید
+        if user_role not in ['financial_manager', 'admin']:
+            return False
+        
+        if self.state not in ['initiated', 'payment_verification_pending']:
+            return False
+        
+        # بررسی اینکه حداقل یک مدرک پرداخت آپلود شده باشد
+        if not self.payment_documents.exists():
+            return False
+        
+        # بررسی اینکه حداقل یک فیش وجود دارد
+        if not self.phishes.exists():
+            return False
+        
+        # بررسی اینکه مجموع فیش‌ها با مبلغ خرید برابر است
+        total_phish = self.get_total_phish_amount()
+        if self.amount_paid and total_phish >= self.amount_paid:
+            return True
+        
+        return False
     
     def calculate_total_amount(self):
         """محاسبه مبلغ کل بر اساس مقدار و فی فروش"""

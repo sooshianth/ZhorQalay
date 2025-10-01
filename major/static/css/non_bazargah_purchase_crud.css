@@ -2004,3 +2004,579 @@ body {
   color: #ffc107;
   margin-right: 5px;
 }
+
+/* استایل‌های مدارک پرداخت */
+.payment-documents-section {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 15px rgba(30, 126, 52, 0.2);
+  border: none;
+}
+
+.subsection-title {
+  color: white;
+  margin-bottom: 20px;
+  font-size: 1.3em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.subsection-title i {
+  font-size: 1.2em;
+}
+
+.upload-document-form {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.document-upload-form-inline {
+  margin: 0;
+}
+
+.upload-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.upload-form-grid .form-group {
+  margin: 0;
+}
+
+.upload-form-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1e7e34;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.upload-form-grid input[type="file"],
+.upload-form-grid textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.upload-form-grid input[type="file"]:hover {
+  border-color: #1e7e34;
+  background: #f0f8f0;
+}
+
+.upload-form-grid input[type="file"]:focus,
+.upload-form-grid textarea:focus {
+  outline: none;
+  border-color: #1e7e34;
+  box-shadow: 0 0 0 3px rgba(30, 126, 52, 0.1);
+}
+
+.upload-document-form .btn-primary {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-document-form .btn-primary:hover {
+  background: linear-gradient(135deg, #155724 0%, #0f3d1a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 126, 52, 0.3);
+}
+
+.documents-list {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.documents-list h5 {
+  color: #1e7e34;
+  margin-bottom: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #1e7e34;
+  padding-bottom: 10px;
+}
+
+.document-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  margin-bottom: 10px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.document-item:hover {
+  border-color: #1e7e34;
+  box-shadow: 0 4px 12px rgba(30, 126, 52, 0.15);
+  transform: translateY(-2px);
+}
+
+.document-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.document-name {
+  color: #495057;
+  font-weight: 600;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.document-name:hover {
+  color: #1e7e34;
+}
+
+.document-name i {
+  font-size: 1.2em;
+}
+
+.document-description {
+  color: #6c757d;
+  font-size: 0.85em;
+  font-style: italic;
+}
+
+.document-uploader {
+  color: #6c757d;
+  font-size: 0.85em;
+}
+
+.btn-delete-document {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-delete-document:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.no-documents {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border: 1px dashed #1e7e34;
+}
+
+.no-documents i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: #28a745;
+}
+
+.no-documents p {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+/* استایل‌های فیش‌های پرداخت */
+.phishes-section {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-top: 25px;
+  box-shadow: 0 4px 15px rgba(30, 126, 52, 0.2);
+  border: none;
+}
+
+.payment-status-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.status-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.status-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  border-color: #1e7e34;
+}
+
+.status-card h5 {
+  color: #495057;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.amount-display {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+  color: #2c3e50;
+}
+
+.amount-display.text-success {
+  color: #28a745 !important;
+}
+
+.amount-display.text-warning {
+  color: #ffc107 !important;
+}
+
+.amount-display.text-danger {
+  color: #dc3545 !important;
+}
+
+.add-phish-form {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.add-phish-form h5 {
+  color: #1e7e34;
+  margin-bottom: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #1e7e34;
+  padding-bottom: 10px;
+}
+
+.phish-form-inline {
+  margin: 0;
+}
+
+.phish-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.phish-form-grid .form-group {
+  margin: 0;
+}
+
+.phish-form-grid label {
+  display: block;
+  margin-bottom: 8px;
+  color: #1e7e34;
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.phish-form-grid input,
+.phish-form-grid textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background: white;
+  transition: all 0.3s ease;
+}
+
+.phish-form-grid input:focus,
+.phish-form-grid textarea:focus {
+  outline: none;
+  border-color: #1e7e34;
+  box-shadow: 0 0 0 3px rgba(30, 126, 52, 0.1);
+}
+
+.add-phish-form .btn-success {
+  background: linear-gradient(135deg, #1e7e34 0%, #155724 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-phish-form .btn-success:hover {
+  background: linear-gradient(135deg, #155724 0%, #0f3d1a 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 126, 52, 0.3);
+}
+
+.payment-complete-notice {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #28a745;
+}
+
+.payment-complete-notice i {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.payment-complete-notice p {
+  color: #495057;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.phishes-list {
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.phishes-list h5 {
+  color: #1e7e34;
+  margin-bottom: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #1e7e34;
+  padding-bottom: 10px;
+}
+
+.phish-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.phish-item:hover {
+  border-color: #1e7e34;
+  box-shadow: 0 4px 15px rgba(30, 126, 52, 0.15);
+  transform: translateY(-2px);
+}
+
+.phish-header {
+  background: #f8f9fa;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.phish-amount {
+  background: #1e7e34;
+  color: white;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.phish-bank {
+  color: #495057;
+  font-weight: 600;
+  flex: 1;
+  margin: 0 15px;
+  font-size: 1rem;
+}
+
+.phish-details {
+  padding: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 12px;
+}
+
+.phish-detail {
+  padding: 8px 0;
+  border-bottom: 1px dotted #e9ecef;
+  color: #495057;
+  font-size: 0.9rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.phish-detail:last-child {
+  border-bottom: none;
+}
+
+.phish-detail strong {
+  color: #2c3e50;
+  font-weight: 600;
+}
+
+.phish-document-link {
+  color: #1e7e34;
+  text-decoration: none;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.phish-document-link:hover {
+  color: #155724;
+  text-decoration: underline;
+}
+
+.delete-phish-form {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+}
+
+.btn-delete-phish {
+  background: #dc3545;
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+
+.btn-delete-phish:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.no-phishes {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 8px;
+  border: 1px dashed #1e7e34;
+}
+
+.no-phishes i {
+  font-size: 2.5rem;
+  margin-bottom: 15px;
+  color: #28a745;
+}
+
+.no-phishes p {
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+.no-phishes small {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* ریسپانسیو برای مدارک و فیش‌ها */
+@media (max-width: 768px) {
+  .upload-form-grid,
+  .phish-form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .payment-status-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .document-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .document-item form {
+    width: 100%;
+  }
+  
+  .btn-delete-document {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .phish-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .phish-bank {
+    margin: 0;
+  }
+  
+  .phish-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .delete-phish-form {
+    position: static;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e9ecef;
+  }
+  
+  .btn-delete-phish {
+    width: 100%;
+    justify-content: center;
+  }
+}
