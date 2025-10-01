@@ -258,11 +258,11 @@
       </div>
     </div>
 
-    <!-- اطلاعات مالی -->
+    <!-- اطلاعات مالی و پرداخت -->
     <div class="form-section">
       <h3 class="section-title" onclick="toggleSection(this)">
         <span>
-          <i class="fas fa-money-bill-wave"></i> اطلاعات مالی
+          <i class="fas fa-money-bill-wave"></i> اطلاعات مالی و پرداخت
         </span>
         <i class="fas fa-chevron-down section-toggle"></i>
       </h3>
@@ -289,36 +289,197 @@
           </div>
           {% endif %}
         {% endfor %}
+        </div>
         
-        <!-- فیلد آپلود مدرک پرداخت -->
-        {% if user_role == "financial_manager" or user_role == "admin" %}
-        <div class="form-group">
-          <label>
-            <i class="fas fa-file-upload"></i> مدرک پرداخت
-          </label>
-          <div class="payment-document-upload">
-            {% if purchase.payment_document %}
-            <div class="current-document">
-              <i class="fas fa-file-check text-success"></i>
-              <span>مدرک موجود: </span>
-              <a href="{{ purchase.payment_document.url }}" target="_blank" class="document-link">
-                <i class="fas fa-download"></i> دانلود
-              </a>
-            </div>
-            {% endif %}
-            
-            <!-- فیلد آپلود درون همین فرم -->
-            <div class="upload-container">
-              <input type="file" name="payment_document_upload" class="form-control-file" accept=".pdf,.jpg,.jpeg,.png">
-              <button type="submit" name="upload_document" class="btn btn-upload" formnovalidate>
+        <!-- بخش مدارک پرداخت - کارشناس فروش -->
+        {% if user_role in "sales_agent,admin"|split:"," %}
+        <div class="payment-documents-section">
+          <h4 class="subsection-title">
+            <i class="fas fa-file-upload"></i> مدارک پرداخت (آپلود توسط کارشناس فروش)
+          </h4>
+          
+          <!-- فرم آپلود مدرک جدید - فقط در مراحل اولیه -->
+          {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+          <div class="upload-document-form">
+            <form method="post" enctype="multipart/form-data" class="document-upload-form-inline">
+              {% csrf_token %}
+              <div class="upload-form-grid">
+                <div class="form-group">
+                  <label><i class="fas fa-file"></i> انتخاب فایل:</label>
+                  <input type="file" name="payment_document_file" class="form-control" accept=".pdf,.jpg,.jpeg,.png" required>
+                  <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر 5MB)</small>
+                </div>
+                <div class="form-group">
+                  <label><i class="fas fa-comment"></i> توضیحات:</label>
+                  <textarea name="payment_document_description" class="form-control" rows="2" placeholder="توضیحات اضافی (اختیاری)"></textarea>
+                </div>
+              </div>
+              <button type="submit" name="upload_payment_document" class="btn btn-primary">
                 <i class="fas fa-upload"></i> آپلود مدرک
               </button>
-            </div>
-            <small class="form-text text-muted">فرمت‌های مجاز: PDF، JPG، PNG (حداکثر حجم: 5MB)</small>
+            </form>
           </div>
+          {% endif %}
+          
+          <!-- لیست مدارک آپلود شده -->
+          {% if payment_documents %}
+          <div class="documents-list">
+            <h5>مدارک آپلود شده ({{ payment_documents.count }} مدرک)</h5>
+            {% for doc in payment_documents %}
+            <div class="document-item">
+              <div class="document-info">
+                <i class="fas fa-file-pdf text-danger"></i>
+                <a href="{{ doc.document.url }}" target="_blank" class="document-name">
+                  مدرک #{{ doc.id }} - {{ doc.uploaded_at|date:"Y/m/d H:i" }}
+                </a>
+                {% if doc.description %}
+                <small class="document-description">{{ doc.description }}</small>
+                {% endif %}
+                <small class="document-uploader">آپلود شده توسط: {{ doc.uploaded_by.get_full_name|default:doc.uploaded_by.username }}</small>
+              </div>
+              <!-- دکمه حذف فقط در مراحل اولیه -->
+              {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+              <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="document_id" value="{{ doc.id }}">
+                <button type="submit" name="delete_payment_document" class="btn-delete-document" onclick="return confirm('آیا از حذف این مدرک اطمینان دارید؟');">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="no-documents">
+            <i class="fas fa-info-circle"></i>
+            <p>هنوز هیچ مدرکی آپلود نشده است</p>
+          </div>
+          {% endif %}
         </div>
         {% endif %}
+        
+        <!-- بخش فیش‌های پرداخت - مدیر مالی -->
+        {% if user_role in "financial_manager,admin"|split:"," %}
+        <div class="phishes-section">
+          <h4 class="subsection-title">
+            <i class="fas fa-receipt"></i> فیش‌های پرداخت (ثبت توسط واحد مالی)
+          </h4>
+          
+          <!-- نمایش وضعیت پرداخت -->
+          <div class="payment-status-cards">
+            <div class="status-card">
+              <h5>مبلغ کل خرید</h5>
+              <p class="amount-display">{{ purchase.amount_paid|add_commas|default:"0" }} ریال</p>
+            </div>
+            <div class="status-card">
+              <h5>مجموع فیش‌ها</h5>
+              <p class="amount-display {% if total_phish_amount >= purchase.amount_paid %}text-success{% else %}text-warning{% endif %}">
+                {{ total_phish_amount|add_commas }} ریال
+              </p>
+            </div>
+            <div class="status-card">
+              <h5>مبلغ باقی‌مانده</h5>
+              <p class="amount-display {% if remaining_phish_amount == 0 %}text-success{% else %}text-danger{% endif %}">
+                {{ remaining_phish_amount|add_commas }} ریال
+              </p>
+            </div>
+          </div>
+          
+          <!-- فرم اضافه کردن فیش - فقط در مراحل اولیه -->
+          {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+            {% if remaining_phish_amount > 0 %}
+            <div class="add-phish-form">
+              <h5><i class="fas fa-plus-circle"></i> افزودن فیش جدید</h5>
+              <form method="post" class="phish-form-inline">
+                {% csrf_token %}
+                <div class="phish-form-grid">
+                  {% for field in phish_form %}
+                  <div class="form-group">
+                    <label>{{ field.label }}:</label>
+                    {{ field }}
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="field-errors">
+                      {% for error in field.errors %}
+                      <small class="text-danger">{{ error }}</small>
+                      {% endfor %}
+                    </div>
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+                <button type="submit" name="add_phish" class="btn btn-success">
+                  <i class="fas fa-plus"></i> افزودن فیش
+                </button>
+              </form>
+            </div>
+            {% else %}
+            <div class="payment-complete-notice">
+              <i class="fas fa-check-circle text-success"></i>
+              <p>مجموع فیش‌ها با مبلغ خرید برابر است. می‌توانید پرداخت را تایید کنید.</p>
+            </div>
+            {% endif %}
+          {% else %}
+            <!-- پیام بعد از تایید پرداخت -->
+            <div class="payment-complete-notice">
+              <i class="fas fa-lock text-info"></i>
+              <p>پرداخت تایید شده است. امکان ویرایش فیش‌ها وجود ندارد.</p>
+            </div>
+          {% endif %}
+          
+          <!-- لیست فیش‌های ثبت شده -->
+          {% if phishes %}
+          <div class="phishes-list">
+            <h5>فیش‌های ثبت شده ({{ phishes.count }} فیش)</h5>
+            {% for phish in phishes %}
+            <div class="phish-item">
+              <div class="phish-header">
+                <span class="phish-amount">{{ phish.amount|add_commas }} ریال</span>
+                <span class="phish-bank">{{ phish.bank_name }}</span>
+              </div>
+              <div class="phish-details">
+                <div class="phish-detail">
+                  <strong>واریزکننده:</strong> {{ phish.depositor_name }}
+                </div>
+                <div class="phish-detail">
+                  <strong>شماره حساب:</strong> {{ phish.account_number }}
+                </div>
+                <div class="phish-detail">
+                  <strong>تاریخ تراکنش:</strong> {{ phish.transaction_date|date:"Y/m/d" }}
+                </div>
+                {% if phish.description %}
+                <div class="phish-detail">
+                  <strong>توضیحات:</strong> {{ phish.description }}
+                </div>
+                {% endif %}
+              </div>
+              <!-- دکمه حذف فقط در مراحل اولیه -->
+              {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+              <form method="post" class="delete-phish-form">
+                {% csrf_token %}
+                <input type="hidden" name="phish_id" value="{{ phish.id }}">
+                <button type="submit" name="delete_phish" class="btn-delete-phish" onclick="return confirm('آیا از حذف این فیش اطمینان دارید؟');">
+                  <i class="fas fa-trash"></i> حذف
+                </button>
+              </form>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="no-phishes">
+            <i class="fas fa-info-circle"></i>
+            <p>هنوز هیچ فیشی ثبت نشده است</p>
+            {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
+            <p><small>برای تایید پرداخت، ابتدا باید فیش‌های پرداخت را ثبت کنید</small></p>
+            {% endif %}
+          </div>
+          {% endif %}
         </div>
+        {% endif %}
       </div>
     </div>
 
@@ -1051,14 +1212,27 @@
       <!-- دکمه‌های مخصوص مدیر مالی -->
       {% if user_role == "financial_manager" or user_role == "admin" %}
         {% if purchase.state in 'initiated,payment_verification_pending'|split:',' %}
-          {% if purchase.payment_document %}
-            <button type="submit" name="approve_payment" class="button approve-btn financial" formnovalidate>
-              <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
-            </button>
-          {% else %}
-            <button type="button" class="button approve-btn financial" disabled title="ابتدا باید مدرک پرداخت آپلود شود">
+          <!-- بررسی شرایط تایید پرداخت -->
+          {% if not payment_documents %}
+            <button type="button" class="button approve-btn financial" disabled title="ابتدا باید حداقل یک مدرک پرداخت آپلود شود">
               <i class="fas fa-lock"></i> 🔒 تایید پرداخت (نیاز به مدرک)
             </button>
+          {% elif not phishes %}
+            <button type="button" class="button approve-btn financial" disabled title="ابتدا باید حداقل یک فیش ثبت شود">
+              <i class="fas fa-lock"></i> 🔒 تایید پرداخت (نیاز به فیش)
+            </button>
+          {% elif remaining_phish_amount > 0 %}
+            <button type="button" class="button approve-btn financial" disabled title="مجموع فیش‌ها باید با مبلغ خرید برابر باشد">
+              <i class="fas fa-lock"></i> 🔒 تایید پرداخت ({{ remaining_phish_amount|add_commas }} ریال باقی‌مانده)
+            </button>
+          {% else %}
+            <!-- فرم جداگانه برای تایید پرداخت -->
+            <form method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <button type="submit" name="approve_payment" class="button approve-btn financial">
+                <i class="fas fa-check-circle"></i> 💰 تایید پرداخت
+              </button>
+            </form>
           {% endif %}
         {% endif %}
       {% endif %}
@@ -1239,6 +1413,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 // فعال کردن دکمه آپلود
                 uploadBtn.disabled = false;
             }
+        });
+    }
+    
+    // راه‌اندازی تاریخ شمسی برای فیلد تاریخ تراکنش
+    if (typeof jQuery !== 'undefined' && jQuery.ui && jQuery.ui.datepicker) {
+        jQuery('.persian-date-input').each(function() {
+            const input = jQuery(this);
+            // حذف readonly برای اینکه بتوان تایپ کرد
+            input.prop('readonly', false);
+            
+            input.datepicker({
+                changeMonth: true,
+                changeYear: true,
+                showButtonPanel: true,
+                dateFormat: 'yy/mm/dd',
+                onSelect: function(dateText) {
+                    jQuery(this).val(dateText);
+                }
+            });
+        });
+    } else {
+        // اگر jQuery UI موجود نبود، حداقل readonly را بردار
+        document.querySelectorAll('.persian-date-input').forEach(function(input) {
+            input.removeAttribute('readonly');
         });
     }
 });

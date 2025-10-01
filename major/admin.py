@@ -9,6 +9,8 @@ from .models.Product import Product
 from .models.Hazinah import Hazinah
 from .models.Invoice import Invoice
 from .models.InvoiceItem import InvoiceItem
+from .models.Phish import Phish
+from .models.PaymentDocument import PaymentDocument
 
 
 @admin.register(NonBazargahProduct)
@@ -319,6 +321,88 @@ class InvoiceItemAdmin(admin.ModelAdmin):
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
             'invoice', 'cargo_product', 'non_bazargah_product'
+        )
+
+
+@admin.register(Phish)
+class PhishAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'non_bazargah_purchase', 'depositor_name', 
+        'formatted_amount', 'bank_name', 'account_number', 
+        'transaction_date', 'created_at'
+    )
+    list_filter = ('bank_name', 'transaction_date', 'created_at')
+    search_fields = (
+        'depositor_name', 'account_number', 'bank_name',
+        'non_bazargah_purchase__purchase_number', 'description'
+    )
+    readonly_fields = ('created_at', 'updated_at')
+    list_per_page = 25
+    date_hierarchy = 'transaction_date'
+    
+    fieldsets = (
+        ('اطلاعات خرید', {
+            'fields': ('non_bazargah_purchase',)
+        }),
+        ('اطلاعات پرداخت', {
+            'fields': (
+                'depositor_name', 'amount', 'transaction_date',
+                'bank_name', 'account_number'
+            )
+        }),
+        ('توضیحات و یادداشت‌ها', {
+            'fields': ('description',),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def formatted_amount(self, obj):
+        return format_html('{} ریال', f'{obj.amount:,}')
+    formatted_amount.short_description = 'مبلغ'
+    formatted_amount.admin_order_field = 'amount'
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'non_bazargah_purchase', 'non_bazargah_purchase__product',
+            'non_bazargah_purchase__customer'
+        )
+
+
+@admin.register(PaymentDocument)
+class PaymentDocumentAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'non_bazargah_purchase', 'uploaded_by', 'uploaded_at'
+    )
+    list_filter = ('uploaded_at',)
+    search_fields = (
+        'non_bazargah_purchase__purchase_number', 'description',
+        'uploaded_by__username'
+    )
+    readonly_fields = ('uploaded_at', 'uploaded_by')
+    list_per_page = 25
+    date_hierarchy = 'uploaded_at'
+    
+    fieldsets = (
+        ('اطلاعات خرید', {
+            'fields': ('non_bazargah_purchase',)
+        }),
+        ('مدرک پرداخت', {
+            'fields': ('document', 'description')
+        }),
+        ('اطلاعات آپلود', {
+            'fields': ('uploaded_by', 'uploaded_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related(
+            'non_bazargah_purchase', 'non_bazargah_purchase__product',
+            'non_bazargah_purchase__customer', 'uploaded_by'
         )
 
 

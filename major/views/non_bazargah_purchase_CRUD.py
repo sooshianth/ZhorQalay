@@ -17,6 +17,8 @@ import jdatetime
 from major.models.NonBazargahPurchase import NonBazargahPurchase
 from major.models.NonBazargahAllocation import NonBazargahAllocation
 from major.models.NonBazargahProduct import NonBazargahProduct
+from major.models.Phish import Phish
+from major.models.PaymentDocument import PaymentDocument
 from core.CustomerModel import Customer
 from core.decorators.decorators import role_required
 from core.decorators.det_user_role import determine_user_role
@@ -128,6 +130,119 @@ class ExcelBarnamehUploadForm(forms.Form):
                 raise ValidationError('حجم فایل نباید از 5 مگابایت بیشتر باشد.')
         
         return file
+
+
+class PaymentDocumentUploadForm(forms.ModelForm):
+    """فرم آپلود مدرک پرداخت"""
+    
+    class Meta:
+        model = PaymentDocument
+        fields = ['document', 'description']
+        widgets = {
+            'document': forms.FileInput(attrs={
+                'accept': '.pdf,.jpg,.jpeg,.png',
+                'class': 'form-control'
+            }),
+            'description': forms.Textarea(attrs={
+                'rows': 2,
+                'class': 'form-control',
+                'placeholder': 'توضیحات اضافی (اختیاری)'
+            })
+        }
+        labels = {
+            'document': 'فایل مدرک',
+            'description': 'توضیحات'
+        }
+
+
+class PhishForm(forms.ModelForm):
+    """فرم اضافه کردن فیش پرداخت"""
+    
+    # Override کردن فیلد تاریخ برای قبول فرمت شمسی
+    transaction_date = forms.CharField(
+        label='تاریخ تراکنش (شمسی)',
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control persian-date-input',
+            'placeholder': '1403/07/10',
+            'dir': 'ltr'
+        }),
+        help_text='فرمت: YYYY/MM/DD (مثال: 1403/07/10)'
+    )
+    
+    class Meta:
+        model = Phish
+        fields = ['bank_name', 'account_number', 'depositor_name', 'amount', 'transaction_date', 'description']
+        widgets = {
+            'bank_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'نام بانک (مثال: ملی، ملت، صادرات)'
+            }),
+            'account_number': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'شماره حساب یا کارت'
+            }),
+            'depositor_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'نام واریزکننده'
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'مبلغ به ریال',
+                'min': '0'
+            }),
+            'description': forms.Textarea(attrs={
+                'rows': 2,
+                'class': 'form-control',
+                'placeholder': 'توضیحات اضافی (اختیاری)'
+            })
+        }
+        labels = {
+            'bank_name': 'نام بانک',
+            'account_number': 'شماره حساب',
+            'depositor_name': 'نام واریزکننده',
+            'amount': 'مبلغ (ریال)',
+            'description': 'توضیحات'
+        }
+    
+    def clean_transaction_date(self):
+        """تبدیل تاریخ شمسی به میلادی"""
+        date_value = self.cleaned_data.get('transaction_date')
+        
+        if not date_value:
+            raise ValidationError('تاریخ تراکنش الزامی است')
+        
+        try:
+            # حذف فاصله‌های اضافی
+            date_value = date_value.strip()
+            
+            # بررسی فرمت شمسی (YYYY/MM/DD)
+            if '/' in date_value:
+                parts = date_value.split('/')
+                if len(parts) != 3:
+                    raise ValidationError('فرمت تاریخ باید YYYY/MM/DD باشد (مثال: 1403/07/10)')
+                
+                year, month, day = map(int, parts)
+                
+                # اعتبارسنجی محدوده‌ها
+                if year < 1300 or year > 1500:
+                    raise ValidationError('سال باید بین 1300 تا 1500 باشد')
+                if month < 1 or month > 12:
+                    raise ValidationError('ماه باید بین 1 تا 12 باشد')
+                if day < 1 or day > 31:
+                    raise ValidationError('روز باید بین 1 تا 31 باشد')
+                
+                # تبدیل تاریخ شمسی به میلادی
+                persian_date = jdatetime.date(year, month, day)
+                return persian_date.togregorian()
+            else:
+                # اگر فرمت دیگری باشد
+                raise ValidationError('لطفاً تاریخ را به فرمت شمسی YYYY/MM/DD وارد کنید (مثال: 1403/07/10)')
+                
+        except ValueError as e:
+            raise ValidationError(f'تاریخ وارد شده نامعتبر است: {str(e)}')
+        except Exception as e:
+            raise ValidationError(f'خطا در پردازش تاریخ: {str(e)}')
 
 
 def clean_numeric_value(value):
@@ -1181,27 +1296,79 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'approve_payment', 'add_allocation', 'approve_allocations', 'send_to_warehouse',
             'notify_carrier', 'confirm_vehicle_arrival', 'record_empty_weight',
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
-            'close_purchase', 'cancel_purchase', 'archive_purchase', 'upload_document',
+            'close_purchase', 'cancel_purchase', 'archive_purchase', 
+            'upload_payment_document', 'delete_payment_document', 'add_phish', 'delete_phish',
             'delete_allocation', 'add_barnameh', 'update_barnameh', 'delete_barnameh'
         ]
         
         is_action_button_pressed = any(action in request.POST for action in action_buttons)
         
-        # پردازش آپلود مدرک
-        if 'upload_document' in request.POST:
-            document_file = request.FILES.get('payment_document_upload')
+        # پردازش آپلود مدرک پرداخت
+        if 'upload_payment_document' in request.POST:
+            document_file = request.FILES.get('payment_document_file')
+            description = request.POST.get('payment_document_description', '')
+            
             if document_file:
-                purchase.payment_document = document_file
-                # تنظیم company_price از محصول
-                if purchase.product:
-                    product_price = purchase.get_product_purchase_price()
-                    if product_price:
-                        purchase.company_price = product_price
-                purchase.save()
-                messages.success(request, 'مدرک پرداخت با موفقیت بارگذاری شد - حالا می‌توانید پرداخت را تایید کنید')
+                try:
+                    PaymentDocument.objects.create(
+                        non_bazargah_purchase=purchase,
+                        document=document_file,
+                        description=description,
+                        uploaded_by=request.user
+                    )
+                    messages.success(request, 'مدرک پرداخت با موفقیت بارگذاری شد')
+                except Exception as e:
+                    messages.error(request, f'خطا در آپلود مدرک: {str(e)}')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
             else:
                 messages.error(request, 'لطفاً یک فایل انتخاب کنید')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش حذف مدرک پرداخت
+        if 'delete_payment_document' in request.POST:
+            document_id = request.POST.get('document_id')
+            if document_id:
+                try:
+                    document = PaymentDocument.objects.get(id=document_id, non_bazargah_purchase=purchase)
+                    document.delete()
+                    messages.success(request, 'مدرک پرداخت حذف شد')
+                except PaymentDocument.DoesNotExist:
+                    messages.error(request, 'مدرک مورد نظر یافت نشد')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش اضافه کردن فیش
+        if 'add_phish' in request.POST:
+            phish_form = PhishForm(request.POST)
+            if phish_form.is_valid():
+                try:
+                    phish = phish_form.save(commit=False)
+                    phish.non_bazargah_purchase = purchase
+                    phish.save()
+                    
+                    # محاسبه مجموع فیش‌ها و مبلغ باقی‌مانده
+                    total_phish = purchase.get_total_phish_amount()
+                    remaining = purchase.get_remaining_phish_amount()
+                    
+                    messages.success(request, f'فیش با مبلغ {phish.amount:,} ریال اضافه شد. مجموع فیش‌ها: {total_phish:,} ریال - باقی‌مانده: {remaining:,} ریال')
+                except Exception as e:
+                    messages.error(request, f'خطا در ثبت فیش: {str(e)}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+            else:
+                for field, errors in phish_form.errors.items():
+                    for error in errors:
+                        messages.error(request, f'{field}: {error}')
+                return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
+        
+        # پردازش حذف فیش
+        if 'delete_phish' in request.POST:
+            phish_id = request.POST.get('phish_id')
+            if phish_id:
+                try:
+                    phish = Phish.objects.get(id=phish_id, non_bazargah_purchase=purchase)
+                    phish.delete()
+                    messages.success(request, 'فیش حذف شد')
+                except Phish.DoesNotExist:
+                    messages.error(request, 'فیش مورد نظر یافت نشد')
                 return redirect('non_bazargah_purchase_CRUD', purchase_id=purchase_id)
         
         # پردازش آپلود فایل اکسل تخصیص‌ها
@@ -1780,15 +1947,25 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                     # اکشن‌های مدیر مالی
                     if user_role in ['financial_manager', 'admin']:
                         if purchase.state in ['initiated', 'payment_verification_pending'] and 'approve_payment' in request.POST:
-                            # بررسی وجود مدرک پرداخت
-                            if not purchase.payment_document:
-                                messages.error(request, 'برای تایید پرداخت ابتدا باید مدرک پرداخت آپلود شود')
+                            # بررسی شرایط تایید پرداخت
+                            if not purchase.can_verify_payment(request.user):
+                                # بررسی جزئیات برای پیام خطای دقیق‌تر
+                                if not purchase.payment_documents.exists():
+                                    messages.error(request, 'برای تایید پرداخت ابتدا باید حداقل یک مدرک پرداخت آپلود شود')
+                                elif not purchase.phishes.exists():
+                                    messages.error(request, 'برای تایید پرداخت ابتدا باید حداقل یک فیش اضافه شود')
+                                else:
+                                    total_phish = purchase.get_total_phish_amount()
+                                    remaining = purchase.get_remaining_phish_amount()
+                                    messages.error(request, f'مجموع فیش‌ها ({total_phish:,} ریال) کمتر از مبلغ خرید ({purchase.amount_paid:,} ریال) است. باقی‌مانده: {remaining:,} ریال')
                             else:
                                 purchase.state = 'payment_verified'
                                 purchase.payment_verified_by = request.user
                                 purchase.payment_verified_at = timezone.now()
                                 action_taken = True
-                                messages.success(request, 'پرداخت با موفقیت تایید شد')
+                                
+                                total_phish = purchase.get_total_phish_amount()
+                                messages.success(request, f'پرداخت با موفقیت تایید شد. مجموع فیش‌ها: {total_phish:,} ریال')
                     
                     # اکشن‌های مدیر لجستیک
                     if user_role in ['logistics_manager', 'admin']:
@@ -2081,11 +2258,23 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
     # فرم آپلود اکسل بارنامه‌ها
     excel_barnameh_upload_form = ExcelBarnamehUploadForm()
     
+    # فرم‌های مربوط به پرداخت
+    payment_document_form = PaymentDocumentUploadForm()
+    phish_form = PhishForm()
+    
     # دریافت نوتیفیکیشن‌ها
     notifications = NotificationService.get_unread_notifications(request.user)
     
     # دریافت تمام بارنامه‌های مرتبط
     all_barnamehs = purchase.get_all_barnamehs()
+    
+    # دریافت مدارک و فیش‌های پرداخت
+    payment_documents = purchase.payment_documents.all().order_by('-uploaded_at')
+    phishes = purchase.phishes.all().order_by('-created_at')
+    
+    # محاسبه مجموع فیش‌ها و مبلغ باقی‌مانده
+    total_phish_amount = purchase.get_total_phish_amount()
+    remaining_phish_amount = purchase.get_remaining_phish_amount()
     
     # سازماندهی بارنامه‌ها بر اساس تخصیص
     allocations_with_barnamehs = []
@@ -2103,6 +2292,8 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         'allocation_form': allocation_form,
         'excel_upload_form': excel_upload_form,
         'excel_barnameh_upload_form': excel_barnameh_upload_form,
+        'payment_document_form': payment_document_form,
+        'phish_form': phish_form,
         'allocations': allocations,
         'allocations_with_barnamehs': allocations_with_barnamehs,
         'total_allocated_weight': total_allocated_weight,
@@ -2113,6 +2304,10 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         'notifications': notifications,
         'barnameh_form': BarnamehForm(),
         'all_barnamehs': all_barnamehs,
+        'payment_documents': payment_documents,
+        'phishes': phishes,
+        'total_phish_amount': total_phish_amount,
+        'remaining_phish_amount': remaining_phish_amount,
     }
     
     return render(request, 'non_bazargah_purchase_CRUD_view.html', context)
