@@ -1163,7 +1163,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
         'buyer_user_type': ('نوع کاربر خریدار', lambda p: p.buyer_user_type or "-"),
         'unique_delivery_id': ('شناسه یکتا تحویل', lambda p: p.unique_delivery_id or "-"),
         'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
-        'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
+        'delivery_postal_code': ('کد پستی تحویل', lambda p: ', '.join([s.delivery_postal_code for s in p.shenase_takhsis_set.all() if s.delivery_postal_code]) or "-"),
         'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
         'buyer_account': ('حساب خریدار', lambda p: p.buyer_account or "-"),
         'country': ('کشور محصول', lambda p: p.cargo.get_country_display() if p.cargo and hasattr(p.cargo, 'get_country_display') else "-"),
@@ -2149,7 +2149,7 @@ def apply_purchase_filter(request):
                 Q(buyer_national_id__icontains=global_search) |
                 Q(unique_delivery_id__icontains=global_search) |
                 Q(delivery_address__icontains=global_search) |
-                Q(delivery_postal_code__icontains=global_search) |
+                Q(shenase_takhsis_set__delivery_postal_code__icontains=global_search) |
                 
                 # نماینده فروش
                 Q(unique_sales_agent__name__icontains=global_search)
@@ -2306,7 +2306,7 @@ def apply_purchase_filter(request):
                 'buyer_user_type': purchase.get_buyer_user_type_display() if purchase.buyer_user_type else '-',
                 'unique_delivery_id': purchase.unique_delivery_id or '-',
                 'delivery_address': purchase.delivery_address or '-',
-                'delivery_postal_code': purchase.delivery_postal_code or '-',
+                'delivery_postal_code': ', '.join([s.delivery_postal_code for s in purchase.shenase_takhsis_set.all() if s.delivery_postal_code]) or '-',
                 'vehicle_type': purchase.get_vehicle_type_display() if purchase.vehicle_type else '-',
                 # shenase_takhsis - نیاز به پردازش خاص دارد
                 'shenase_takhsis': ', '.join([s.code for s in purchase.shenase_takhsis_set.all()]) if purchase.shenase_takhsis_set.exists() else '-',
@@ -2681,13 +2681,21 @@ def get_purchase_column_values(request):
                                         'tahvil_phone_number', 'priority_reason',
                                         'barbary_confidential_number', 'barbary_customer_number',
                                         'delivery_receiver_name', 'buyer_national_id', 'unique_delivery_id',
-                                        'delivery_address', 'delivery_postal_code']:
+                                        'delivery_address']:
                     values = [v for v in values if v and v.strip()]
                     if values:
                         if filter_type == 'include':
                             filter_conditions &= Q(**{f'{filter_column_id}__in': values})
                         else:
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
+                
+                elif filter_column_id == 'delivery_postal_code':
+                    values = [v for v in values if v and v.strip()]
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(shenase_takhsis_set__delivery_postal_code__in=values)
+                        else:
+                            filter_conditions &= ~Q(shenase_takhsis_set__delivery_postal_code__in=values)
                 
                 elif filter_column_id == 'buyer_user_type':
                     # تبدیل نمایش فارسی به کد نوع کاربری
@@ -2933,9 +2941,16 @@ def get_purchase_column_values(request):
         elif column_id in ['address', 'description', 'unique_buyer_id', 'code_melli_tahvil', 
                           'bazaargah_phone_number', 'tahvil_phone_number', 'priority_reason',
                           'barbary_confidential_number', 'barbary_customer_number', 'delivery_receiver_name',
-                          'buyer_national_id', 'unique_delivery_id', 'delivery_address', 'delivery_postal_code']:
+                          'buyer_national_id', 'unique_delivery_id', 'delivery_address']:
             values_queryset = queryset.exclude(**{f'{column_id}__isnull': True})\
                 .exclude(**{f'{column_id}': ''}).values_list(column_id, flat=True).distinct()
+            values = set(values_queryset)
+        
+        elif column_id == 'delivery_postal_code':
+            # دریافت کدهای پستی تحویل از ShenaseTakhsis
+            values_queryset = queryset.filter(shenase_takhsis_set__delivery_postal_code__isnull=False)\
+                .exclude(shenase_takhsis_set__delivery_postal_code='')\
+                .values_list('shenase_takhsis_set__delivery_postal_code', flat=True).distinct()
             values = set(values_queryset)
         
         elif column_id in ['factor_code', 'send_cottage_sms', 'is_weight_costed', 
@@ -3277,7 +3292,7 @@ def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_d
         'buyer_user_type': ('نوع کاربر خریدار', lambda p: p.buyer_user_type or "-"),
         'unique_delivery_id': ('شناسه یکتا تحویل', lambda p: p.unique_delivery_id or "-"),
         'delivery_address': ('آدرس تحویل', lambda p: p.delivery_address or "-"),
-        'delivery_postal_code': ('کد پستی تحویل', lambda p: p.delivery_postal_code or "-"),
+        'delivery_postal_code': ('کد پستی تحویل', lambda p: ', '.join([s.delivery_postal_code for s in p.shenase_takhsis_set.all() if s.delivery_postal_code]) or "-"),
         'vehicle_type': ('نوع خودرو حمل', lambda p: p.vehicle_type or "-"),
         'buyer_account': ('حساب خریدار', lambda p: p.buyer_account or "-"),
         'country': ('کشور محصول', lambda p: p.cargo.get_country_display() if p.cargo and hasattr(p.cargo, 'get_country_display') else "-"),
