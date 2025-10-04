@@ -1,17 +1,21 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from django.urls import reverse
+from django.db import transaction
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
 from core.decorators.decorators import role_required
-from .models import CompanyInfo, ProformaInvoice
+from major.models.NonBazargahProduct import NonBazargahProduct
+from major.models.Product import Product
+from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem
 import jdatetime
 import tempfile
 import os
+import json
 
 
 @role_required('sales_agent', 'admin')
@@ -50,69 +54,89 @@ def proforma_step1_customer_info(request, customer_id):
 @role_required('sales_agent', 'admin')
 @login_required
 def proforma_step2_product_selection(request, customer_id):
-    """مرحله 2: انتخاب محصول و مشخصات"""
+    """مرحله 2: انتخاب محصولات و مشخصات"""
     customer = get_object_or_404(Customer, id=customer_id)
     company_info = CompanyInfo.get_active_company()
     
-    # دریافت محصولات فعال
-    active_products = CargoProduct.get_active_products()
+    # دریافت محصولات فعال (هم بازارگاه و هم خارج از بازارگاه)
+    cargo_products = CargoProduct.get_active_products()
+    non_bazargah_products = NonBazargahProduct.get_active_products()
     
     if request.method == 'POST':
         try:
-            # دریافت اطلاعات فرم
-            product_id = request.POST.get('product')
-            product_name = request.POST.get('product_name')
-            product_description = request.POST.get('product_description', '')
-            quantity = request.POST.get('quantity')
-            unit = request.POST.get('unit')
-            unit_price = request.POST.get('unit_price')
+            # دریافت آیتم‌های محصول از فرم (به صورت JSON)
+            items_json = request.POST.get('items')
             notes = request.POST.get('notes', '')
             
-            # Validation
-            if not all([quantity, unit, unit_price]):
-                messages.error(request, "لطفاً تمام فیلدهای ضروری را تکمیل کنید.")
-                raise ValueError("Missing required fields")
+            if not items_json:
+                messages.error(request, "لطفاً حداقل یک محصول اضافه کنید.")
+                raise ValueError("No items provided")
             
-            # تبدیل به اعداد
-            quantity = float(quantity.replace(',', ''))
-            unit_price = float(unit_price.replace(',', ''))
+            items_data = json.loads(items_json)
+            
+            if not items_data:
+                messages.error(request, "لطفاً حداقل یک محصول اضافه کنید.")
+                raise ValueError("No items in list")
             
             # دریافت کارشناس فروش
             sales_agent = None
             if hasattr(request.user, 'sales_agent'):
                 sales_agent = request.user.sales_agent
             
-            # ایجاد پیش فاکتور
-            proforma = ProformaInvoice()
-            proforma.customer = customer
-            proforma.sales_agent = sales_agent
-            proforma.company_info = company_info
-            
-            if product_id:
-                proforma.product = CargoProduct.objects.get(id=product_id)
-                if not product_name:
-                    product_name = proforma.product.get_product_type_display()
-            
-            proforma.product_name = product_name or 'محصول'
-            proforma.product_description = product_description
-            proforma.quantity = quantity
-            proforma.unit = unit
-            proforma.unit_price = unit_price
-            proforma.notes = notes
-            
-            # ذخیره
-            proforma.save()
+            # ایجاد پیش فاکتور و آیتم‌ها در یک transaction
+            with transaction.atomic():
+                # ایجاد پیش فاکتور
+                proforma = ProformaInvoice()
+                proforma.customer = customer
+                proforma.sales_agent = sales_agent
+                proforma.company_info = company_info
+                proforma.notes = notes
+                proforma.save()
+                
+                # ایجاد آیتم‌های محصول
+                for idx, item_data in enumerate(items_data):
+                    item = ProformaInvoiceItem()
+                    item.proforma = proforma
+                    item.product_name = item_data.get('product_name', '')
+                    item.product_description = item_data.get('product_description', '')
+                    item.quantity = float(item_data.get('quantity', 0))
+                    item.unit = item_data.get('unit', 'kg')
+                    item.unit_price = float(item_data.get('unit_price', 0))
+                    item.order = idx
+                    
+                    # اگر محصول انتخاب شده، آن را ست کن
+                    product_id = item_data.get('product_id')
+                    product_type = item_data.get('product_type')
+                    
+                    if product_id and product_type:
+                        try:
+                            if product_type == 'cargo':
+                                product = CargoProduct.objects.get(id=product_id)
+                                item.product = product
+                            elif product_type == 'non_bazargah':
+                                product = NonBazargahProduct.objects.get(id=product_id)
+                                item.product = product
+                        except (CargoProduct.DoesNotExist, NonBazargahProduct.DoesNotExist):
+                            pass
+                    
+                    item.save()
+                
+                # محاسبه قیمت کل
+                proforma.calculate_total()
             
             # انتقال به مرحله نمایش
             return redirect('proforma_preview', proforma_id=proforma.id)
             
+        except json.JSONDecodeError:
+            messages.error(request, "خطا در پردازش اطلاعات محصولات.")
         except Exception as e:
             messages.error(request, f"خطا در ثبت اطلاعات: {str(e)}")
     
     context = {
         'customer': customer,
         'company_info': company_info,
-        'active_products': active_products,
+        'cargo_products': cargo_products,
+        'non_bazargah_products': non_bazargah_products,
         'step': 2,
     }
     

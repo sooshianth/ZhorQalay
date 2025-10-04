@@ -14,78 +14,77 @@
         
         body {
             font-family: 'Vazir', 'Tahoma', 'Arial', sans-serif;
-            font-size: 14px;
+            font-size: 11px;
             color: #1a202c;
-            line-height: 1.8;
+            line-height: 1.4;
             direction: rtl;
-            padding: 40px;
+            padding: 0;
+            margin: 0;
         }
         
         .invoice-container {
-            border: 3px solid #065F46;
-            border-radius: 8px;
-            padding: 30px;
-            max-width: 800px;
-            margin: 0 auto;
+            border: 2px solid #065F46;
+            border-radius: 5px;
+            padding: 15px;
             background: white;
         }
         
         .invoice-header {
             text-align: center;
-            margin-bottom: 40px;
-            padding-bottom: 30px;
-            border-bottom: 3px double #065F46;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 2px double #065F46;
         }
         
         .company-logo {
-            max-width: 150px;
-            max-height: 80px;
-            margin-bottom: 20px;
+            max-width: 100px;
+            max-height: 50px;
+            margin-bottom: 8px;
         }
         
         .invoice-title {
-            font-size: 32px;
+            font-size: 20px;
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 15px;
+            margin-bottom: 8px;
         }
         
         .invoice-subtitle {
-            font-size: 20px;
+            font-size: 14px;
             color: #059669;
-            margin-bottom: 10px;
-        }
-        
-        .invoice-number {
-            font-size: 18px;
-            color: #4b5563;
-            direction: ltr;
             margin-bottom: 5px;
         }
         
+        .invoice-number {
+            font-size: 13px;
+            color: #4b5563;
+            direction: ltr;
+            margin-bottom: 3px;
+        }
+        
         .invoice-dates {
-            margin-top: 15px;
-            font-size: 15px;
+            margin-top: 8px;
+            font-size: 11px;
             color: #6b7280;
         }
         
         .invoice-dates div {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .invoice-parties {
             display: table;
             width: 100%;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
         }
         
         .party-box {
             display: table-cell;
             width: 48%;
             background: #f0fdf4;
-            border: 2px solid #bbf7d0;
-            border-radius: 8px;
-            padding: 20px;
+            border: 1px solid #bbf7d0;
+            border-radius: 5px;
+            padding: 10px;
             vertical-align: top;
         }
         
@@ -94,24 +93,25 @@
         }
         
         .party-title {
-            font-size: 18px;
+            font-size: 13px;
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #059669;
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #059669;
         }
         
         .party-detail {
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             display: table;
             width: 100%;
+            font-size: 10px;
         }
         
         .party-label {
             display: table-cell;
             font-weight: 600;
-            width: 120px;
+            width: 90px;
             color: #4b5563;
         }
         
@@ -123,24 +123,25 @@
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 30px;
+            margin-bottom: 12px;
             border: 2px solid #065F46;
         }
         
         .invoice-table th {
             background: #065F46;
             color: white;
-            padding: 15px;
+            padding: 8px 5px;
             text-align: center;
-            font-size: 15px;
+            font-size: 11px;
             font-weight: bold;
             border: 1px solid #065F46;
         }
         
         .invoice-table td {
-            padding: 15px;
+            padding: 6px 5px;
             text-align: center;
             border: 1px solid #bbf7d0;
+            font-size: 10px;
         }
         
         .invoice-table tbody tr {
@@ -154,27 +155,28 @@
         .product-name {
             font-weight: bold;
             color: #065F46;
+            font-size: 10px;
         }
         
         .product-description {
-            font-size: 12px;
+            font-size: 9px;
             color: #6b7280;
-            margin-top: 5px;
+            margin-top: 3px;
         }
         
         .invoice-summary {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 3px solid #f59e0b;
-            border-radius: 10px;
-            padding: 25px;
-            margin-bottom: 30px;
+            border: 2px solid #f59e0b;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 12px;
         }
         
         .summary-row {
             display: table;
             width: 100%;
-            padding: 10px 0;
-            font-size: 17px;
+            padding: 5px 0;
+            font-size: 12px;
         }
         
         .summary-label {
@@ -193,10 +195,10 @@
         }
         
         .summary-row.total {
-            border-top: 3px solid #f59e0b;
-            margin-top: 10px;
-            padding-top: 20px;
-            font-size: 22px;
+            border-top: 2px solid #f59e0b;
+            margin-top: 5px;
+            padding-top: 8px;
+            font-size: 15px;
         }
         
         .summary-row.total .summary-label,
@@ -206,48 +208,50 @@
         
         .invoice-notes {
             background: #f9fafb;
-            border: 2px dashed #d1d5db;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 30px;
+            border: 1px dashed #d1d5db;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 12px;
         }
         
         .notes-title {
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: 5px;
+            font-size: 11px;
         }
         
         .notes-content {
             color: #4b5563;
-            line-height: 1.8;
+            line-height: 1.4;
+            font-size: 10px;
         }
         
         .invoice-footer {
-            margin-top: 40px;
-            padding-top: 30px;
-            border-top: 2px solid #e5e7eb;
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
         }
         
         .bank-info {
             background: #f0f9ff;
-            border: 2px solid #bae6fd;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
+            border: 1px solid #bae6fd;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 10px;
         }
         
         .bank-info-title {
             font-weight: bold;
             color: #075985;
-            margin-bottom: 10px;
-            font-size: 16px;
+            margin-bottom: 5px;
+            font-size: 11px;
         }
         
         .bank-detail {
-            margin-bottom: 8px;
+            margin-bottom: 3px;
             color: #0c4a6e;
+            font-size: 10px;
         }
         
         .bank-detail strong {
@@ -257,14 +261,14 @@
         .signature-section {
             display: table;
             width: 100%;
-            margin-top: 40px;
+            margin-top: 12px;
         }
         
         .signature-box {
             display: table-cell;
             width: 48%;
             text-align: center;
-            padding: 20px;
+            padding: 10px;
         }
         
         .signature-box:first-child {
@@ -274,19 +278,21 @@
         .signature-title {
             font-weight: bold;
             color: #4b5563;
-            margin-bottom: 50px;
+            margin-bottom: 25px;
+            font-size: 11px;
         }
         
         .signature-line {
-            border-top: 2px solid #9ca3af;
-            padding-top: 10px;
+            border-top: 1px solid #9ca3af;
+            padding-top: 5px;
             color: #6b7280;
+            font-size: 10px;
         }
         
         .signature-image {
-            max-width: 120px;
-            max-height: 60px;
-            margin: 20px 0;
+            max-width: 80px;
+            max-height: 40px;
+            margin: 10px 0;
         }
         
         .page-break {
@@ -294,8 +300,8 @@
         }
         
         @page {
-            size: A4;
-            margin: 2cm;
+            size: A4 landscape;
+            margin: 1cm;
         }
     </style>
 </head>
@@ -395,19 +401,21 @@
                 </tr>
             </thead>
             <tbody>
+                {% for item in proforma.items.all %}
                 <tr>
-                    <td>1</td>
+                    <td>{{ forloop.counter }}</td>
                     <td style="text-align: right;">
-                        <div class="product-name">{{ proforma.product_name }}</div>
-                        {% if proforma.product_description %}
-                        <div class="product-description">{{ proforma.product_description }}</div>
+                        <div class="product-name">{{ item.product_name }}</div>
+                        {% if item.product_description %}
+                        <div class="product-description">{{ item.product_description }}</div>
                         {% endif %}
                     </td>
-                    <td>{{ proforma.quantity|floatformat:2 }}</td>
-                    <td>{{ proforma.get_unit_display }}</td>
-                    <td>{{ proforma.unit_price|floatformat:0 }}</td>
-                    <td><strong>{{ proforma.total_price|floatformat:0 }}</strong></td>
+                    <td>{{ item.quantity|floatformat:2 }}</td>
+                    <td>{{ item.get_unit_display }}</td>
+                    <td>{{ item.unit_price|floatformat:0 }}</td>
+                    <td><strong>{{ item.get_line_total|floatformat:0 }}</strong></td>
                 </tr>
+                {% endfor %}
             </tbody>
         </table>
 
@@ -474,10 +482,10 @@
         </div>
 
         <!-- فوتر -->
-        <div class="invoice-footer" style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 30px;">
+        <div style="text-align: center; font-size: 9px; color: #9ca3af; margin-top: 10px;">
             <div>این پیش فاکتور از طریق سیستم مدیریت {{ proforma.company_info.company_name }} صادر شده است.</div>
             {% if proforma.company_info.website %}
-            <div style="margin-top: 5px;">{{ proforma.company_info.website }}</div>
+            <div style="margin-top: 3px;">{{ proforma.company_info.website }}</div>
             {% endif %}
         </div>
     </div>

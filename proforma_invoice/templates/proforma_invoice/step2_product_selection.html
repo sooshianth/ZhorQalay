@@ -14,7 +14,7 @@
     }
 
     .container {
-        max-width: 1200px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 20px;
     }
@@ -141,27 +141,68 @@
         cursor: pointer;
     }
 
-    .product-info {
+    .items-list {
+        margin-top: 20px;
+    }
+
+    .item-card {
         background: var(--background-color);
-        border-radius: 8px;
-        padding: 15px;
-        margin-top: 10px;
-        display: none;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        position: relative;
     }
 
-    .product-info.show {
-        display: block;
-    }
-
-    .product-detail {
+    .item-card-header {
         display: flex;
         justify-content: space-between;
-        padding: 8px 0;
-        border-bottom: 1px solid var(--border-color);
+        align-items: center;
+        margin-bottom: 15px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--border-color);
     }
 
-    .product-detail:last-child {
-        border-bottom: none;
+    .item-number {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    .remove-item-btn {
+        background: #dc2626;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+    .remove-item-btn:hover {
+        background: #991b1b;
+    }
+
+    .add-item-btn {
+        background: var(--button-color);
+        color: white;
+        border: none;
+        padding: 12px 25px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+        transition: all 0.3s;
+    }
+
+    .add-item-btn:hover {
+        background: var(--hover-color);
+        transform: translateY(-2px);
     }
 
     .calculation-box {
@@ -268,7 +309,7 @@
                 </div>
                 <div class="wizard-step active">
                     <div class="wizard-step-number">2</div>
-                    <span>انتخاب محصول</span>
+                    <span>انتخاب محصولات</span>
                 </div>
                 <div class="wizard-step">
                     <div class="wizard-step-number">3</div>
@@ -280,90 +321,34 @@
         <div class="wizard-content">
             <form method="post" id="productForm">
                 {% csrf_token %}
+                <input type="hidden" name="items" id="items-json">
 
-                <!-- انتخاب محصول -->
+                <!-- لیست محصولات -->
                 <div class="form-section">
                     <div class="form-section-title">
-                        <i class="fas fa-box"></i>
-                        انتخاب محصول
+                        <i class="fas fa-boxes"></i>
+                        محصولات
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label">محصول از لیست موجود:</label>
-                        <select name="product" id="product-select" class="form-control">
-                            <option value="">-- انتخاب کنید (اختیاری) --</option>
-                            {% for product in active_products %}
-                            <option value="{{ product.id }}" 
-                                    data-name="{{ product.get_product_type_display }}"
-                                    data-country="{{ product.get_country_display }}"
-                                    data-price="{{ product.customer_price }}">
-                                {{ product.cottage }} - {{ product.get_product_type_display }} ({{ product.get_country_display }})
-                            </option>
-                            {% endfor %}
-                        </select>
-                        <div id="product-info" class="product-info"></div>
+                    <div id="items-container" class="items-list">
+                        <!-- آیتم‌های محصول به صورت پویا اضافه می‌شوند -->
                     </div>
 
-                    <div class="form-group">
-                        <label class="form-label required">نام محصول:</label>
-                        <input type="text" name="product_name" id="product-name" class="form-control" 
-                               placeholder="نام محصول را وارد کنید" required>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">توضیحات محصول:</label>
-                        <textarea name="product_description" class="form-control" 
-                                  placeholder="توضیحات تکمیلی درباره محصول (اختیاری)"></textarea>
-                    </div>
-                </div>
-
-                <!-- مشخصات فروش -->
-                <div class="form-section">
-                    <div class="form-section-title">
-                        <i class="fas fa-calculator"></i>
-                        مشخصات فروش
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label class="form-label required">مقدار:</label>
-                            <input type="number" name="quantity" id="quantity" class="form-control" 
-                                   placeholder="مثال: 1000" step="0.01" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label required">واحد:</label>
-                            <select name="unit" id="unit" class="form-control" required>
-                                <option value="kg">کیلوگرم</option>
-                                <option value="ton">تن</option>
-                                <option value="bag">کیسه</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label required">قیمت واحد (ریال):</label>
-                        <input type="number" name="unit_price" id="unit-price" class="form-control" 
-                               placeholder="مثال: 50000" required>
-                    </div>
+                    <button type="button" class="add-item-btn" onclick="addItem()">
+                        <i class="fas fa-plus"></i>
+                        افزودن محصول جدید
+                    </button>
                 </div>
 
                 <!-- محاسبه خودکار -->
                 <div class="calculation-box">
                     <div class="calculation-title">
-                        <i class="fas fa-calculator"></i> محاسبه قیمت
+                        <i class="fas fa-calculator"></i> محاسبه قیمت کل
                     </div>
-                    <div class="calculation-row">
-                        <span>مقدار:</span>
-                        <span id="calc-quantity">—</span>
-                    </div>
-                    <div class="calculation-row">
-                        <span>قیمت واحد:</span>
-                        <span id="calc-unit-price">—</span>
-                    </div>
+                    <div id="calc-items-list"></div>
                     <div class="calculation-row total">
                         <span>جمع کل:</span>
-                        <span id="calc-total">—</span>
+                        <span id="calc-grand-total">0 ریال</span>
                     </div>
                 </div>
 
@@ -398,70 +383,206 @@
 </div>
 
 <script>
-// انتخاب محصول از لیست
-document.getElementById('product-select').addEventListener('change', function() {
-    const selectedOption = this.options[this.selectedIndex];
-    const productInfo = document.getElementById('product-info');
-    const productNameInput = document.getElementById('product-name');
-    const unitPriceInput = document.getElementById('unit-price');
-    
-    if (this.value) {
-        const name = selectedOption.dataset.name;
-        const country = selectedOption.dataset.country;
-        const price = selectedOption.dataset.price;
-        
-        productInfo.innerHTML = `
-            <div class="product-detail">
-                <span>نام محصول:</span>
-                <span>${name}</span>
-            </div>
-            <div class="product-detail">
-                <span>کشور سازنده:</span>
-                <span>${country}</span>
-            </div>
-            <div class="product-detail">
-                <span>قیمت پیشنهادی:</span>
-                <span>${parseInt(price).toLocaleString('fa-IR')} ریال</span>
-            </div>
-        `;
-        productInfo.classList.add('show');
-        
-        // پر کردن خودکار فیلدها
-        productNameInput.value = name;
-        unitPriceInput.value = price;
-        
-        // محاسبه مجدد
-        calculateTotal();
-    } else {
-        productInfo.classList.remove('show');
-    }
-});
+// آرایه محصولات (برای استفاده در فرم)
+var allProducts = [];
 
-// محاسبه خودکار قیمت
-function calculateTotal() {
-    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
-    const unitPrice = parseFloat(document.getElementById('unit-price').value) || 0;
-    const unit = document.getElementById('unit').selectedOptions[0].text;
+// تبدیل QuerySet به آرایه JSON
+{% if cargo_products %}
+{% for product in cargo_products %}
+allProducts.push({
+        id: {{ product.id }},
+        type: 'cargo',
+        name: '{{ product.get_product_type_display|escapejs }} ({{ product.get_country_display|escapejs }})',
+        cottage: '{{ product.cottage|escapejs }}',
+        price: {{ product.customer_price|default:0 }},
+        country: '{{ product.get_country_display|escapejs }}'
+    });
+    {% endfor %}
+    {% endif %}
+
+{% if non_bazargah_products %}
+{% for product in non_bazargah_products %}
+allProducts.push({
+    id: {{ product.id }},
+    type: 'non_bazargah',
+    name: '{{ product.name|escapejs }}',
+    cottage: '{{ product.cottage|default:""|escapejs }}',
+    price: {{ product.purchase_price|default:0 }}
+});
+{% endfor %}
+{% endif %}
+
+console.log('محصولات بارگذاری شده:', allProducts.length);
+
+// آرایه آیتم‌های فرم
+var items = [];
+var itemCounter = 0;
+
+// اضافه کردن آیتم جدید
+function addItem() {
+    var itemId = itemCounter++;
     
-    const total = quantity * unitPrice;
+    const itemCard = document.createElement('div');
+    itemCard.className = 'item-card';
+    itemCard.id = `item-${itemId}`;
     
-    document.getElementById('calc-quantity').textContent = quantity > 0 
-        ? `${quantity.toLocaleString('fa-IR')} ${unit}` 
-        : '—';
+    itemCard.innerHTML = `
+        <div class="item-card-header">
+            <span class="item-number">محصول ${itemId + 1}</span>
+            <button type="button" class="remove-item-btn" onclick="removeItem(${itemId})">
+                <i class="fas fa-trash"></i> حذف
+            </button>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">محصول از لیست موجود:</label>
+            <select class="form-control" onchange="selectProduct(${itemId}, this.value)">
+                <option value="">-- انتخاب کنید (اختیاری) --</option>
+                ${allProducts.map(p => \`<option value="\${p.id}" data-type="\${p.type}">\${p.name} - \${p.cottage}</option>\`).join('')}
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label required">نام محصول:</label>
+            <input type="text" class="form-control" id="name-${itemId}" placeholder="نام محصول را وارد کنید" required>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">توضیحات محصول:</label>
+            <textarea class="form-control" id="desc-${itemId}" placeholder="توضیحات تکمیلی (اختیاری)"></textarea>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label required">مقدار:</label>
+                <input type="number" class="form-control" id="qty-${itemId}" placeholder="مثال: 1000" step="0.01" required onchange="updateCalculations()">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">واحد:</label>
+                <select class="form-control" id="unit-${itemId}" required onchange="updateCalculations()">
+                    <option value="kg">کیلوگرم</option>
+                    <option value="ton">تن</option>
+                    <option value="bag">کیسه</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label required">قیمت واحد (ریال):</label>
+            <input type="number" class="form-control" id="price-${itemId}" placeholder="مثال: 50000" required onchange="updateCalculations()">
+        </div>
+        
+        <input type="hidden" id="product-id-${itemId}" value="">
+        <input type="hidden" id="product-type-${itemId}" value="">
+    `;
     
-    document.getElementById('calc-unit-price').textContent = unitPrice > 0 
-        ? `${unitPrice.toLocaleString('fa-IR')} ریال` 
-        : '—';
-    
-    document.getElementById('calc-total').textContent = total > 0 
-        ? `${total.toLocaleString('fa-IR')} ریال` 
-        : '—';
+    document.getElementById('items-container').appendChild(itemCard);
 }
 
-// اضافه کردن event listener برای محاسبه خودکار
-document.getElementById('quantity').addEventListener('input', calculateTotal);
-document.getElementById('unit-price').addEventListener('input', calculateTotal);
-document.getElementById('unit').addEventListener('change', calculateTotal);
+// حذف آیتم
+function removeItem(itemId) {
+    var itemCard = document.getElementById('item-' + itemId);
+    if (itemCard) {
+        itemCard.remove();
+        updateCalculations();
+    }
+}
+
+// انتخاب محصول از لیست
+function selectProduct(itemId, productId) {
+    if (!productId) return;
+    
+    var product = allProducts.find(p => p.id == productId);
+    if (!product) return;
+    
+    document.getElementById('name-' + itemId).value = product.name;
+    document.getElementById('price-' + itemId).value = product.price;
+    document.getElementById('product-id-' + itemId).value = productId;
+    document.getElementById('product-type-' + itemId).value = product.type;
+    
+    updateCalculations();
+}
+
+// بروزرسانی محاسبات
+function updateCalculations() {
+    const itemCards = document.querySelectorAll('.item-card');
+    let grandTotal = 0;
+    let calcItemsHtml = '';
+    
+    itemCards.forEach((card, index) => {
+        const itemId = card.id.split('-')[1];
+        const qty = parseFloat(document.getElementById(`qty-${itemId}`)?.value || 0);
+        const price = parseFloat(document.getElementById(`price-${itemId}`)?.value || 0);
+        const unit = document.getElementById(`unit-${itemId}`)?.selectedOptions[0]?.text || 'کیلوگرم';
+        const name = document.getElementById(`name-${itemId}`)?.value || `محصول ${index + 1}`;
+        
+        const lineTotal = qty * price;
+        grandTotal += lineTotal;
+        
+        if (qty > 0 && price > 0) {
+            calcItemsHtml += `
+                <div class="calculation-row">
+                    <span>${name}:</span>
+                    <span>${lineTotal.toLocaleString('fa-IR')} ریال</span>
+                </div>
+            `;
+        }
+    });
+    
+    document.getElementById('calc-items-list').innerHTML = calcItemsHtml;
+    document.getElementById('calc-grand-total').textContent = `${grandTotal.toLocaleString('fa-IR')} ریال`;
+}
+
+// جمع‌آوری داده‌های فرم
+function collectFormData() {
+    const itemCards = document.querySelectorAll('.item-card');
+    const items = [];
+    
+    itemCards.forEach(card => {
+        const itemId = card.id.split('-')[1];
+        const productId = document.getElementById(`product-id-${itemId}`)?.value || '';
+        const productType = document.getElementById(`product-type-${itemId}`)?.value || '';
+        const name = document.getElementById(`name-${itemId}`)?.value || '';
+        const desc = document.getElementById(`desc-${itemId}`)?.value || '';
+        const qty = document.getElementById(`qty-${itemId}`)?.value || 0;
+        const unit = document.getElementById(`unit-${itemId}`)?.value || 'kg';
+        const price = document.getElementById(`price-${itemId}`)?.value || 0;
+        
+        if (name && qty > 0 && price > 0) {
+            items.push({
+                product_id: productId,
+                product_type: productType,
+                product_name: name,
+                product_description: desc,
+                quantity: qty,
+                unit: unit,
+                unit_price: price
+            });
+        }
+    });
+    
+    return items;
+}
+
+// ارسال فرم
+document.getElementById('productForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    var items = collectFormData();
+    
+    if (items.length === 0) {
+        alert('لطفاً حداقل یک محصول اضافه کنید.');
+        return;
+    }
+    
+    document.getElementById('items-json').value = JSON.stringify(items);
+    this.submit();
+});
+
+// اضافه کردن یک آیتم به صورت پیش‌فرض هنگام بارگذاری صفحه
+document.addEventListener('DOMContentLoaded', function() {
+    addItem();
+});
 </script>
 {% endblock %}
-

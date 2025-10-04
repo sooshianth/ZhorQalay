@@ -2,9 +2,12 @@ from django.db import models
 from django_jalali.db import models as jmodels
 from django.core.validators import MinValueValidator
 from django.utils.translation import gettext_lazy as _
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
+from major.models.NonBazargahProduct import NonBazargahProduct
 import jdatetime
 import random
 import string
@@ -64,12 +67,6 @@ class CompanyInfo(models.Model):
 class ProformaInvoice(models.Model):
     """مدل پیش فاکتور"""
     
-    UNIT_CHOICES = [
-        ('kg', 'کیلوگرم'),
-        ('ton', 'تن'),
-        ('bag', 'کیسه'),
-    ]
-    
     # شماره پیش فاکتور (سریال)
     invoice_number = models.CharField(_("شماره پیش فاکتور"), max_length=20, unique=True, editable=False)
     
@@ -84,21 +81,6 @@ class ProformaInvoice(models.Model):
     company_info = models.ForeignKey(CompanyInfo, on_delete=models.SET_NULL,
                                     null=True, blank=True,
                                     verbose_name=_("اطلاعات شرکت"))
-    
-    # اطلاعات محصول
-    product = models.ForeignKey(CargoProduct, on_delete=models.SET_NULL,
-                               null=True, blank=True,
-                               verbose_name=_("محصول"))
-    product_name = models.CharField(_("نام محصول"), max_length=200,
-                                   help_text="در صورت خالی بودن از نام محصول استفاده می‌شود")
-    product_description = models.TextField(_("توضیحات محصول"), blank=True, null=True)
-    
-    # مشخصات فروش
-    quantity = models.DecimalField(_("مقدار"), max_digits=10, decimal_places=2,
-                                  validators=[MinValueValidator(0)])
-    unit = models.CharField(_("واحد"), max_length=10, choices=UNIT_CHOICES, default='kg')
-    unit_price = models.DecimalField(_("قیمت واحد (ریال)"), max_digits=15, decimal_places=0,
-                                    validators=[MinValueValidator(0)])
     
     # محاسبات خودکار
     total_price = models.DecimalField(_("قیمت کل (ریال)"), max_digits=15, decimal_places=0,
@@ -129,19 +111,19 @@ class ProformaInvoice(models.Model):
         if not self.invoice_number:
             self.invoice_number = self.generate_invoice_number()
         
-        # محاسبه قیمت کل
-        self.total_price = self.quantity * self.unit_price
-        
         # تنظیم تاریخ اعتبار (یک روز بعد از تاریخ صدور)
         if not self.valid_until:
             today = jdatetime.date.today()
             self.valid_until = today + jdatetime.timedelta(days=1)
         
-        # اگر نام محصول خالی است، از نام محصول مرتبط استفاده کن
-        if not self.product_name and self.product:
-            self.product_name = self.product.get_product_type_display()
-        
         super().save(*args, **kwargs)
+    
+    def calculate_total(self):
+        """محاسبه قیمت کل از آیتم‌ها"""
+        total = sum(item.get_line_total() for item in self.items.all())
+        self.total_price = total
+        # استفاده از update برای جلوگیری از بی‌نهایت لوپ
+        ProformaInvoice.objects.filter(id=self.id).update(total_price=total)
     
     @staticmethod
     def generate_invoice_number():
@@ -171,6 +153,57 @@ class ProformaInvoice(models.Model):
         """محاسبه قیمت با مالیات (پیش‌فرض 9%)"""
         return self.total_price * (1 + tax_rate)
     
+    def get_formatted_total_price(self):
+        """فرمت کردن قیمت کل"""
+        return f"{self.total_price:,} ریال"
+
+
+class ProformaInvoiceItem(models.Model):
+    """مدل آیتم‌های پیش فاکتور (محصولات)"""
+    
+    UNIT_CHOICES = [
+        ('kg', 'کیلوگرم'),
+        ('ton', 'تن'),
+        ('bag', 'کیسه'),
+    ]
+    
+    # ارتباط با پیش فاکتور
+    proforma = models.ForeignKey(ProformaInvoice, on_delete=models.CASCADE,
+                                related_name='items',
+                                verbose_name=_("پیش فاکتور"))
+    
+    # اطلاعات محصول - Generic Foreign Key برای پشتیبانی از چند نوع محصول
+    content_type = models.ForeignKey(ContentType, on_delete=models.SET_NULL, 
+                                    null=True, blank=True,
+                                    limit_choices_to={'model__in': ('cargoproduct', 'nonbazargahproduct')})
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    product = GenericForeignKey('content_type', 'object_id')
+    
+    product_name = models.CharField(_("نام محصول"), max_length=200)
+    product_description = models.TextField(_("توضیحات محصول"), blank=True, null=True)
+    
+    # مشخصات فروش
+    quantity = models.DecimalField(_("مقدار"), max_digits=10, decimal_places=2,
+                                  validators=[MinValueValidator(0)])
+    unit = models.CharField(_("واحد"), max_length=10, choices=UNIT_CHOICES, default='kg')
+    unit_price = models.DecimalField(_("قیمت واحد (ریال)"), max_digits=15, decimal_places=0,
+                                    validators=[MinValueValidator(0)])
+    
+    # ترتیب نمایش
+    order = models.PositiveIntegerField(_("ترتیب"), default=0)
+    
+    class Meta:
+        verbose_name = _("آیتم پیش فاکتور")
+        verbose_name_plural = _("آیتم‌های پیش فاکتور")
+        ordering = ['order', 'id']
+    
+    def __str__(self):
+        return f"{self.product_name} - {self.proforma.invoice_number}"
+    
+    def get_line_total(self):
+        """محاسبه قیمت کل این آیتم"""
+        return self.quantity * self.unit_price
+    
     def get_formatted_quantity(self):
         """فرمت کردن مقدار با واحد"""
         unit_display = dict(self.UNIT_CHOICES).get(self.unit, self.unit)
@@ -180,6 +213,12 @@ class ProformaInvoice(models.Model):
         """فرمت کردن قیمت واحد"""
         return f"{self.unit_price:,} ریال"
     
-    def get_formatted_total_price(self):
-        """فرمت کردن قیمت کل"""
-        return f"{self.total_price:,} ریال"
+    def get_formatted_line_total(self):
+        """فرمت کردن قیمت کل این آیتم"""
+        return f"{self.get_line_total():,} ریال"
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # بروزرسانی قیمت کل پیش فاکتور
+        if self.proforma_id:
+            self.proforma.calculate_total()

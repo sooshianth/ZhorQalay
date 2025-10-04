@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CompanyInfo, ProformaInvoice
+from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem
 
 
 @admin.register(CompanyInfo)
@@ -30,30 +30,30 @@ class CompanyInfoAdmin(admin.ModelAdmin):
     )
 
 
+class ProformaInvoiceItemInline(admin.TabularInline):
+    model = ProformaInvoiceItem
+    extra = 1
+    fields = ['product_name', 'product_description', 'quantity', 'unit', 'unit_price', 'order']
+
+
 @admin.register(ProformaInvoice)
 class ProformaInvoiceAdmin(admin.ModelAdmin):
-    list_display = ['invoice_number', 'customer', 'product_name', 'quantity', 'unit', 
-                   'total_price', 'issue_date', 'valid_until', 'is_finalized']
-    list_filter = ['is_finalized', 'issue_date', 'valid_until', 'unit']
-    search_fields = ['invoice_number', 'customer__name', 'product_name']
+    list_display = ['invoice_number', 'customer', 'total_price', 'issue_date', 'valid_until', 'is_finalized']
+    list_filter = ['is_finalized', 'issue_date', 'valid_until']
+    search_fields = ['invoice_number', 'customer__name']
     readonly_fields = ['invoice_number', 'total_price', 'created_at', 'updated_at']
     date_hierarchy = 'issue_date'
+    inlines = [ProformaInvoiceItemInline]
     
     fieldsets = (
         ('اطلاعات پیش فاکتور', {
             'fields': ('invoice_number', 'customer', 'sales_agent', 'company_info')
         }),
-        ('اطلاعات محصول', {
-            'fields': ('product', 'product_name', 'product_description')
-        }),
-        ('مشخصات فروش', {
-            'fields': ('quantity', 'unit', 'unit_price', 'total_price')
-        }),
         ('تاریخ‌ها', {
             'fields': ('issue_date', 'valid_until')
         }),
         ('سایر اطلاعات', {
-            'fields': ('notes', 'is_finalized', 'created_at', 'updated_at')
+            'fields': ('total_price', 'notes', 'is_finalized', 'created_at', 'updated_at')
         }),
     )
     
@@ -62,3 +62,10 @@ class ProformaInvoiceAdmin(admin.ModelAdmin):
         if obj and obj.is_finalized:
             return [f.name for f in self.model._meta.fields]
         return self.readonly_fields
+
+
+@admin.register(ProformaInvoiceItem)
+class ProformaInvoiceItemAdmin(admin.ModelAdmin):
+    list_display = ['proforma', 'product_name', 'quantity', 'unit', 'unit_price', 'order']
+    list_filter = ['unit', 'proforma__issue_date']
+    search_fields = ['product_name', 'proforma__invoice_number']

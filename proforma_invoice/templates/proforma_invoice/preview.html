@@ -365,19 +365,21 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for item in proforma.items.all %}
                         <tr>
-                            <td>1</td>
+                            <td>{{ forloop.counter }}</td>
                             <td>
-                                <strong>{{ proforma.product_name }}</strong>
-                                {% if proforma.product_description %}
-                                <br><small style="color: #666;">{{ proforma.product_description }}</small>
+                                <strong>{{ item.product_name }}</strong>
+                                {% if item.product_description %}
+                                <br><small style="color: #666;">{{ item.product_description }}</small>
                                 {% endif %}
                             </td>
-                            <td>{{ proforma.quantity }}</td>
-                            <td>{{ proforma.get_unit_display }}</td>
-                            <td>{{ proforma.unit_price|floatformat:0 }}</td>
-                            <td>{{ proforma.total_price|floatformat:0 }}</td>
+                            <td>{{ item.quantity|floatformat:2 }}</td>
+                            <td>{{ item.get_unit_display }}</td>
+                            <td>{{ item.unit_price|floatformat:0 }}</td>
+                            <td>{{ item.get_line_total|floatformat:0 }}</td>
                         </tr>
+                        {% endfor %}
                     </tbody>
                 </table>
 
