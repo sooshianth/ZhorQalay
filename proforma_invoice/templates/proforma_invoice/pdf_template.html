@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>پیش فاکتور {{ proforma.invoice_number }}</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/font-face.css');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'Tahoma', 'Arial', sans-serif;
+            font-size: 14px;
+            color: #1a202c;
+            line-height: 1.8;
+            direction: rtl;
+            padding: 40px;
+        }
+        
+        .invoice-container {
+            border: 3px solid #065F46;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+        }
+        
+        .invoice-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 3px double #065F46;
+        }
+        
+        .company-logo {
+            max-width: 150px;
+            max-height: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .invoice-title {
+            font-size: 32px;
+            font-weight: bold;
+            color: #065F46;
+            margin-bottom: 15px;
+        }
+        
+        .invoice-subtitle {
+            font-size: 20px;
+            color: #059669;
+            margin-bottom: 10px;
+        }
+        
+        .invoice-number {
+            font-size: 18px;
+            color: #4b5563;
+            direction: ltr;
+            margin-bottom: 5px;
+        }
+        
+        .invoice-dates {
+            margin-top: 15px;
+            font-size: 15px;
+            color: #6b7280;
+        }
+        
+        .invoice-dates div {
+            margin-bottom: 5px;
+        }
+        
+        .invoice-parties {
+            display: table;
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .party-box {
+            display: table-cell;
+            width: 48%;
+            background: #f0fdf4;
+            border: 2px solid #bbf7d0;
+            border-radius: 8px;
+            padding: 20px;
+            vertical-align: top;
+        }
+        
+        .party-box:first-child {
+            margin-left: 4%;
+        }
+        
+        .party-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #065F46;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #059669;
+        }
+        
+        .party-detail {
+            margin-bottom: 10px;
+            display: table;
+            width: 100%;
+        }
+        
+        .party-label {
+            display: table-cell;
+            font-weight: 600;
+            width: 120px;
+            color: #4b5563;
+        }
+        
+        .party-value {
+            display: table-cell;
+            color: #1a202c;
+        }
+        
+        .invoice-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            border: 2px solid #065F46;
+        }
+        
+        .invoice-table th {
+            background: #065F46;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 15px;
+            font-weight: bold;
+            border: 1px solid #065F46;
+        }
+        
+        .invoice-table td {
+            padding: 15px;
+            text-align: center;
+            border: 1px solid #bbf7d0;
+        }
+        
+        .invoice-table tbody tr {
+            background: #f9fafb;
+        }
+        
+        .invoice-table tbody tr:nth-child(even) {
+            background: white;
+        }
+        
+        .product-name {
+            font-weight: bold;
+            color: #065F46;
+        }
+        
+        .product-description {
+            font-size: 12px;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        
+        .invoice-summary {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 3px solid #f59e0b;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .summary-row {
+            display: table;
+            width: 100%;
+            padding: 10px 0;
+            font-size: 17px;
+        }
+        
+        .summary-label {
+            display: table-cell;
+            text-align: right;
+            font-weight: 600;
+            color: #78350f;
+        }
+        
+        .summary-value {
+            display: table-cell;
+            text-align: left;
+            direction: ltr;
+            font-weight: bold;
+            color: #92400e;
+        }
+        
+        .summary-row.total {
+            border-top: 3px solid #f59e0b;
+            margin-top: 10px;
+            padding-top: 20px;
+            font-size: 22px;
+        }
+        
+        .summary-row.total .summary-label,
+        .summary-row.total .summary-value {
+            color: #065F46;
+        }
+        
+        .invoice-notes {
+            background: #f9fafb;
+            border: 2px dashed #d1d5db;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .notes-title {
+            font-weight: bold;
+            color: #065F46;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .notes-content {
+            color: #4b5563;
+            line-height: 1.8;
+        }
+        
+        .invoice-footer {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+        }
+        
+        .bank-info {
+            background: #f0f9ff;
+            border: 2px solid #bae6fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .bank-info-title {
+            font-weight: bold;
+            color: #075985;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .bank-detail {
+            margin-bottom: 8px;
+            color: #0c4a6e;
+        }
+        
+        .bank-detail strong {
+            color: #075985;
+        }
+        
+        .signature-section {
+            display: table;
+            width: 100%;
+            margin-top: 40px;
+        }
+        
+        .signature-box {
+            display: table-cell;
+            width: 48%;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .signature-box:first-child {
+            margin-left: 4%;
+        }
+        
+        .signature-title {
+            font-weight: bold;
+            color: #4b5563;
+            margin-bottom: 50px;
+        }
+        
+        .signature-line {
+            border-top: 2px solid #9ca3af;
+            padding-top: 10px;
+            color: #6b7280;
+        }
+        
+        .signature-image {
+            max-width: 120px;
+            max-height: 60px;
+            margin: 20px 0;
+        }
+        
+        .page-break {
+            page-break-after: always;
+        }
+        
+        @page {
+            size: A4;
+            margin: 2cm;
+        }
+    </style>
+</head>
+<body>
+    <div class="invoice-container">
+        <!-- سربرگ -->
+        <div class="invoice-header">
+            {% if proforma.company_info.logo %}
+            <img src="{{ proforma.company_info.logo.url }}" alt="لوگو" class="company-logo">
+            {% endif %}
+            
+            <div class="invoice-title">پیش فاکتور فروش</div>
+            <div class="invoice-subtitle">{{ proforma.company_info.company_name }}</div>
+            <div class="invoice-number">Invoice Number: {{ proforma.invoice_number }}</div>
+            
+            <div class="invoice-dates">
+                <div><strong>تاریخ صدور:</strong> {{ proforma.issue_date }}</div>
+                <div><strong>تاریخ اعتبار:</strong> {{ proforma.valid_until }}</div>
+            </div>
+        </div>
+
+        <!-- اطلاعات فروشنده و خریدار -->
+        <div class="invoice-parties">
+            <!-- فروشنده -->
+            <div class="party-box">
+                <div class="party-title">مشخصات فروشنده</div>
+                <div class="party-detail">
+                    <span class="party-label">نام:</span>
+                    <span class="party-value">{{ proforma.company_info.company_name }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">شناسه ملی:</span>
+                    <span class="party-value">{{ proforma.company_info.company_id_code|default:"—" }}</span>
+                </div>
+                {% if proforma.company_info.economic_code %}
+                <div class="party-detail">
+                    <span class="party-label">کد اقتصادی:</span>
+                    <span class="party-value">{{ proforma.company_info.economic_code }}</span>
+                </div>
+                {% endif %}
+                <div class="party-detail">
+                    <span class="party-label">تلفن:</span>
+                    <span class="party-value">{{ proforma.company_info.phone_number|default:"—" }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">کد پستی:</span>
+                    <span class="party-value">{{ proforma.company_info.postal_code|default:"—" }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">آدرس:</span>
+                    <span class="party-value">{{ proforma.company_info.address|default:"—" }}</span>
+                </div>
+            </div>
+
+            <!-- خریدار -->
+            <div class="party-box">
+                <div class="party-title">مشخصات خریدار</div>
+                <div class="party-detail">
+                    <span class="party-label">نام:</span>
+                    <span class="party-value">{{ proforma.customer.name }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">شناسه ملی:</span>
+                    <span class="party-value">{{ proforma.customer.invoice_id_code|default:"—" }}</span>
+                </div>
+                {% if proforma.customer.eqtesadi_code %}
+                <div class="party-detail">
+                    <span class="party-label">کد اقتصادی:</span>
+                    <span class="party-value">{{ proforma.customer.eqtesadi_code }}</span>
+                </div>
+                {% endif %}
+                <div class="party-detail">
+                    <span class="party-label">تلفن:</span>
+                    <span class="party-value">{{ proforma.customer.invoice_phone_number|default:"—" }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">کد پستی:</span>
+                    <span class="party-value">{{ proforma.customer.invoice_postal_code|default:"—" }}</span>
+                </div>
+                <div class="party-detail">
+                    <span class="party-label">آدرس:</span>
+                    <span class="party-value">{{ proforma.customer.invoice_address|default:"—" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول کالاها و خدمات -->
+        <table class="invoice-table">
+            <thead>
+                <tr>
+                    <th style="width: 8%;">ردیف</th>
+                    <th style="width: 35%;">شرح کالا/خدمات</th>
+                    <th style="width: 12%;">مقدار</th>
+                    <th style="width: 10%;">واحد</th>
+                    <th style="width: 17%;">قیمت واحد (ریال)</th>
+                    <th style="width: 18%;">قیمت کل (ریال)</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>1</td>
+                    <td style="text-align: right;">
+                        <div class="product-name">{{ proforma.product_name }}</div>
+                        {% if proforma.product_description %}
+                        <div class="product-description">{{ proforma.product_description }}</div>
+                        {% endif %}
+                    </td>
+                    <td>{{ proforma.quantity|floatformat:2 }}</td>
+                    <td>{{ proforma.get_unit_display }}</td>
+                    <td>{{ proforma.unit_price|floatformat:0 }}</td>
+                    <td><strong>{{ proforma.total_price|floatformat:0 }}</strong></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- خلاصه مالی -->
+        <div class="invoice-summary">
+            <div class="summary-row">
+                <span class="summary-label">جمع کل:</span>
+                <span class="summary-value">{{ proforma.total_price|floatformat:0 }} ریال</span>
+            </div>
+            <div class="summary-row total">
+                <span class="summary-label">مبلغ قابل پرداخت:</span>
+                <span class="summary-value">{{ proforma.total_price|floatformat:0 }} ریال</span>
+            </div>
+        </div>
+
+        <!-- ملاحظات -->
+        {% if proforma.notes or proforma.company_info.default_notes %}
+        <div class="invoice-notes">
+            <div class="notes-title">ملاحظات:</div>
+            <div class="notes-content">
+                {% if proforma.notes %}
+                    <div>{{ proforma.notes|linebreaks }}</div>
+                {% endif %}
+                {% if proforma.company_info.default_notes %}
+                    <div>{{ proforma.company_info.default_notes|linebreaks }}</div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- اطلاعات بانکی -->
+        {% if proforma.company_info.account_number or proforma.company_info.iban %}
+        <div class="bank-info">
+            <div class="bank-info-title">اطلاعات بانکی:</div>
+            {% if proforma.company_info.bank_name %}
+            <div class="bank-detail"><strong>بانک:</strong> {{ proforma.company_info.bank_name }}</div>
+            {% endif %}
+            {% if proforma.company_info.account_number %}
+            <div class="bank-detail"><strong>شماره حساب:</strong> {{ proforma.company_info.account_number }}</div>
+            {% endif %}
+            {% if proforma.company_info.iban %}
+            <div class="bank-detail"><strong>شماره شبا:</strong> {{ proforma.company_info.iban }}</div>
+            {% endif %}
+            {% if proforma.company_info.card_number %}
+            <div class="bank-detail"><strong>شماره کارت:</strong> {{ proforma.company_info.card_number }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <!-- امضاها -->
+        <div class="signature-section">
+            <div class="signature-box">
+                <div class="signature-title">امضای خریدار</div>
+                <div class="signature-line">مهر و امضا</div>
+            </div>
+            
+            <div class="signature-box">
+                <div class="signature-title">امضای فروشنده</div>
+                {% if proforma.company_info.signature_image %}
+                <img src="{{ proforma.company_info.signature_image.url }}" alt="امضا" class="signature-image">
+                {% endif %}
+                <div class="signature-line">مهر و امضا</div>
+            </div>
+        </div>
+
+        <!-- فوتر -->
+        <div class="invoice-footer" style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 30px;">
+            <div>این پیش فاکتور از طریق سیستم مدیریت {{ proforma.company_info.company_name }} صادر شده است.</div>
+            {% if proforma.company_info.website %}
+            <div style="margin-top: 5px;">{{ proforma.company_info.website }}</div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>
+

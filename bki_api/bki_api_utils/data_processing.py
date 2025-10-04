@@ -218,7 +218,8 @@ def create_state_change_record(purchase, previous_state, new_state, notes="تغ�
         logger.error(f"جزئیات خطا: {traceback.format_exc()}")
 
 
-def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code):
+def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code, 
+                          buyer_national_id=None, buyer_postal_code=None, buyer_unique_id=None):
     """
     Create a new customer or get an existing one based on phone number.
     
@@ -227,6 +228,9 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
         buyer_phone (str): The phone number of the buyer
         buyer_address (str): The address of the buyer
         province_code (str): The province code of the buyer
+        buyer_national_id (str): National ID or company registration number
+        buyer_postal_code (str): Postal code of the buyer
+        buyer_unique_id (str): Unique ID (yekta code) of the buyer
         
     Returns:
         tuple: (customer, created, error_message)
@@ -258,10 +262,25 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             # Determine the province name
             province_name = get_province_name(province_code) or 'نامشخص'
             
+            # تشخیص حقیقی یا حقوقی بودن از روی طول شناسه ملی
+            haqiqi_hoquqi = 'haqiqi'  # پیش‌فرض
+            if buyer_national_id:
+                clean_national_id = ''.join(c for c in str(buyer_national_id) if c.isdigit())
+                if len(clean_national_id) == 11:
+                    haqiqi_hoquqi = 'hoquqi'  # شخص حقوقی
+                elif len(clean_national_id) == 10:
+                    haqiqi_hoquqi = 'haqiqi'  # شخص حقیقی
+            
             # Create a new customer with valid fields according to the model
             customer = Customer.objects.create(
                 name=buyer_name,
-                city=province_name
+                city=province_name,
+                haqiqi_hoquqi=haqiqi_hoquqi,
+                invoice_id_code=buyer_national_id,
+                invoice_postal_code=buyer_postal_code,
+                invoice_address=buyer_address,
+                invoice_phone_number=clean_phone,
+                yekta_code=buyer_unique_id
             )
             
             # Add address and origin after creating the object
@@ -283,9 +302,54 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             
             created = True
             
+            logger.info(f"✅ مشتری جدید '{buyer_name}' با شناسه ملی {buyer_national_id} و وضعیت {haqiqi_hoquqi} ایجاد شد")
+            
             return customer, created, None
         except Exception as e:
             return None, False, f"خطا در ایجاد مشتری جدید: {str(e)}"
+    
+    # اگر مشتری موجود بود، فیلدهای خالی را آپدیت کن
+    try:
+        updated = False
+        
+        # آپدیت شناسه ملی
+        if buyer_national_id and not customer.invoice_id_code:
+            customer.invoice_id_code = buyer_national_id
+            updated = True
+            
+            # تشخیص حقیقی یا حقوقی بودن
+            clean_national_id = ''.join(c for c in str(buyer_national_id) if c.isdigit())
+            if len(clean_national_id) == 11:
+                customer.haqiqi_hoquqi = 'hoquqi'
+            elif len(clean_national_id) == 10:
+                customer.haqiqi_hoquqi = 'haqiqi'
+        
+        # آپدیت کد پستی
+        if buyer_postal_code and not customer.invoice_postal_code:
+            customer.invoice_postal_code = buyer_postal_code
+            updated = True
+        
+        # آپدیت آدرس رسمی
+        if buyer_address and not customer.invoice_address:
+            customer.invoice_address = buyer_address
+            updated = True
+        
+        # آپدیت شماره تلفن رسمی
+        if clean_phone and not customer.invoice_phone_number:
+            customer.invoice_phone_number = clean_phone
+            updated = True
+        
+        # آپدیت شناسه یکتا
+        if buyer_unique_id and not customer.yekta_code:
+            customer.yekta_code = buyer_unique_id
+            updated = True
+        
+        if updated:
+            customer.save()
+            logger.info(f"✅ اطلاعات فاکتور مشتری '{buyer_name}' آپدیت شد")
+    
+    except Exception as e:
+        logger.warning(f"⚠️ خطا در آپدیت اطلاعات مشتری: {str(e)}")
     
     return customer, created, None
 
@@ -428,6 +492,57 @@ def update_purchase(purchase, purchase_data):
         buyerpostalcode = purchase_data.get('buyerzip')  # کد پستی خریدار
         buyerpartidcode = purchase_data.get('buyerpartidcode')
         buyer_account = purchase_data.get('buyeracc')  # حساب خریدار از BKI API
+        province_code = purchase_data.get('provincename')  # کد استان
+        buyer_unique_id = purchase_data.get('buyeruniqueid')  # شناسه یکتا خریدار
+        
+        # آپدیت اطلاعات فاکتور مشتری از داده‌های buyer
+        if purchase.customer:
+            try:
+                updated = False
+                customer = purchase.customer
+                
+                # پاکسازی شماره تلفن
+                from .helpers import clean_phone_number
+                clean_phone, _ = clean_phone_number(buyer_phone) if buyer_phone else (None, None)
+                
+                # آپدیت شناسه ملی
+                if buyer_national_id and not customer.invoice_id_code:
+                    customer.invoice_id_code = buyer_national_id
+                    updated = True
+                    
+                    # تشخیص حقیقی یا حقوقی بودن
+                    clean_national_id = ''.join(c for c in str(buyer_national_id) if c.isdigit())
+                    if len(clean_national_id) == 11:
+                        customer.haqiqi_hoquqi = 'hoquqi'
+                    elif len(clean_national_id) == 10:
+                        customer.haqiqi_hoquqi = 'haqiqi'
+                
+                # آپدیت کد پستی
+                if buyerpostalcode and not customer.invoice_postal_code:
+                    customer.invoice_postal_code = buyerpostalcode
+                    updated = True
+                
+                # آپدیت آدرس رسمی
+                if buyer_address and not customer.invoice_address:
+                    customer.invoice_address = buyer_address
+                    updated = True
+                
+                # آپدیت شماره تلفن رسمی
+                if clean_phone and not customer.invoice_phone_number:
+                    customer.invoice_phone_number = clean_phone
+                    updated = True
+                
+                # آپدیت شناسه یکتا
+                if buyer_unique_id and not customer.yekta_code:
+                    customer.yekta_code = buyer_unique_id
+                    updated = True
+                
+                if updated:
+                    customer.save()
+                    logger.info(f"✅ اطلاعات فاکتور مشتری '{customer.name}' از خرید {purchase.purchase_number} آپدیت شد")
+            
+            except Exception as e:
+                logger.warning(f"⚠️ خطا در آپدیت اطلاعات مشتری هنگام بروزرسانی خرید: {str(e)}")
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -443,6 +558,7 @@ def update_purchase(purchase, purchase_data):
         purchase.delivery_postal_code = delpostalcode
         purchase.buyer_postal_code = buyerpostalcode
         purchase.unique_delivery_id = buyerpartidcode
+        purchase.unique_buyer_id = buyer_unique_id
         purchase.buyer_account = buyer_account
         
         if tak == 1 and joft == 0 and tereili == 0:
@@ -640,7 +756,10 @@ def create_purchase(purchase_data):
             buyer_name=buyer_name,
             buyer_phone=buyer_phone,
             buyer_address=buyer_address,
-            province_code=province_code
+            province_code=province_code,
+            buyer_national_id=buyer_national_id,
+            buyer_postal_code=buyerpostalcode,
+            buyer_unique_id=purchase_data.get('buyeruniqueid')
         )
         
         if error:
@@ -708,6 +827,7 @@ def create_purchase(purchase_data):
             'delivery_postal_code': delpostalcode,
             'buyer_postal_code': buyerpostalcode,
             'unique_delivery_id': buyerpartidcode,
+            'unique_buyer_id': purchase_data.get('buyeruniqueid'),  # شناسه یکتا خریدار
             'buyer_account': buyer_account,
         }
         

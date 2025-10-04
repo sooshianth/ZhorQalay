@@ -188,6 +188,15 @@ class Customer(models.Model):
     is_active = models.BooleanField(_("فعال"), default=True)
     is_blocked = models.BooleanField(_("مسدود"), default=False)
     
+    # فیلدهای مرتبط با فاکتور زدن
+    haqiqi_hoquqi = models.CharField(_("وضعیت حقیقی یا حقوقی"), max_length=20, null=True, blank=True, choices=[('haqiqi', 'حقیقی'), ('hoquqi', 'حقوقی')], default='haqiqi')
+    invoice_id_code = models.CharField(_("کد/شناسه ملی"), max_length=20, null=True, blank=True)
+    eqtesadi_code = models.CharField(_("کد اقتصادی"), max_length=20, null=True, blank=True)
+    yekta_code = models.CharField(_("شناسه یکتا"), max_length=20, null=True, blank=True)
+    invoice_address = models.TextField(_("آدرس رسمی"), null=True, blank=True)
+    invoice_postal_code = models.CharField(_("کد پستی رسمی"), max_length=20, null=True, blank=True)
+    invoice_phone_number = models.CharField(_("شماره تلفن رسمی"), max_length=20, null=True, blank=True)
+
 
     class Meta:
         verbose_name = _("مشتری")
@@ -489,6 +498,73 @@ class Customer(models.Model):
             raise ValidationError(_('نام را وارد کنید.'))
         
         # No need to validate phone_number here as it's now in the PhoneNumber model
+    
+    def save(self, *args, **kwargs):
+        """
+        ذخیره مشتری با پر کردن خودکار فیلدهای فاکتور از آخرین خرید در صورت خالی بودن
+        """
+        # اگر فیلدهای فاکتور خالی هستند، سعی کن از آخرین خرید پر کنی
+        if not self.pk:
+            # اگر مشتری جدیده، فقط ذخیره کن
+            super().save(*args, **kwargs)
+            return
+        
+        # بررسی اینکه آیا فیلدهای فاکتور خالی هستند
+        needs_update = (
+            not self.invoice_id_code or 
+            not self.invoice_postal_code or 
+            not self.invoice_address or 
+            not self.invoice_phone_number or 
+            not self.yekta_code
+        )
+        
+        if needs_update:
+            # پیدا کردن آخرین خرید این مشتری
+            try:
+                last_purchase = self.purchases_made.order_by('-created_at').first()
+                if last_purchase:
+                    updated = False
+                    
+                    # پر کردن شناسه ملی
+                    if not self.invoice_id_code and last_purchase.buyer_national_id:
+                        self.invoice_id_code = last_purchase.buyer_national_id
+                        updated = True
+                        
+                        # تشخیص حقیقی یا حقوقی بودن
+                        clean_national_id = ''.join(c for c in str(last_purchase.buyer_national_id) if c.isdigit())
+                        if len(clean_national_id) == 11:
+                            self.haqiqi_hoquqi = 'hoquqi'
+                        elif len(clean_national_id) == 10:
+                            self.haqiqi_hoquqi = 'haqiqi'
+                    
+                    # پر کردن کد پستی
+                    if not self.invoice_postal_code and last_purchase.buyer_postal_code:
+                        self.invoice_postal_code = last_purchase.buyer_postal_code
+                        updated = True
+                    
+                    # پر کردن آدرس رسمی
+                    if not self.invoice_address and last_purchase.address:
+                        self.invoice_address = last_purchase.address
+                        updated = True
+                    
+                    # پر کردن شماره تلفن رسمی
+                    if not self.invoice_phone_number and last_purchase.bazaargah_phone_number:
+                        self.invoice_phone_number = last_purchase.bazaargah_phone_number
+                        updated = True
+                    
+                    # پر کردن شناسه یکتا
+                    if not self.yekta_code and hasattr(last_purchase, 'unique_buyer_id') and last_purchase.unique_buyer_id:
+                        self.yekta_code = last_purchase.unique_buyer_id
+                        updated = True
+                    
+                    if updated:
+                        logger.info(f"✅ فیلدهای فاکتور مشتری '{self.name}' از آخرین خرید تکمیل شد")
+                        
+            except Exception as e:
+                logger.warning(f"⚠️ خطا در تکمیل فیلدهای فاکتور از آخرین خرید: {str(e)}")
+        
+        # ذخیره نهایی
+        super().save(*args, **kwargs)
 
     def change_sales_agent(self):
         """

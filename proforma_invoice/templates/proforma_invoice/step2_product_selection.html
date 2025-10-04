@@ -1,0 +1,467 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head_styles %}
+{{ block.super }}
+<style>
+    :root {
+        --primary-color: #065F46;
+        --button-color: #22C55E;
+        --hover-color: #86EFAC;
+        --background-color: #ECFDF5;
+        --text-color: #0F172A;
+        --border-color: #D1FAE5;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .proforma-wizard {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(6, 95, 70, 0.1);
+        overflow: hidden;
+    }
+
+    .wizard-header {
+        background: linear-gradient(135deg, var(--primary-color), #059669);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+
+    .wizard-header h1 {
+        margin: 0 0 15px 0;
+        font-size: 28px;
+    }
+
+    .wizard-steps {
+        display: flex;
+        justify-content: center;
+        gap: 20px;
+        margin-top: 20px;
+    }
+
+    .wizard-step {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 25px;
+        font-size: 14px;
+    }
+
+    .wizard-step.active {
+        background: white;
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+
+    .wizard-step-number {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .wizard-step.active .wizard-step-number {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .wizard-content {
+        padding: 40px;
+    }
+
+    .form-section {
+        margin-bottom: 30px;
+    }
+
+    .form-section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--primary-color);
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 8px;
+    }
+
+    .form-label.required::after {
+        content: " *";
+        color: #dc2626;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s;
+        font-family: inherit;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+        outline: none;
+    }
+
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    select.form-control {
+        cursor: pointer;
+    }
+
+    .product-info {
+        background: var(--background-color);
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+        display: none;
+    }
+
+    .product-info.show {
+        display: block;
+    }
+
+    .product-detail {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .product-detail:last-child {
+        border-bottom: none;
+    }
+
+    .calculation-box {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border: 2px solid #f59e0b;
+        border-radius: 12px;
+        padding: 25px;
+        margin-top: 30px;
+    }
+
+    .calculation-title {
+        font-size: 20px;
+        font-weight: bold;
+        color: #92400e;
+        margin-bottom: 15px;
+        text-align: center;
+    }
+
+    .calculation-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 12px 0;
+        font-size: 16px;
+    }
+
+    .calculation-row.total {
+        border-top: 3px solid #f59e0b;
+        margin-top: 10px;
+        padding-top: 15px;
+        font-size: 20px;
+        font-weight: bold;
+        color: #065F46;
+    }
+
+    .wizard-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 15px;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 2px solid var(--border-color);
+    }
+
+    .btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--button-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: var(--hover-color);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #4b5563;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .wizard-steps {
+            flex-direction: column;
+        }
+
+        .wizard-actions {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="proforma-wizard">
+        <div class="wizard-header">
+            <h1><i class="fas fa-file-invoice"></i> صدور پیش فاکتور</h1>
+            <div class="wizard-steps">
+                <div class="wizard-step">
+                    <div class="wizard-step-number">✓</div>
+                    <span>تایید اطلاعات</span>
+                </div>
+                <div class="wizard-step active">
+                    <div class="wizard-step-number">2</div>
+                    <span>انتخاب محصول</span>
+                </div>
+                <div class="wizard-step">
+                    <div class="wizard-step-number">3</div>
+                    <span>پیش‌نمایش و تایید</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="wizard-content">
+            <form method="post" id="productForm">
+                {% csrf_token %}
+
+                <!-- انتخاب محصول -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-box"></i>
+                        انتخاب محصول
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">محصول از لیست موجود:</label>
+                        <select name="product" id="product-select" class="form-control">
+                            <option value="">-- انتخاب کنید (اختیاری) --</option>
+                            {% for product in active_products %}
+                            <option value="{{ product.id }}" 
+                                    data-name="{{ product.get_product_type_display }}"
+                                    data-country="{{ product.get_country_display }}"
+                                    data-price="{{ product.customer_price }}">
+                                {{ product.cottage }} - {{ product.get_product_type_display }} ({{ product.get_country_display }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div id="product-info" class="product-info"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">نام محصول:</label>
+                        <input type="text" name="product_name" id="product-name" class="form-control" 
+                               placeholder="نام محصول را وارد کنید" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">توضیحات محصول:</label>
+                        <textarea name="product_description" class="form-control" 
+                                  placeholder="توضیحات تکمیلی درباره محصول (اختیاری)"></textarea>
+                    </div>
+                </div>
+
+                <!-- مشخصات فروش -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-calculator"></i>
+                        مشخصات فروش
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label required">مقدار:</label>
+                            <input type="number" name="quantity" id="quantity" class="form-control" 
+                                   placeholder="مثال: 1000" step="0.01" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label required">واحد:</label>
+                            <select name="unit" id="unit" class="form-control" required>
+                                <option value="kg">کیلوگرم</option>
+                                <option value="ton">تن</option>
+                                <option value="bag">کیسه</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label required">قیمت واحد (ریال):</label>
+                        <input type="number" name="unit_price" id="unit-price" class="form-control" 
+                               placeholder="مثال: 50000" required>
+                    </div>
+                </div>
+
+                <!-- محاسبه خودکار -->
+                <div class="calculation-box">
+                    <div class="calculation-title">
+                        <i class="fas fa-calculator"></i> محاسبه قیمت
+                    </div>
+                    <div class="calculation-row">
+                        <span>مقدار:</span>
+                        <span id="calc-quantity">—</span>
+                    </div>
+                    <div class="calculation-row">
+                        <span>قیمت واحد:</span>
+                        <span id="calc-unit-price">—</span>
+                    </div>
+                    <div class="calculation-row total">
+                        <span>جمع کل:</span>
+                        <span id="calc-total">—</span>
+                    </div>
+                </div>
+
+                <!-- ملاحظات -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <i class="fas fa-sticky-note"></i>
+                        ملاحظات
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">ملاحظات (اختیاری):</label>
+                        <textarea name="notes" class="form-control" 
+                                  placeholder="توضیحات اضافی برای پیش فاکتور"></textarea>
+                    </div>
+                </div>
+
+                <!-- دکمه‌های عملیات -->
+                <div class="wizard-actions">
+                    <a href="{% url 'proforma_step1' customer.id %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right"></i>
+                        مرحله قبل
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        پیش‌نمایش
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// انتخاب محصول از لیست
+document.getElementById('product-select').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    const productInfo = document.getElementById('product-info');
+    const productNameInput = document.getElementById('product-name');
+    const unitPriceInput = document.getElementById('unit-price');
+    
+    if (this.value) {
+        const name = selectedOption.dataset.name;
+        const country = selectedOption.dataset.country;
+        const price = selectedOption.dataset.price;
+        
+        productInfo.innerHTML = `
+            <div class="product-detail">
+                <span>نام محصول:</span>
+                <span>${name}</span>
+            </div>
+            <div class="product-detail">
+                <span>کشور سازنده:</span>
+                <span>${country}</span>
+            </div>
+            <div class="product-detail">
+                <span>قیمت پیشنهادی:</span>
+                <span>${parseInt(price).toLocaleString('fa-IR')} ریال</span>
+            </div>
+        `;
+        productInfo.classList.add('show');
+        
+        // پر کردن خودکار فیلدها
+        productNameInput.value = name;
+        unitPriceInput.value = price;
+        
+        // محاسبه مجدد
+        calculateTotal();
+    } else {
+        productInfo.classList.remove('show');
+    }
+});
+
+// محاسبه خودکار قیمت
+function calculateTotal() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const unitPrice = parseFloat(document.getElementById('unit-price').value) || 0;
+    const unit = document.getElementById('unit').selectedOptions[0].text;
+    
+    const total = quantity * unitPrice;
+    
+    document.getElementById('calc-quantity').textContent = quantity > 0 
+        ? `${quantity.toLocaleString('fa-IR')} ${unit}` 
+        : '—';
+    
+    document.getElementById('calc-unit-price').textContent = unitPrice > 0 
+        ? `${unitPrice.toLocaleString('fa-IR')} ریال` 
+        : '—';
+    
+    document.getElementById('calc-total').textContent = total > 0 
+        ? `${total.toLocaleString('fa-IR')} ریال` 
+        : '—';
+}
+
+// اضافه کردن event listener برای محاسبه خودکار
+document.getElementById('quantity').addEventListener('input', calculateTotal);
+document.getElementById('unit-price').addEventListener('input', calculateTotal);
+document.getElementById('unit').addEventListener('change', calculateTotal);
+</script>
+{% endblock %}
+

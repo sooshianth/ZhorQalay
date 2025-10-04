@@ -66,7 +66,8 @@ INSTALLED_APPS = [
     'table_filter.apps.TableFilterConfig',
     'fledger.apps.FledgerConfig',
     'crm_api.apps.CrmApiConfig',
-    'major.apps.MajorConfig'
+    'major.apps.MajorConfig',
+    'proforma_invoice.apps.ProformaInvoiceConfig'
 ]
 
 MIDDLEWARE = [

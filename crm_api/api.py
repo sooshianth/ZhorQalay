@@ -429,7 +429,7 @@ class PurchaseInfoAPI(View):
                     'status': purchase.product.status,
                     'created_at': safe_get_attr(purchase.product, 'created_at', None),
                     'last_modified': safe_get_attr(purchase.product, 'created_at', None),
-                    'customer_price': purchase.product.customer_price or 0,
+                    'customer_price': '---',  # NonBazargah محصولات customer_price ندارند
                     
                     # اطلاعات باربری - NonBazargah ندارد
                     'barbary_info': None,
@@ -707,7 +707,7 @@ class CargoProductsAPI(View):
                     'description': product.description or '---',
                     'status': product.status,
                     'weight': '---',  # NonBazargah ندارد
-                    'customer_price': product.customer_price or 0,
+                    'customer_price': 0,  # NonBazargah محصولات customer_price ندارند
                     'company_price': product.purchase_price or 0,  # NonBazargah از purchase_price استفاده می‌کند
                     'created_at': safe_get_attr(product, 'created_at', None),
                     'last_modified': safe_get_attr(product, 'created_at', None),

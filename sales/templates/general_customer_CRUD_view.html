@@ -1436,6 +1436,171 @@
                 gap: 10px;
             }
         }
+
+        /* استایل‌های بخش اطلاعات فاکتور */
+        .invoice-info-section {
+            margin-top: 25px;
+            background-color: #fef3c7;
+            border: 2px solid #f59e0b;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+        }
+
+        .collapsible {
+            width: 100%;
+        }
+
+        .collapsible-toggle {
+            width: 100%;
+            background-color: white;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .collapsible-toggle:hover {
+            background-color: var(--background-color);
+            border-color: var(--primary-color);
+        }
+
+        .collapsible-toggle.invoice-toggle {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+
+        .collapsible-toggle.invoice-toggle:hover {
+            background: linear-gradient(135deg, #fde68a, #fcd34d);
+        }
+
+        .collapsible-toggle span {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle-icon {
+            font-size: 14px;
+            transition: transform 0.3s ease;
+        }
+
+        .collapsible-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+            padding: 0;
+        }
+
+        .collapsible-content.open {
+            max-height: 2000px;
+            padding-top: 20px;
+        }
+
+        .invoice-form-layout {
+            background-color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .invoice-form-group {
+            margin-bottom: 20px;
+        }
+
+        .invoice-form-group label {
+            display: block;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .invoice-form-group input[type="text"],
+        .invoice-form-group textarea,
+        .invoice-form-group select {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 14px;
+            transition: all 0.3s;
+            background-color: #fafafa;
+        }
+
+        .invoice-form-group input[type="text"]:focus,
+        .invoice-form-group textarea:focus,
+        .invoice-form-group select:focus {
+            border-color: #f59e0b;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+            outline: none;
+        }
+
+        .invoice-form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .radio-group-horizontal {
+            display: flex;
+            gap: 20px;
+            padding: 10px 0;
+        }
+
+        .radio-group-horizontal label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: normal;
+            cursor: pointer;
+        }
+
+        .radio-group-horizontal input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .invoice-info-note {
+            background-color: #dbeafe;
+            border: 1px solid #3b82f6;
+            border-radius: 6px;
+            padding: 15px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+            margin-top: 20px;
+        }
+
+        .invoice-info-note i {
+            color: #3b82f6;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .invoice-info-note span {
+            color: #1e3a8a;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .invoice-form-row {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+        }
     </style>
 {% endblock %}
 
@@ -1747,6 +1912,74 @@
                         دریافت پیامک
                     </label>
                 </div>
+
+                <!-- بخش اطلاعات فاکتور و حقوقی -->
+                {% if customer and not is_new_customer %}
+                <div class="invoice-info-section">
+                    <div class="collapsible">
+                        <button type="button" class="collapsible-toggle invoice-toggle">
+                            <span><i class="fas fa-file-invoice"></i> اطلاعات فاکتور و حقوقی</span>
+                            <span class="toggle-icon">▼</span>
+                        </button>
+                        <div class="collapsible-content invoice-content">
+                            <div class="invoice-form-layout">
+                                <div class="invoice-form-group">
+                                    <label>وضعیت حقیقی یا حقوقی:</label>
+                                    <div class="radio-group-horizontal">
+                                        {{ form.haqiqi_hoquqi }}
+                                    </div>
+                                    {{ form.haqiqi_hoquqi.errors }}
+                                </div>
+
+                                <div class="invoice-form-row">
+                                    <div class="invoice-form-group">
+                                        <label>کد/شناسه ملی:</label>
+                                        {{ form.invoice_id_code }}
+                                        {{ form.invoice_id_code.errors }}
+                                    </div>
+                                    
+                                    <div class="invoice-form-group">
+                                        <label>کد اقتصادی:</label>
+                                        {{ form.eqtesadi_code }}
+                                        {{ form.eqtesadi_code.errors }}
+                                    </div>
+                                </div>
+
+                                <div class="invoice-form-row">
+                                    <div class="invoice-form-group">
+                                        <label>شناسه یکتا:</label>
+                                        {{ form.yekta_code }}
+                                        {{ form.yekta_code.errors }}
+                                    </div>
+                                    
+                                    <div class="invoice-form-group">
+                                        <label>کد پستی رسمی:</label>
+                                        {{ form.invoice_postal_code }}
+                                        {{ form.invoice_postal_code.errors }}
+                                    </div>
+                                </div>
+
+                                <div class="invoice-form-group">
+                                    <label>شماره تلفن رسمی:</label>
+                                    {{ form.invoice_phone_number }}
+                                    {{ form.invoice_phone_number.errors }}
+                                </div>
+
+                                <div class="invoice-form-group">
+                                    <label>آدرس رسمی:</label>
+                                    {{ form.invoice_address }}
+                                    {{ form.invoice_address.errors }}
+                                </div>
+
+                                <div class="invoice-info-note">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>این اطلاعات برای صدور فاکتور رسمی استفاده می‌شود و در صورت خالی بودن، به صورت خودکار از آخرین خرید مشتری تکمیل خواهد شد.</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <button type="submit" name="save_customer" class="submit-btn">ذخیره اطلاعات</button>
@@ -1758,7 +1991,7 @@
     {% if customer %}
     <div class="tabs-section">
         <!-- دکمه‌های ارسال پیامک و ارجاع به کارشناس پشتیبانی -->
-        <div class="sms-main-section" style="display: flex; gap: 15px; align-items: center;">
+        <div class="sms-main-section" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
             <button type="button" class="sms-main-btn" onclick="openSmsPopup()">
                 <i class="fas fa-sms"></i>
                 <span>ارسال پیامک</span>
@@ -1770,6 +2003,11 @@
                 <span>ارجاع به کارشناس پشتیبانی</span>
                 <div class="btn-glow" style="background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);"></div>
             </button>
+
+            <a href="{% url 'proforma_step1' customer.id %}" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed); border: none; color: white; padding: 12px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3); transition: all 0.3s ease; display: flex; align-items: center; gap: 8px; text-decoration: none; width: 200px; height: 50px;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(139, 92, 246, 0.4)';" onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 15px rgba(139, 92, 246, 0.3)';">
+                <i class="fas fa-file-invoice"></i>
+                <span>صدور پیش فاکتور</span>
+            </a>
         </div>
         
         <div class="tabs-container mt-8">
