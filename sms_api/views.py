@@ -24,6 +24,7 @@ from django.db import connection
 from core.decorators.det_user_role import determine_user_role
 from core.CustomerModel import CrmAccessNumbers
 from core.PurchaseModel import ShenaseTakhsis
+from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 logger = logging.getLogger("sms_api_views")
 
@@ -562,7 +563,7 @@ def sms_log(request):
 
 def get_default_templates():
     """
-    تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید
+    تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید بازارگاه
     """
     return {
         'INITIATED': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} در بازارگاه به صورت نقدی ثبت گردید.✅\nلطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.\nاز خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
@@ -579,6 +580,27 @@ def get_default_templates():
         'INVOICE_ISSUED': 'مشتری گرامی {{customer_name}}، \nفاکتور خرید شما با شماره {{purchase_number}} صادر شد.',
         'CANCELED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} لغو شده است. لطفا با کارشناس فروش تماس بگیرید.',
         'ARCHIVED': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} آرشیو شده است.',
+    }
+
+def get_non_bazargah_default_templates():
+    """
+    تولید قالب‌های پیش‌فرض برای وضعیت‌های مختلف خرید خارج بازارگاه
+    """
+    return {
+        'initiated': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} ،{{product_type}} به وزن {{order_weight}} خارج از بازارگاه ثبت گردید.✅\nلطفاً هر چه سریع‌تر نسبت به ثبت آدرس خود جهت ارسال بار اقدام فرمایید.\nاز خرید و اعتماد شما سپاسگزاریم و امیدواریم تجربه‌ای عالی برایتان رقم بزنیم 💚\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'payment_verification_pending': 'مشتری گرامی {{customer_name}}\nخرید شما به شماره {{purchase_number}} در انتظار تایید پرداخت است. ✅\nلطفاً مدارک پرداخت خود را ارسال فرمایید.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'payment_verified': 'مشتری گرامی {{customer_name}}\nپرداخت خرید شما به شماره {{purchase_number}} تایید شد. ✅\nاکنون آدرس شما برای تخصیص ارسال خواهد شد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'address_assigned': 'مشتری گرامی {{customer_name}}\nآدرس شما برای خرید {{purchase_number}} تخصیص داده شد. ✅\nبزودی بار شما به انبار ارسال خواهد شد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'sent_to_warehouse': 'مشتری گرامی {{customer_name}}\nخرید شما با شماره {{purchase_number}} به انبار ارسال شد. ✅\nما با تمام توان پیگیر ارسال بار شما هستیم تا هرچه سریع‌تر به شما تحویل گردد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'carrier_notified': 'مشتری گرامی {{customer_name}}\nباربری برای خرید {{purchase_number}} اعلام شد. ✅\nبزودی ماشین برای بارگیری خواهد آمد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'vehicle_arrived': 'مشتری گرامی {{customer_name}}\nماشین برای خرید {{purchase_number}} وارد شد. ✅\nاکنون وزن‌گیری انجام خواهد شد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'empty_weighed': 'مشتری گرامی {{customer_name}}\nوزن خالی ماشین خرید {{purchase_number}} ثبت شد. ✅\nاکنون بارگیری انجام خواهد شد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'loaded_weighed': 'مشتری گرامی {{customer_name}}\nوزن پر ماشین خرید {{purchase_number}} ثبت شد. ✅\nاکنون بارنامه صادر خواهد شد.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'barnameh_issued': 'مشتری گرامی {{customer_name}}\nبارنامه خرید {{purchase_number}} صادر شد. ✅\nبار شما در حال ارسال است.\nجهت پیگیری وضعیت سفارش خود، لطفاً با شماره ثابت دفتر (داخلی ۳) تماس بگیرید:\n۰۲۱-۶۶۵۶۲۲۱۶ ☎️\nشرکت تامین نهاده سیمرغ',
+        'delivered': 'مشتری گرامی {{customer_name}}\nخرید شما با شماره {{purchase_number}} تحویل داده شد. ✅\nاز خرید و اعتماد شما صمیمانه سپاسگزاریم 💚\nامیدواریم در آینده نزدیک مجددا در خدمت شما باشیم 🙏\nکارشناس فروش شما: {{sales_agent_name}}\n{{sales_agent_phone}}\n۰۲۱-۶۶۵۶۲۲۱۶ داخلی {{dakheli_number|default:"۳"}}\nشرکت تامین نهاده سیمرغ',
+        'purchase_closed': 'مشتری گرامی {{customer_name}}\nخرید شما با شماره {{purchase_number}} بسته شد. ✅\nاز خرید و اعتماد شما صمیمانه سپاسگزاریم 💚\nامیدواریم در آینده نزدیک مجددا در خدمت شما باشیم 🙏\nکارشناس فروش شما: {{sales_agent_name}}\n{{sales_agent_phone}}\n۰۲۱-۶۶۵۶۲۲۱۶ داخلی {{dakheli_number|default:"۳"}}\nشرکت تامین نهاده سیمرغ',
+        'canceled': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} لغو شده است. لطفا با کارشناس فروش تماس بگیرید.',
+        'archived': 'مشتری گرامی {{customer_name}}، \nخرید شما با شماره {{purchase_number}} آرشیو شده است.',
     }
 
 @role_required('admin')
@@ -1382,6 +1404,7 @@ def template_create(request):
     """ایجاد قالب پیامک جدید"""
     # دریافت متن‌های پیش‌فرض برای قالب‌های مختلف
     default_templates_dict = get_default_templates()
+    non_bazargah_default_templates_dict = get_non_bazargah_default_templates()
     
     # دریافت مقدار پیش‌فرض برای وضعیت انتخاب شده
     preselected_status = request.GET.get('status', '')
@@ -1391,11 +1414,14 @@ def template_create(request):
     # اگر وضعیتی در پارامترهای URL ارسال شده، محتوای پیش‌فرض آن را دریافت می‌کنیم
     if preselected_status and preselected_status in default_templates_dict:
         default_content = default_templates_dict[preselected_status]
+    elif preselected_status and preselected_status in non_bazargah_default_templates_dict:
+        default_content = non_bazargah_default_templates_dict[preselected_status]
     
     if request.method == 'POST':
         name = request.POST.get('name')
         template_type = request.POST.get('template_type', 'purchase')
         status = request.POST.get('status')
+        non_bazargah_status = request.POST.get('non_bazargah_status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
@@ -1406,7 +1432,11 @@ def template_create(request):
             return redirect('sms_api:template_create')
         
         if template_type == 'purchase' and not status:
-            messages.error(request, 'برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.')
+            messages.error(request, 'برای قالب‌های مربوط به خرید بازارگاه، انتخاب وضعیت الزامی است.')
+            return redirect('sms_api:template_create')
+        
+        if template_type == 'non_bazargah_purchase' and not non_bazargah_status:
+            messages.error(request, 'برای قالب‌های مربوط به خرید خارج بازارگاه، انتخاب وضعیت الزامی است.')
             return redirect('sms_api:template_create')
         
         try:
@@ -1414,6 +1444,7 @@ def template_create(request):
                 name=name,
                 template_type=template_type,
                 status=status if template_type == 'purchase' else None,
+                non_bazargah_status=non_bazargah_status if template_type == 'non_bazargah_purchase' else None,
                 content=content,
                 description=description,
                 is_active=is_active
@@ -1423,6 +1454,8 @@ def template_create(request):
             if is_active:
                 if template_type == 'purchase' and status:
                     SmsTemplate.objects.filter(template_type='purchase', status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                elif template_type == 'non_bazargah_purchase' and non_bazargah_status:
+                    SmsTemplate.objects.filter(template_type='non_bazargah_purchase', non_bazargah_status=non_bazargah_status, is_active=True).exclude(id=template.id).update(is_active=False)
                 else:
                     SmsTemplate.objects.filter(template_type=template_type, is_active=True).exclude(id=template.id).update(is_active=False)
                 
@@ -1434,8 +1467,10 @@ def template_create(request):
     context = {
         'template_type_choices': SmsTemplate.TEMPLATE_TYPE_CHOICES,
         'status_choices': SmsTemplate.STATUS_CHOICES,
+        'non_bazargah_status_choices': SmsTemplate.NON_BAZARGAH_STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders(),
         'default_templates': json.dumps(default_templates_dict),
+        'non_bazargah_default_templates': json.dumps(non_bazargah_default_templates_dict),
         'preselected_status': preselected_status,
         'preselected_type': preselected_type,
         'default_content': default_content
@@ -1449,11 +1484,13 @@ def template_edit(request, template_id):
     """ویرایش قالب پیامک"""
     template = get_object_or_404(SmsTemplate, id=template_id)
     default_templates_dict = get_default_templates()
+    non_bazargah_default_templates_dict = get_non_bazargah_default_templates()
     
     if request.method == 'POST':
         name = request.POST.get('name')
         template_type = request.POST.get('template_type', template.template_type)
         status = request.POST.get('status')
+        non_bazargah_status = request.POST.get('non_bazargah_status')
         content = request.POST.get('content')
         description = request.POST.get('description', '')
         is_active = request.POST.get('is_active') == 'on'
@@ -1464,7 +1501,11 @@ def template_edit(request, template_id):
             return redirect('sms_api:template_edit', template_id=template_id)
         
         if template_type == 'purchase' and not status:
-            messages.error(request, 'برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.')
+            messages.error(request, 'برای قالب‌های مربوط به خرید بازارگاه، انتخاب وضعیت الزامی است.')
+            return redirect('sms_api:template_edit', template_id=template_id)
+        
+        if template_type == 'non_bazargah_purchase' and not non_bazargah_status:
+            messages.error(request, 'برای قالب‌های مربوط به خرید خارج بازارگاه، انتخاب وضعیت الزامی است.')
             return redirect('sms_api:template_edit', template_id=template_id)
         
         try:
@@ -1472,6 +1513,7 @@ def template_edit(request, template_id):
             template.name = name
             template.template_type = template_type
             template.status = status if template_type == 'purchase' else None
+            template.non_bazargah_status = non_bazargah_status if template_type == 'non_bazargah_purchase' else None
             template.content = content
             template.description = description
             template.is_active = is_active
@@ -1481,6 +1523,8 @@ def template_edit(request, template_id):
             if is_active:
                 if template_type == 'purchase' and status:
                     SmsTemplate.objects.filter(template_type='purchase', status=status, is_active=True).exclude(id=template.id).update(is_active=False)
+                elif template_type == 'non_bazargah_purchase' and non_bazargah_status:
+                    SmsTemplate.objects.filter(template_type='non_bazargah_purchase', non_bazargah_status=non_bazargah_status, is_active=True).exclude(id=template.id).update(is_active=False)
                 else:
                     SmsTemplate.objects.filter(template_type=template_type, is_active=True).exclude(id=template.id).update(is_active=False)
             
@@ -1490,14 +1534,20 @@ def template_edit(request, template_id):
             messages.error(request, f'خطا در بروزرسانی قالب: {str(e)}')
     
     # پیدا کردن متن پیش‌فرض برای این وضعیت (اگر موجود باشد)
-    default_content = default_templates_dict.get(template.status, '') if template.status else ''
+    default_content = ''
+    if template.template_type == 'purchase' and template.status:
+        default_content = default_templates_dict.get(template.status, '')
+    elif template.template_type == 'non_bazargah_purchase' and template.non_bazargah_status:
+        default_content = non_bazargah_default_templates_dict.get(template.non_bazargah_status, '')
     
     context = {
         'template': template,
         'template_type_choices': SmsTemplate.TEMPLATE_TYPE_CHOICES,
         'status_choices': SmsTemplate.STATUS_CHOICES,
+        'non_bazargah_status_choices': SmsTemplate.NON_BAZARGAH_STATUS_CHOICES,
         'placeholders': SmsTemplate.get_available_placeholders(),
         'default_templates': json.dumps(default_templates_dict),
+        'non_bazargah_default_templates': json.dumps(non_bazargah_default_templates_dict),
         'default_content': default_content,
     }
     

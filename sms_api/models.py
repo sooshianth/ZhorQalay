@@ -2,6 +2,7 @@ from django.db import models
 from django.utils import timezone
 from django_jalali.db import models as jmodels
 from core.PurchaseModel import Purchase
+from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 is_celery_active = False
 
@@ -98,15 +99,18 @@ class SmsLog(models.Model):
 
 class SmsTemplate(models.Model):
     TEMPLATE_TYPE_CHOICES = [
-        ('purchase', 'مربوط به خرید'),
+        ('purchase', 'مربوط به خرید بازارگاه'),
+        ('non_bazargah_purchase', 'مربوط به خرید خارج بازارگاه'),
         ('marketing', 'تبلیغاتی'),
         ('product', 'ارسال محصولات'),
     ]
     
     STATUS_CHOICES = Purchase.STATUS_CHOICES
+    NON_BAZARGAH_STATUS_CHOICES = NonBazargahPurchase.STATUS_CHOICES
     
     template_type = models.CharField(max_length=30, choices=TEMPLATE_TYPE_CHOICES, default='purchase', verbose_name="نوع قالب")
     status = models.CharField(max_length=30, choices=STATUS_CHOICES, null=True, blank=True, verbose_name="بعد از چه وضعیتی ارسال شود؟")
+    non_bazargah_status = models.CharField(max_length=30, choices=NON_BAZARGAH_STATUS_CHOICES, null=True, blank=True, verbose_name="وضعیت خرید خارج بازارگاه")
     name = models.CharField(max_length=100, verbose_name="نام قالب")
     content = models.TextField(verbose_name="متن قالب")
     description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
@@ -119,6 +123,8 @@ class SmsTemplate(models.Model):
     def __str__(self):
         if self.template_type == 'purchase' and self.status:
             return f"{self.name} ({self.get_status_display()})"
+        elif self.template_type == 'non_bazargah_purchase' and self.non_bazargah_status:
+            return f"{self.name} ({self.get_non_bazargah_status_display()})"
         else:
             return f"{self.name} ({self.get_template_type_display()})"
         
@@ -165,10 +171,14 @@ class SmsTemplate(models.Model):
     def save(self, *args, **kwargs):
         # For purchase templates, status is required
         if self.template_type == 'purchase' and not self.status:
-            raise ValueError("برای قالب‌های مربوط به خرید، انتخاب وضعیت الزامی است.")
-        # For non-purchase templates, status should be null
-        elif self.template_type != 'purchase':
+            raise ValueError("برای قالب‌های مربوط به خرید بازارگاه، انتخاب وضعیت الزامی است.")
+        # For non_bazargah_purchase templates, non_bazargah_status is required
+        elif self.template_type == 'non_bazargah_purchase' and not self.non_bazargah_status:
+            raise ValueError("برای قالب‌های مربوط به خرید خارج بازارگاه، انتخاب وضعیت الزامی است.")
+        # For non-purchase templates, both status fields should be null
+        elif self.template_type not in ['purchase', 'non_bazargah_purchase']:
             self.status = None
+            self.non_bazargah_status = None
         super().save(*args, **kwargs)
 
 class SmsConfig(models.Model):

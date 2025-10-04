@@ -128,27 +128,43 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnLoadDefault = document.getElementById('btnLoadDefault');
     if (btnLoadDefault) {
         btnLoadDefault.addEventListener('click', function() {
-            const status = document.getElementById('status').value;
-            if (!status) {
-                alert('لطفا ابتدا وضعیت خرید را انتخاب کنید');
+            const templateType = document.getElementById('template_type').value;
+            let status = '';
+            let defaultText = '';
+            
+            if (templateType === 'purchase') {
+                status = document.getElementById('status').value;
+                if (!status) {
+                    alert('لطفا ابتدا وضعیت خرید بازارگاه را انتخاب کنید');
+                    return;
+                }
+                
+                // دریافت قالب‌های پیش‌فرض از Django context
+                if (typeof defaultTemplates !== 'undefined') {
+                    defaultText = defaultTemplates[status];
+                }
+            } else if (templateType === 'non_bazargah_purchase') {
+                status = document.getElementById('non_bazargah_status').value;
+                if (!status) {
+                    alert('لطفا ابتدا وضعیت خرید خارج بازارگاه را انتخاب کنید');
+                    return;
+                }
+                
+                // دریافت قالب‌های پیش‌فرض از Django context
+                if (typeof nonBazargahDefaultTemplates !== 'undefined') {
+                    defaultText = nonBazargahDefaultTemplates[status];
+                }
+            } else {
+                alert('لطفا ابتدا نوع قالب را انتخاب کنید');
                 return;
             }
             
-            const defaultTexts = {
-                'INITIATED': 'خرید شما با شماره {{invoice_id}} ثبت شد. وزن: {{order_weight}} کیلوگرم. کارشناس فروش: {{sales_agent_name}}',
-                'SMS_SENT': 'پیامک اطلاع‌رسانی خرید {{invoice_id}} ارسال شد. مشتری گرامی {{customer_name}}',
-                'PAYMENT_VERIFIED': 'پرداخت خرید {{invoice_id}} تایید شد. مبلغ: {{amount_paid}} ریال. مشتری: {{customer_name}}',
-                'ALLOCATION_APPROVED': 'تخصیص خرید {{invoice_id}} تایید شد. محصول: {{product_type}} {{product_country}}. وزن: {{order_weight}} کیلوگرم',
-                'ADDRESS_SENT': 'آدرس مشتری {{customer_name}} برای خرید {{invoice_id}} به واردکننده ارسال شد',
-                'BARNAMEH_ISSUED': 'بارنامه خرید {{invoice_id}} صادر شد. مشتری: {{customer_name}}. وزن: {{order_weight}} کیلوگرم',
-                'PURCHASE_CLOSED': 'خرید {{invoice_id}} تکمیل شد. مشتری گرامی {{customer_name}}'
-            };
-            
-            const defaultText = defaultTexts[status];
             if (defaultText) {
                 contentTextarea.value = defaultText;
                 updateCharacterCount();
                 updatePreview();
+            } else {
+                alert('قالب پیش‌فرضی برای این وضعیت یافت نشد');
             }
         });
     }

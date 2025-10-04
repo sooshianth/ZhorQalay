@@ -458,10 +458,21 @@
                     </div>
                     <div class="col-md-4">
                         <div class="form-group" id="status-field">
-                            <label for="status">وضعیت خرید <span class="text-danger" id="status-required">*</span></label>
+                            <label for="status">وضعیت خرید بازارگاه <span class="text-danger" id="status-required">*</span></label>
                             <select class="form-control" id="status" name="status">
                                 <option value="">-- انتخاب کنید --</option>
                                 {% for key, label in status_choices %}
+                                <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group" id="non-bazargah-status-field" style="display: none;">
+                            <label for="non_bazargah_status">وضعیت خرید خارج بازارگاه <span class="text-danger" id="non-bazargah-status-required">*</span></label>
+                            <select class="form-control" id="non_bazargah_status" name="non_bazargah_status">
+                                <option value="">-- انتخاب کنید --</option>
+                                {% for key, label in non_bazargah_status_choices %}
                                 <option value="{{ key }}" {% if key == preselected_status %}selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
                             </select>
@@ -594,22 +605,45 @@
 <script src="{% static 'js/template_create.js' %}"></script>
 
 <script>
+// متغیرهای قالب‌های پیش‌فرض از Django
+const defaultTemplates = {{ default_templates|safe }};
+const nonBazargahDefaultTemplates = {{ non_bazargah_default_templates|safe }};
+
 // Toggle status field based on template type
 function toggleStatusField() {
     const templateType = document.getElementById('template_type').value;
     const statusField = document.getElementById('status-field');
     const statusSelect = document.getElementById('status');
     const statusRequired = document.getElementById('status-required');
+    const nonBazargahStatusField = document.getElementById('non-bazargah-status-field');
+    const nonBazargahStatusSelect = document.getElementById('non_bazargah_status');
+    const nonBazargahStatusRequired = document.getElementById('non-bazargah-status-required');
     
     if (templateType === 'purchase') {
         statusField.style.display = 'block';
         statusSelect.required = true;
         statusRequired.style.display = 'inline';
+        nonBazargahStatusField.style.display = 'none';
+        nonBazargahStatusSelect.required = false;
+        nonBazargahStatusRequired.style.display = 'none';
+        nonBazargahStatusSelect.value = '';
+    } else if (templateType === 'non_bazargah_purchase') {
+        statusField.style.display = 'none';
+        statusSelect.required = false;
+        statusRequired.style.display = 'none';
+        statusSelect.value = '';
+        nonBazargahStatusField.style.display = 'block';
+        nonBazargahStatusSelect.required = true;
+        nonBazargahStatusRequired.style.display = 'inline';
     } else {
         statusField.style.display = 'none';
         statusSelect.required = false;
         statusRequired.style.display = 'none';
         statusSelect.value = '';
+        nonBazargahStatusField.style.display = 'none';
+        nonBazargahStatusSelect.required = false;
+        nonBazargahStatusRequired.style.display = 'none';
+        nonBazargahStatusSelect.value = '';
     }
 }
 
