@@ -92,7 +92,7 @@ def normalize_phone_numbers_list(phone_numbers):
     
     return sorted(list(normalized_set))
 
-def render_template(template_type, context_data):
+def render_template(template_type, context_data, template_field='status'):
     """
     Render a template with the given context data
     
@@ -106,11 +106,16 @@ def render_template(template_type, context_data):
     """
     try:
         # Try to get the default template for the given status
-        template = SmsTemplate.objects.filter(status=template_type, is_active=True).first()
-        
-        # If no default template exists, get any template of the given status
-        if not template:
-            template = SmsTemplate.objects.filter(status=template_type).first()
+        if template_field == 'non_bazargah_status':
+            template = SmsTemplate.objects.filter(non_bazargah_status=template_type, is_active=True).first()
+            # If no default template exists, get any template of the given non_bazargah_status
+            if not template:
+                template = SmsTemplate.objects.filter(non_bazargah_status=template_type).first()
+        else:
+            template = SmsTemplate.objects.filter(status=template_type, is_active=True).first()
+            # If no default template exists, get any template of the given status
+            if not template:
+                template = SmsTemplate.objects.filter(status=template_type).first()
             
         # If no template found at all, return None
         if not template:
