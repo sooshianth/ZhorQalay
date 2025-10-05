@@ -67,6 +67,8 @@
           <span class="badge bg-success">صدور بارنامه</span>
           {% elif purchase.state == 'delivered' %}
           <span class="badge bg-success">تحویل شده</span>
+          {% elif purchase.state == 'weight_difference_payment' %}
+          <span class="badge bg-warning">پرداخت سرک و کسری</span>
           {% elif purchase.state == 'purchase_closed' %}
           <span class="badge bg-dark">بسته شده</span>
           {% elif purchase.state == 'canceled' %}
@@ -98,6 +100,7 @@
             {% elif 'وزن پر' in step.name %}fas fa-balance-scale
             {% elif 'بارنامه' in step.name %}fas fa-file-invoice
             {% elif 'تحویل' in step.name %}fas fa-handshake
+            {% elif 'سرک و کسری' in step.name %}fas fa-balance-scale-right
             {% elif 'بستن' in step.name %}fas fa-check-circle
             {% else %}fas fa-arrow-right
             {% endif %}"></i>
@@ -1220,6 +1223,127 @@
       </div>
     </div> -->
 
+    <!-- بخش پرداخت سرک و کسری -->
+    {% if purchase.state == 'delivered' %}
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-balance-scale-right"></i> پرداخت سرک و کسری
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+          <div class="form-group readonly">
+            <label>
+              <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+              <i class="fas fa-weight"></i> اختلاف وزن
+            </label>
+            <div class="input-container">
+              <div class="calculated-weight-display {% if weight_difference_info.is_extra %}warning{% else %}success{% endif %}">
+                {% if weight_difference_info.difference and weight_difference_info.difference != 0 %}
+                  {% if weight_difference_info.is_extra %}
+                    +{{ weight_difference_info.difference|floatformat:2 }} کیلوگرم (اضافه تحویل)
+                  {% else %}
+                    {{ weight_difference_info.difference|floatformat:2 }} کیلوگرم (کمبود تحویل)
+                  {% endif %}
+                {% else %}
+                  0 کیلوگرم (بدون اختلاف)
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group readonly">
+            <label>
+              <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+              <i class="fas fa-money-bill-wave"></i> مبلغ اختلاف
+            </label>
+            <div class="input-container">
+              <div class="calculated-weight-display primary">
+                {{ weight_difference_info.amount|add_commas|default:"0" }} ریال
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>
+              <i class="fas fa-comment-alt"></i> توضیحات (اختیاری)
+            </label>
+            <div class="input-container">
+              <textarea id="weight_difference_payment_notes" 
+                        class="form-control" rows="3" 
+                        placeholder="توضیحات مربوط به نحوه پرداخت یا اضافه کردن به کیف پول..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+        
+    <!-- بخش اطلاعات پرداخت سرک و کسری (بعد از پرداخت) -->
+    {% if purchase.state == 'weight_difference_payment' %}
+    <div class="form-section">
+      <h3 class="section-title" onclick="toggleSection(this)">
+        <span>
+          <i class="fas fa-check-circle"></i> اطلاعات پرداخت سرک و کسری
+        </span>
+        <i class="fas fa-chevron-down section-toggle"></i>
+      </h3>
+      <div class="section-content collapsed">
+        <div class="form-grid">
+          <div class="form-group readonly">
+            <label>
+              <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+              <i class="fas fa-info-circle"></i> وضعیت پرداخت
+            </label>
+            <div class="input-container">
+              <div class="calculated-weight-display {% if weight_difference_info.status == 'paid' %}success{% elif weight_difference_info.status == 'added_to_wallet' %}primary{% else %}secondary{% endif %}">
+                {% if weight_difference_info.status == 'paid' %}
+                  ✅ پرداخت نقدی انجام شد
+                {% elif weight_difference_info.status == 'added_to_wallet' %}
+                  💼 اضافه به کیف پول شد
+                {% elif weight_difference_info.status == 'no_difference' %}
+                  ➖ بدون اختلاف
+                {% else %}
+                  ⏳ در انتظار پردازش
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          
+          {% if weight_difference_info.payment_date %}
+          <div class="form-group readonly">
+            <label>
+              <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+              <i class="fas fa-calendar-alt"></i> تاریخ پرداخت
+            </label>
+            <div class="input-container">
+              <div class="calculated-weight-display">
+                {{ weight_difference_info.payment_date|date:"Y/m/d - H:i" }}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+          
+          {% if weight_difference_info.notes %}
+          <div class="form-group readonly">
+            <label>
+              <span class="readonly-indicator" title="این فیلد محاسبه خودکار است"><i class="fas fa-calculator"></i></span>
+              <i class="fas fa-comment"></i> توضیحات پرداخت
+            </label>
+            <div class="input-container">
+              <div class="calculated-weight-display">
+                {{ weight_difference_info.notes }}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- دکمه‌های اکشن -->
     <div class="form-actions">
       <!-- دکمه ذخیره اصلی -->
@@ -1361,15 +1485,48 @@
           </form>
         {% endif %}
         
-        {% if purchase.state == 'delivered' %}
-          <!-- فرم جداگانه برای بستن خرید -->
+        <!-- دکمه‌های پرداخت سرک و کسری -->
+        {% if purchase.state == 'delivered' and purchase.can_process_weight_difference_payment %}
+          {% if weight_difference_info.has_difference and weight_difference_info.difference != 0 %}
+            <!-- فرم پرداخت نقدی -->
+            <form method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="weight_difference_payment_notes" 
+                     value="" id="payment_notes_paid_btn">
+              <button type="submit" name="pay_weight_difference" 
+                      class="button approve-btn financial"
+                      onclick="var notes = document.getElementById('weight_difference_payment_notes'); if(notes) document.getElementById('payment_notes_paid_btn').value = notes.value; return confirm('آیا از پرداخت نقدی اختلاف وزن اطمینان دارید؟');">
+                <i class="fas fa-money-bill-wave"></i> 💰 پرداخت نقدی سرک و کسری
+              </button>
+            </form>
+            
+            <!-- فرم اضافه به کیف پول -->
+            <form method="post" style="display: inline-block;">
+              {% csrf_token %}
+              <input type="hidden" name="weight_difference_payment_notes" 
+                     value="" id="payment_notes_wallet_btn">
+              <button type="submit" name="add_weight_difference_to_wallet" 
+                      class="button approve-btn logistics"
+                      onclick="var notes = document.getElementById('weight_difference_payment_notes'); if(notes) document.getElementById('payment_notes_wallet_btn').value = notes.value; return confirm('آیا از اضافه کردن مبلغ به کیف پول مشتری اطمینان دارید؟');">
+                <i class="fas fa-wallet"></i> 💼 اضافه به کیف پول
+              </button>
+            </form>
+          {% endif %}
+        {% endif %}
+        
+        <!-- دکمه بستن خرید -->
+        {% if purchase.state == 'weight_difference_payment' %}
           <form method="post" style="display: inline-block;">
             {% csrf_token %}
-            <button type="submit" name="close_purchase" class="button approve-btn logistics">
+            <button type="submit" name="close_purchase" 
+                    class="button approve-btn logistics"
+                    onclick="return confirm('آیا از بستن این خرید اطمینان دارید؟ این عمل قابل بازگشت نیست.');">
               <i class="fas fa-check-circle"></i> ✅ بستن خرید
             </button>
           </form>
         {% endif %}
+        
+    
       {% endif %}
 
       <!-- دکمه‌های مخصوص ادمین -->

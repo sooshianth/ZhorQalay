@@ -1304,38 +1304,41 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         {'name': 'تایید پرداخت', 'status': purchase.state in [
             'payment_verified', 'address_assigned', 'sent_to_warehouse',
             'carrier_notified', 'vehicle_arrived', 'empty_weighed',
-            'loaded_weighed', 'barnameh_issued', 'delivered', 'purchase_closed'
+            'loaded_weighed', 'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'تخصیص آدرس', 'status': purchase.state in [
             'address_assigned', 'sent_to_warehouse', 'carrier_notified',
             'vehicle_arrived', 'empty_weighed', 'loaded_weighed',
-            'barnameh_issued', 'delivered', 'purchase_closed'
+            'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'ارسال به انبار', 'status': purchase.state in [
             'sent_to_warehouse', 'carrier_notified', 'vehicle_arrived',
             'empty_weighed', 'loaded_weighed', 'barnameh_issued',
-            'delivered', 'purchase_closed'
+            'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'اعلام بار به باربری', 'status': purchase.state in [
             'carrier_notified', 'vehicle_arrived', 'empty_weighed',
-            'loaded_weighed', 'barnameh_issued', 'delivered', 'purchase_closed'
+            'loaded_weighed', 'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'ورود ماشین', 'status': purchase.state in [
             'vehicle_arrived', 'empty_weighed', 'loaded_weighed',
-            'barnameh_issued', 'delivered', 'purchase_closed'
+            'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'وزن خالی', 'status': purchase.state in [
             'empty_weighed', 'loaded_weighed', 'barnameh_issued',
-            'delivered', 'purchase_closed'
+            'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'بارگیری و وزن پر', 'status': purchase.state in [
-            'loaded_weighed', 'barnameh_issued', 'delivered', 'purchase_closed'
+            'loaded_weighed', 'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'صدور بارنامه', 'status': purchase.state in [
-            'barnameh_issued', 'delivered', 'purchase_closed'
+            'barnameh_issued', 'delivered', 'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'تحویل به مشتری', 'status': purchase.state in [
-            'delivered', 'purchase_closed'
+            'delivered', 'weight_difference_payment', 'purchase_closed'
+        ]},
+        {'name': 'پرداخت سرک و کسری', 'status': purchase.state in [
+            'weight_difference_payment', 'purchase_closed'
         ]},
         {'name': 'بستن خرید', 'status': purchase.state == 'purchase_closed'},
     ]
@@ -1362,6 +1365,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'approve_payment', 'add_allocation', 'approve_allocations', 'send_to_warehouse',
             'notify_carrier', 'confirm_vehicle_arrival', 'record_empty_weight',
             'record_loaded_weight', 'issue_barnameh', 'confirm_delivery',
+            'process_weight_difference_payment', 'pay_weight_difference', 'add_weight_difference_to_wallet',
             'close_purchase', 'cancel_purchase', 'archive_purchase', 
             'upload_payment_document', 'delete_payment_document', 'add_phish', 'delete_phish',
             'save_account_number', 'delete_allocation', 'add_barnameh', 'update_barnameh', 'delete_barnameh'
@@ -2228,35 +2232,81 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
                             
                             action_taken = True
                             messages.success(request, 'تحویل به مشتری تایید شد و زمان تحویل ثبت گردید')
-                        
-                        elif purchase.state == 'delivered' and 'close_purchase' in request.POST:
-                            # اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری (اگر قبلاً محاسبه نشده باشد)
-                            try:
-                                wallet_transaction = None
-                                if purchase.weight_difference_amount and purchase.weight_difference_amount != 0:
-                                    wallet_transaction = purchase.add_weight_difference_to_customer_wallet()
-                                    if wallet_transaction:
-                                        logger.info(f"تراکنش کیف پول برای خرید {purchase.id} ایجاد شد: {wallet_transaction.id}")
+                    
+                    # اکشن‌های مدیر مالی برای پرداخت سرک و کسری
+                    if user_role in ['financial_manager', 'admin']:
+                        if purchase.state == 'delivered' and 'pay_weight_difference' in request.POST:
+                            # پرداخت نقدی اختلاف وزن
+                            if not purchase.can_process_weight_difference_payment():
+                                messages.error(request, 'امکان پردازش اختلاف وزن وجود ندارد. ابتدا اختلاف وزن باید محاسبه شده باشد.')
+                            else:
+                                purchase.weight_difference_payment_status = 'paid'
+                                purchase.weight_difference_payment_date = timezone.now()
+                                purchase.state = 'weight_difference_payment'
                                 
-                                purchase.state = 'purchase_closed'
+                                payment_notes = request.POST.get('weight_difference_payment_notes', '')
+                                if payment_notes:
+                                    purchase.weight_difference_payment_notes = payment_notes
                                 
-                                # نمایش اطلاعات نهایی
+                                action_taken = True
+                                
+                                # نمایش اطلاعات
                                 if purchase.weight_difference and purchase.weight_difference != 0:
                                     if purchase.weight_difference > 0:
-                                        wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: +{purchase.weight_difference:.2f} کیلوگرم (اضافه تحویل) - مبلغ اضافی: {purchase.weight_difference_amount:,.0f} ریال{wallet_msg}')
+                                        messages.success(request, f'پرداخت نقدی ثبت شد. اختلاف وزن: +{purchase.weight_difference:.2f} کیلوگرم به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال (اضافه تحویل)')
                                     else:
-                                        wallet_msg = " و به کیف پول مشتری اضافه شد" if wallet_transaction else ""
-                                        messages.success(request, f'خرید بسته شد. اختلاف وزن: {purchase.weight_difference:.2f} کیلوگرم (کمبود تحویل) - مبلغ کسر: {abs(purchase.weight_difference_amount):,.0f} ریال{wallet_msg}')
+                                        messages.success(request, f'پرداخت نقدی ثبت شد. اختلاف وزن: {purchase.weight_difference:.2f} کیلوگرم به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال (کمبود تحویل)')
                                 else:
-                                    messages.success(request, 'خرید بسته شد. وزن تحویل دقیقاً مطابق سفارش است.')
+                                    messages.success(request, 'پرداخت نقدی ثبت شد. اختلاف وزن ناچیز است.')
+                        
+                        elif purchase.state == 'delivered' and 'add_weight_difference_to_wallet' in request.POST:
+                            # اضافه کردن به کیف پول
+                            if not purchase.can_process_weight_difference_payment():
+                                messages.error(request, 'امکان پردازش اختلاف وزن وجود ندارد. ابتدا اختلاف وزن باید محاسبه شده باشد.')
+                            else:
+                                try:
+                                    wallet_transaction = purchase.add_weight_difference_to_customer_wallet()
                                     
-                            except Exception as e:
-                                logger.error(f"خطا در بستن خرید {purchase.id}: {str(e)}")
-                                purchase.state = 'purchase_closed'
-                                messages.warning(request, f'خرید بسته شد اما خطا در اضافه کردن به کیف پول: {str(e)}')
-                            
+                                    if wallet_transaction:
+                                        purchase.weight_difference_payment_status = 'added_to_wallet'
+                                        purchase.weight_difference_payment_date = timezone.now()
+                                        purchase.state = 'weight_difference_payment'
+                                        
+                                        payment_notes = request.POST.get('weight_difference_payment_notes', '')
+                                        if payment_notes:
+                                            purchase.weight_difference_payment_notes = payment_notes
+                                        
+                                        action_taken = True
+                                        
+                                        # نمایش اطلاعات
+                                        if purchase.weight_difference and purchase.weight_difference != 0:
+                                            if purchase.weight_difference > 0:
+                                                messages.success(request, f'اضافه به کیف پول انجام شد. اختلاف وزن: +{purchase.weight_difference:.2f} کیلوگرم به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال (اضافه تحویل)')
+                                            else:
+                                                messages.success(request, f'اضافه به کیف پول انجام شد. اختلاف وزن: {purchase.weight_difference:.2f} کیلوگرم به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال (کمبود تحویل)')
+                                        else:
+                                            messages.success(request, 'مبلغ اختلاف وزن به کیف پول اضافه شد')
+                                    else:
+                                        messages.error(request, 'خطا در اضافه کردن به کیف پول. لطفاً دوباره تلاش کنید.')
+                                        
+                                except Exception as e:
+                                    logger.error(f"خطا در اضافه کردن اختلاف وزن به کیف پول: {str(e)}")
+                                    messages.error(request, f'خطا در اضافه کردن به کیف پول: {str(e)}')
+                        
+                        elif purchase.state == 'weight_difference_payment' and 'close_purchase' in request.POST:
+                            # بستن خرید - فقط در مرحله weight_difference_payment
+                            purchase.state = 'purchase_closed'
                             action_taken = True
+                            
+                            # نمایش اطلاعات نهایی
+                            if purchase.weight_difference_payment_status == 'no_difference':
+                                messages.success(request, 'خرید بسته شد. اختلاف وزن ناچیز بود.')
+                            elif purchase.weight_difference_payment_status == 'paid':
+                                messages.success(request, f'خرید بسته شد. اختلاف وزن به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال پرداخت شد.')
+                            elif purchase.weight_difference_payment_status == 'added_to_wallet':
+                                messages.success(request, f'خرید بسته شد. اختلاف وزن به مبلغ {abs(purchase.weight_difference_amount):,.0f} ریال به کیف پول مشتری اضافه شد.')
+                            else:
+                                messages.success(request, 'خرید با موفقیت بسته شد.')
                     
                     # اکشن‌های ادمین
                     if user_role == 'admin':
@@ -2387,6 +2437,19 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
             'barnameh_forms': {barnameh.id: BarnamehForm(instance=barnameh) for barnameh in allocation_barnamehs}
         })
     
+    # محاسبه اطلاعات اختلاف وزن برای نمایش
+    weight_difference_amount = purchase.weight_difference_amount or 0
+    weight_difference_info = {
+        'has_difference': purchase.weight_difference is not None and purchase.weight_difference != 0,
+        'difference': purchase.weight_difference or 0,
+        'amount': abs(weight_difference_amount),
+        'amount_raw': weight_difference_amount,  # مقدار اصلی (مثبت یا منفی)
+        'is_extra': (purchase.weight_difference or 0) > 0,
+        'status': purchase.weight_difference_payment_status or 'pending',
+        'payment_date': purchase.weight_difference_payment_date,
+        'notes': purchase.weight_difference_payment_notes or '',
+    }
+    
     context = {
         'purchase': purchase,
         'form': form,
@@ -2409,6 +2472,7 @@ def non_bazargah_purchase_CRUD_view(request, purchase_id):
         'phishes': phishes,
         'total_phish_amount': total_phish_amount,
         'remaining_phish_amount': remaining_phish_amount,
+        'weight_difference_info': weight_difference_info,
     }
     
     return render(request, 'non_bazargah_purchase_CRUD_view.html', context)
