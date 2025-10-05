@@ -25,6 +25,7 @@ class NonBazargahPurchase(BasePurchase):
         ('loaded_weighed', 'وزن پر ثبت شده'),
         ('barnameh_issued', 'صدور بارنامه'),
         ('delivered', 'تحویل داده شده'),
+        ('weight_difference_payment', 'پرداخت سرک و کسری'),
         ('purchase_closed', 'بستن خرید'),
         ('canceled', 'لغو شده'),
         ('archived', 'آرشیو شده'),
@@ -54,6 +55,24 @@ class NonBazargahPurchase(BasePurchase):
     warehouse_contact_person = models.CharField("نام رابط انبار", max_length=255, null=True, blank=True)
     warehouse_contact_phone = models.CharField("شماره تماس رابط انبار", max_length=15, null=True, blank=True)
     logistics_notes = models.TextField("یادداشت‌های لجستیک", null=True, blank=True)
+    
+    # فیلدهای مربوط به پرداخت سرک و کسری
+    WEIGHT_DIFFERENCE_PAYMENT_CHOICES = [
+        ('pending', 'در انتظار تصمیم'),
+        ('paid', 'پرداخت شده'),
+        ('added_to_wallet', 'اضافه به کیف پول'),
+        ('no_difference', 'بدون اختلاف'),
+    ]
+    weight_difference_payment_status = models.CharField(
+        "وضعیت پرداخت اختلاف وزن", 
+        max_length=20, 
+        choices=WEIGHT_DIFFERENCE_PAYMENT_CHOICES, 
+        default='pending',
+        null=True, 
+        blank=True
+    )
+    weight_difference_payment_date = models.DateTimeField("تاریخ پرداخت اختلاف وزن", null=True, blank=True)
+    weight_difference_payment_notes = models.TextField("یادداشت‌های پرداخت اختلاف وزن", null=True, blank=True)
 
     class Meta:
         verbose_name = "خرید خارج بازارگاه"
@@ -108,6 +127,18 @@ class NonBazargahPurchase(BasePurchase):
         if weight_difference is not None and self.company_price:
             return float(weight_difference) * float(self.company_price)
         return None
+    
+    def can_process_weight_difference_payment(self):
+        """بررسی امکان پردازش پرداخت اختلاف وزن"""
+        # فقط در مرحله delivered می‌توان وارد مرحله پرداخت سرک و کسری شد
+        if self.state != 'delivered':
+            return False
+        
+        # باید اختلاف وزن محاسبه شده باشد
+        if self.weight_difference is None or self.weight_difference_amount is None:
+            return False
+        
+        return True
     
     def add_weight_difference_to_customer_wallet(self):
         """اضافه کردن مبلغ اختلاف وزن به کیف پول مشتری"""
