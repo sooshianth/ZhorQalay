@@ -144,6 +144,7 @@ class CustomerForm(forms.ModelForm):
             'invoice_address': forms.Textarea(attrs={'rows': 3, 'placeholder': 'آدرس رسمی برای فاکتور'}),
             'invoice_id_code': forms.TextInput(attrs={'placeholder': 'کد ملی یا شناسه ملی شرکت'}),
             'eqtesadi_code': forms.TextInput(attrs={'placeholder': 'کد اقتصادی (در صورت وجود)'}),
+            'sabt_number': forms.TextInput(attrs={'placeholder': 'شماره ثبت شرکت (در صورت وجود)'}),
             'yekta_code': forms.TextInput(attrs={'placeholder': 'شناسه یکتا'}),
             'invoice_postal_code': forms.TextInput(attrs={'placeholder': 'کد پستی 10 رقمی'}),
             'invoice_phone_number': forms.TextInput(attrs={'placeholder': 'شماره تلفن رسمی'}),

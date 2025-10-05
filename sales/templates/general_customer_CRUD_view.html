@@ -1947,22 +1947,30 @@
 
                                 <div class="invoice-form-row">
                                     <div class="invoice-form-group">
+                                        <label>شماره ثبت:</label>
+                                        {{ form.sabt_number }}
+                                        {{ form.sabt_number.errors }}
+                                    </div>
+                                    
+                                    <div class="invoice-form-group">
                                         <label>شناسه یکتا:</label>
                                         {{ form.yekta_code }}
                                         {{ form.yekta_code.errors }}
                                     </div>
-                                    
+                                </div>
+
+                                <div class="invoice-form-row">
                                     <div class="invoice-form-group">
                                         <label>کد پستی رسمی:</label>
                                         {{ form.invoice_postal_code }}
                                         {{ form.invoice_postal_code.errors }}
                                     </div>
-                                </div>
-
-                                <div class="invoice-form-group">
-                                    <label>شماره تلفن رسمی:</label>
-                                    {{ form.invoice_phone_number }}
-                                    {{ form.invoice_phone_number.errors }}
+                                    
+                                    <div class="invoice-form-group">
+                                        <label>شماره تلفن رسمی:</label>
+                                        {{ form.invoice_phone_number }}
+                                        {{ form.invoice_phone_number.errors }}
+                                    </div>
                                 </div>
 
                                 <div class="invoice-form-group">
