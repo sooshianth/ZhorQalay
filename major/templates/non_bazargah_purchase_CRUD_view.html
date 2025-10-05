@@ -170,7 +170,12 @@
       {% elif purchase.state == 'delivered' %}
         <div class="step-info">
           <i class="fas fa-check-circle"></i>
-          <span class="step-text">مرحله بعد: <strong>بستن خرید</strong> - مدیر لجستیک</span>
+          <span class="step-text">مرحله بعد: <strong> پرداخت سرک و کسری</strong> - مدیر لجستیک</span>
+        </div>
+      {% elif purchase.state == 'weight_difference_payment' %}
+        <div class="step-info">
+          <i class="fas fa-check-circle"></i>
+          <span class="step-text">مرحله بعد: <strong>بستن خرید </strong> - مدیر مالی</span>
         </div>
       {% elif purchase.state == 'purchase_closed' %}
         <div class="step-info completed">
@@ -185,6 +190,36 @@
       {% endif %}
     </div>
   </div>
+
+  <!-- نمایش اختلاف وزن (سرک و کسری) -->
+  {% if purchase.state in 'delivered,weight_difference_payment,purchase_closed'|split:',' and weight_difference_info.difference and weight_difference_info.difference != 0 %}
+  <div class="weight-difference-alert {% if weight_difference_info.is_extra %}warning-alert{% else %}danger-alert{% endif %}">
+    <div class="alert-icon">
+      <i class="fas fa-balance-scale-right"></i>
+    </div>
+    <div class="alert-content">
+      <h3>
+        {% if weight_difference_info.is_extra %}
+          <i class="fas fa-arrow-up"></i> سرک (اضافه تحویل)
+        {% else %}
+          <i class="fas fa-arrow-down"></i> کسری (کمبود تحویل)
+        {% endif %}
+      </h3>
+      <div class="alert-details">
+        <div class="detail-item">
+          <span class="detail-label">اختلاف وزن:</span>
+          <span class="detail-value">
+            {% if weight_difference_info.is_extra %}+{% endif %}{{ weight_difference_info.difference|floatformat:2 }} کیلوگرم
+          </span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">مبلغ اختلاف:</span>
+          <span class="detail-value">{{ weight_difference_info.amount|add_commas }} ریال</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- فرم ویرایش -->
   <form method="post" enctype="multipart/form-data" class="purchase-form">
