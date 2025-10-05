@@ -320,6 +320,18 @@
                             <span class="party-label">شناسه ملی:</span>
                             <span class="party-value">{{ proforma.company_info.company_id_code|default:"—" }}</span>
                         </div>
+                        {% if proforma.company_info.economic_code %}
+                        <div class="party-detail">
+                            <span class="party-label">کد اقتصادی:</span>
+                            <span class="party-value">{{ proforma.company_info.economic_code }}</span>
+                        </div>
+                        {% endif %}
+                        {% if proforma.company_info.registration_number %}
+                        <div class="party-detail">
+                            <span class="party-label">شماره ثبت:</span>
+                            <span class="party-value">{{ proforma.company_info.registration_number }}</span>
+                        </div>
+                        {% endif %}
                         <div class="party-detail">
                             <span class="party-label">تلفن:</span>
                             <span class="party-value">{{ proforma.company_info.phone_number|default:"—" }}</span>
@@ -341,6 +353,18 @@
                             <span class="party-label">شناسه ملی:</span>
                             <span class="party-value">{{ proforma.customer.invoice_id_code|default:"—" }}</span>
                         </div>
+                        {% if proforma.customer.eqtesadi_code %}
+                        <div class="party-detail">
+                            <span class="party-label">کد اقتصادی:</span>
+                            <span class="party-value">{{ proforma.customer.eqtesadi_code }}</span>
+                        </div>
+                        {% endif %}
+                        {% if proforma.customer.sabt_number %}
+                        <div class="party-detail">
+                            <span class="party-label">شماره ثبت:</span>
+                            <span class="party-value">{{ proforma.customer.sabt_number }}</span>
+                        </div>
+                        {% endif %}
                         <div class="party-detail">
                             <span class="party-label">تلفن:</span>
                             <span class="party-value">{{ proforma.customer.invoice_phone_number|default:"—" }}</span>

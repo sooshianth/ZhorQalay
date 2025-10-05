@@ -295,6 +295,12 @@
                             {{ customer.yekta_code|default:"خالی" }}
                         </div>
                     </div>
+                    <div class="info-item">
+                        <div class="info-label">شماره ثبت:</div>
+                        <div class="info-value {% if not customer.sabt_number %}empty{% endif %}">
+                            {{ customer.sabt_number|default:"خالی" }}
+                        </div>
+                    </div>
                 </div>
                 <div class="info-item" style="margin-top: 20px;">
                     <div class="info-label">آدرس:</div>

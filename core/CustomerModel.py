@@ -191,6 +191,7 @@ class Customer(models.Model):
     # فیلدهای مرتبط با فاکتور زدن
     haqiqi_hoquqi = models.CharField(_("وضعیت حقیقی یا حقوقی"), max_length=20, null=True, blank=True, choices=[('haqiqi', 'حقیقی'), ('hoquqi', 'حقوقی')], default='haqiqi')
     invoice_id_code = models.CharField(_("کد/شناسه ملی"), max_length=20, null=True, blank=True)
+    sabt_number = models.CharField(_("شماره ثبت"), max_length=20, null=True, blank=True)
     eqtesadi_code = models.CharField(_("کد اقتصادی"), max_length=20, null=True, blank=True)
     yekta_code = models.CharField(_("شناسه یکتا"), max_length=20, null=True, blank=True)
     invoice_address = models.TextField(_("آدرس رسمی"), null=True, blank=True)
