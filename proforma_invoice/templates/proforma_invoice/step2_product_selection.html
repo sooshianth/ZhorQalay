@@ -413,6 +413,7 @@ allProducts.push({
 {% endif %}
 
 console.log('محصولات بارگذاری شده:', allProducts.length);
+console.log('محصولات:', allProducts);
 
 // آرایه آیتم‌های فرم
 var items = [];
@@ -420,11 +421,23 @@ var itemCounter = 0;
 
 // اضافه کردن آیتم جدید
 function addItem() {
+    console.log('دکمه افزودن محصول کلیک شد');
     var itemId = itemCounter++;
+    console.log('شناسه آیتم جدید:', itemId);
     
     const itemCard = document.createElement('div');
     itemCard.className = 'item-card';
     itemCard.id = `item-${itemId}`;
+    
+    // ایجاد گزینه‌های محصول
+    let productOptions = '<option value="">-- انتخاب کنید (اختیاری) --</option>';
+    if (allProducts && allProducts.length > 0) {
+        productOptions += allProducts.map(p => 
+            `<option value="${p.id}" data-type="${p.type}">${p.name} - ${p.cottage}</option>`
+        ).join('');
+    } else {
+        productOptions += '<option value="" disabled>هیچ محصولی یافت نشد</option>';
+    }
     
     itemCard.innerHTML = `
         <div class="item-card-header">
@@ -437,8 +450,7 @@ function addItem() {
         <div class="form-group">
             <label class="form-label">محصول از لیست موجود:</label>
             <select class="form-control" onchange="selectProduct(${itemId}, this.value)">
-                <option value="">-- انتخاب کنید (اختیاری) --</option>
-                ${allProducts.map(p => \`<option value="\${p.id}" data-type="\${p.type}">\${p.name} - \${p.cottage}</option>\`).join('')}
+                ${productOptions}
             </select>
         </div>
         
@@ -477,7 +489,14 @@ function addItem() {
         <input type="hidden" id="product-type-${itemId}" value="">
     `;
     
-    document.getElementById('items-container').appendChild(itemCard);
+    const container = document.getElementById('items-container');
+    if (container) {
+        container.appendChild(itemCard);
+        console.log('آیتم با موفقیت اضافه شد');
+        updateCalculations();
+    } else {
+        console.error('کانتینر آیتم‌ها یافت نشد');
+    }
 }
 
 // حذف آیتم
@@ -491,31 +510,50 @@ function removeItem(itemId) {
 
 // انتخاب محصول از لیست
 function selectProduct(itemId, productId) {
+    console.log('انتخاب محصول:', productId, 'برای آیتم:', itemId);
     if (!productId) return;
     
     var product = allProducts.find(p => p.id == productId);
-    if (!product) return;
+    if (!product) {
+        console.log('محصول یافت نشد');
+        return;
+    }
     
-    document.getElementById('name-' + itemId).value = product.name;
-    document.getElementById('price-' + itemId).value = product.price;
-    document.getElementById('product-id-' + itemId).value = productId;
-    document.getElementById('product-type-' + itemId).value = product.type;
+    console.log('محصول انتخاب شده:', product);
+    
+    const nameField = document.getElementById('name-' + itemId);
+    const priceField = document.getElementById('price-' + itemId);
+    const productIdField = document.getElementById('product-id-' + itemId);
+    const productTypeField = document.getElementById('product-type-' + itemId);
+    
+    if (nameField) nameField.value = product.name;
+    if (priceField) priceField.value = product.price;
+    if (productIdField) productIdField.value = productId;
+    if (productTypeField) productTypeField.value = product.type;
     
     updateCalculations();
 }
 
 // بروزرسانی محاسبات
 function updateCalculations() {
+    console.log('بروزرسانی محاسبات شروع شد');
     const itemCards = document.querySelectorAll('.item-card');
     let grandTotal = 0;
     let calcItemsHtml = '';
     
+    console.log('تعداد آیتم‌ها:', itemCards.length);
+    
     itemCards.forEach((card, index) => {
         const itemId = card.id.split('-')[1];
-        const qty = parseFloat(document.getElementById(`qty-${itemId}`)?.value || 0);
-        const price = parseFloat(document.getElementById(`price-${itemId}`)?.value || 0);
-        const unit = document.getElementById(`unit-${itemId}`)?.selectedOptions[0]?.text || 'کیلوگرم';
-        const name = document.getElementById(`name-${itemId}`)?.value || `محصول ${index + 1}`;
+        const qtyElement = document.getElementById(`qty-${itemId}`);
+        const priceElement = document.getElementById(`price-${itemId}`);
+        const unitElement = document.getElementById(`unit-${itemId}`);
+        const nameElement = document.getElementById(`name-${itemId}`);
+        
+        const qty = parseFloat(qtyElement?.value || 0);
+        const price = parseFloat(priceElement?.value || 0);
+        const unit = unitElement?.selectedOptions[0]?.text || 'کیلوگرم';
+        const name = nameElement?.value || `محصول ${index + 1}`;
         
         const lineTotal = qty * price;
         grandTotal += lineTotal;
@@ -530,24 +568,48 @@ function updateCalculations() {
         }
     });
     
-    document.getElementById('calc-items-list').innerHTML = calcItemsHtml;
-    document.getElementById('calc-grand-total').textContent = `${grandTotal.toLocaleString('fa-IR')} ریال`;
+    const calcItemsList = document.getElementById('calc-items-list');
+    const calcGrandTotal = document.getElementById('calc-grand-total');
+    
+    if (calcItemsList) {
+        calcItemsList.innerHTML = calcItemsHtml;
+    }
+    if (calcGrandTotal) {
+        calcGrandTotal.textContent = `${grandTotal.toLocaleString('fa-IR')} ریال`;
+    }
+    
+    console.log('محاسبات تکمیل شد. مجموع:', grandTotal);
 }
 
 // جمع‌آوری داده‌های فرم
 function collectFormData() {
+    console.log('جمع‌آوری داده‌های فرم شروع شد');
     const itemCards = document.querySelectorAll('.item-card');
     const items = [];
     
+    console.log('تعداد کارت‌های آیتم:', itemCards.length);
+    
     itemCards.forEach(card => {
         const itemId = card.id.split('-')[1];
-        const productId = document.getElementById(`product-id-${itemId}`)?.value || '';
-        const productType = document.getElementById(`product-type-${itemId}`)?.value || '';
-        const name = document.getElementById(`name-${itemId}`)?.value || '';
-        const desc = document.getElementById(`desc-${itemId}`)?.value || '';
-        const qty = document.getElementById(`qty-${itemId}`)?.value || 0;
-        const unit = document.getElementById(`unit-${itemId}`)?.value || 'kg';
-        const price = document.getElementById(`price-${itemId}`)?.value || 0;
+        console.log('پردازش آیتم:', itemId);
+        
+        const productIdElement = document.getElementById(`product-id-${itemId}`);
+        const productTypeElement = document.getElementById(`product-type-${itemId}`);
+        const nameElement = document.getElementById(`name-${itemId}`);
+        const descElement = document.getElementById(`desc-${itemId}`);
+        const qtyElement = document.getElementById(`qty-${itemId}`);
+        const unitElement = document.getElementById(`unit-${itemId}`);
+        const priceElement = document.getElementById(`price-${itemId}`);
+        
+        const productId = productIdElement?.value || '';
+        const productType = productTypeElement?.value || '';
+        const name = nameElement?.value || '';
+        const desc = descElement?.value || '';
+        const qty = parseFloat(qtyElement?.value || 0);
+        const unit = unitElement?.value || 'kg';
+        const price = parseFloat(priceElement?.value || 0);
+        
+        console.log('داده‌های آیتم:', { name, qty, price });
         
         if (name && qty > 0 && price > 0) {
             items.push({
@@ -562,26 +624,36 @@ function collectFormData() {
         }
     });
     
+    console.log('آیتم‌های جمع‌آوری شده:', items);
     return items;
 }
 
 // ارسال فرم
-document.getElementById('productForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('صفحه بارگذاری شد');
     
-    var items = collectFormData();
-    
-    if (items.length === 0) {
-        alert('لطفاً حداقل یک محصول اضافه کنید.');
-        return;
+    const form = document.getElementById('productForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            console.log('فرم ارسال شد');
+            
+            var items = collectFormData();
+            
+            if (items.length === 0) {
+                alert('لطفاً حداقل یک محصول اضافه کنید.');
+                return;
+            }
+            
+            console.log('آیتم‌های نهایی:', items);
+            document.getElementById('items-json').value = JSON.stringify(items);
+            this.submit();
+        });
+    } else {
+        console.error('فرم یافت نشد');
     }
     
-    document.getElementById('items-json').value = JSON.stringify(items);
-    this.submit();
-});
-
-// اضافه کردن یک آیتم به صورت پیش‌فرض هنگام بارگذاری صفحه
-document.addEventListener('DOMContentLoaded', function() {
+    // اضافه کردن یک آیتم به صورت پیش‌فرض هنگام بارگذاری صفحه
     addItem();
 });
 </script>
