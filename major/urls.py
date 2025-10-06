@@ -1,5 +1,10 @@
 from django.urls import path
-from .views.non_bazargah_purchase_list_view import non_bazargah_purchase_list, export_non_bazargah_purchases_excel
+from .views.non_bazargah_purchase_list_view import (
+    non_bazargah_purchase_list, 
+    export_non_bazargah_purchases_excel,
+    apply_non_bazargah_purchase_filter,
+    get_non_bazargah_purchase_column_values
+)
 from .views.non_bazargah_barnameh_list_view import (
     non_bazargah_barnameh_list, 
     export_non_bazargah_barnamehs_excel,
@@ -23,6 +28,8 @@ from .views.pdf_views import generate_barnameh_pdf, generate_comprehensive_purch
 urlpatterns = [
     path('non-bazargah-purchases/', non_bazargah_purchase_list, name='non_bazargah_purchase_list'),
     path('non-bazargah-purchases/export-excel/', export_non_bazargah_purchases_excel, name='export_non_bazargah_purchases_excel'),
+    path('non-bazargah-purchases/filter/', apply_non_bazargah_purchase_filter, name='apply_non_bazargah_purchase_filter'),
+    path('non-bazargah-purchases/column-values/', get_non_bazargah_purchase_column_values, name='get_non_bazargah_purchase_column_values'),
     path('non-bazargah-barnamehs/', non_bazargah_barnameh_list, name='non_bazargah_barnameh_list'),
     path('non-bazargah-barnamehs/export-excel/', export_non_bazargah_barnamehs_excel, name='export_non_bazargah_barnamehs_excel'),
     path('non-bazargah-barnamehs/filter/', apply_non_bazargah_barnameh_filter, name='apply_non_bazargah_barnameh_filter'),

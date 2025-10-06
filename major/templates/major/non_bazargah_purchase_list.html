@@ -153,7 +153,9 @@
         
         {% if purchases %}
             <div class="table-responsive" style="overflow-x: auto;">
-                <table class="table table-hover" id="purchasesTable">
+                <table class="table table-hover" id="purchasesTable"
+                       data-filter-url="{% url 'apply_non_bazargah_purchase_filter' %}"
+                       data-column-values-url="{% url 'get_non_bazargah_purchase_column_values' %}">
                     <thead>
                         <tr>
                             <th data-column-id="select" data-column-type="select" style="min-width: 50px;">
@@ -738,6 +740,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{% static 'js/non_bazargah_purchase_list.js' %}"></script>
+<script src="{% static 'js/non_bazargah_purchase_server_filter.js' %}"></script>
 <script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
 <script>
 // تابع کمکی برای مدیریت انتخاب سطرها
