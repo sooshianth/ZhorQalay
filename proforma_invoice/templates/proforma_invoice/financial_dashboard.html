@@ -1,0 +1,475 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head_styles %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+<style>
+    :root {
+        --primary-color: #065F46;
+        --button-color: #22C55E;
+        --hover-color: #86EFAC;
+        --background-color: #ECFDF5;
+        --text-color: #0F172A;
+        --border-color: #D1FAE5;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .dashboard-header {
+        background: linear-gradient(135deg, var(--primary-color), #059669);
+        color: white;
+        padding: 30px;
+        border-radius: 12px;
+        margin-bottom: 30px;
+        text-align: center;
+    }
+
+    .dashboard-header h1 {
+        margin: 0;
+        font-size: 28px;
+    }
+
+    .search-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(6, 95, 70, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .search-section h2 {
+        color: var(--primary-color);
+        margin-bottom: 20px;
+        font-size: 22px;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 15px 50px 15px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s;
+    }
+
+    .search-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+        outline: none;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6b7280;
+        font-size: 20px;
+    }
+
+    .customer-info-section {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(6, 95, 70, 0.1);
+        margin-bottom: 30px;
+    }
+
+    .section-title {
+        color: var(--primary-color);
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: var(--text-color);
+        margin-bottom: 8px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 15px;
+        transition: all 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(6, 95, 70, 0.1);
+        outline: none;
+    }
+
+    .btn {
+        padding: 12px 30px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        border: none;
+        transition: all 0.3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--button-color);
+        color: white;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-primary:hover {
+        background: var(--hover-color);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-secondary {
+        background: #3b82f6;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #2563eb;
+    }
+
+    .proformas-list {
+        background: white;
+        border-radius: 12px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(6, 95, 70, 0.1);
+    }
+
+    .proforma-card {
+        background: var(--background-color);
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s;
+    }
+
+    .proforma-card:hover {
+        border-color: var(--primary-color);
+        box-shadow: 0 4px 12px rgba(6, 95, 70, 0.1);
+    }
+
+    .proforma-info h3 {
+        color: var(--primary-color);
+        margin: 0 0 10px 0;
+    }
+
+    .proforma-info p {
+        margin: 5px 0;
+        color: #6b7280;
+    }
+
+    .proforma-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: #6b7280;
+    }
+
+    .empty-state i {
+        font-size: 80px;
+        color: #d1d5db;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 768px) {
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+
+        .proforma-card {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .proforma-actions {
+            margin-top: 15px;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="dashboard-header">
+        <h1><i class="fas fa-chart-line"></i> داشبورد مالی پیش‌فاکتور</h1>
+        <p style="margin-top: 10px; font-size: 16px;">مدیریت اطلاعات فاکتوری مشتریان و صدور پیش‌فاکتور</p>
+    </div>
+
+    <!-- بخش جستجوی مشتری -->
+    <div class="search-section">
+        <h2><i class="fas fa-search"></i> جستجوی مشتری</h2>
+        <div class="search-box">
+            <input type="text" id="customerSearch" class="search-input" 
+                   placeholder="نام مشتری، شماره تلفن یا کد ملی را وارد کنید...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+
+    {% if customer %}
+    <!-- بخش اطلاعات و ویرایش مشتری -->
+    <div class="customer-info-section">
+        <div class="section-title">
+            <i class="fas fa-user-circle"></i>
+            اطلاعات فاکتوری: {{ customer.name }}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">نام مشتری:</label>
+                    <input type="text" class="form-control" value="{{ customer.name }}" readonly>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">حقیقی / حقوقی:</label>
+                    <select name="haqiqi_hoquqi" class="form-control">
+                        <option value="haqiqi" {% if customer.haqiqi_hoquqi == 'haqiqi' %}selected{% endif %}>حقیقی</option>
+                        <option value="hoquqi" {% if customer.haqiqi_hoquqi == 'hoquqi' %}selected{% endif %}>حقوقی</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">کد/شناسه ملی:</label>
+                    <input type="text" name="invoice_id_code" class="form-control" 
+                           value="{{ customer.invoice_id_code|default:'' }}" 
+                           placeholder="کد ملی یا شناسه ملی شرکت">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">کد اقتصادی:</label>
+                    <input type="text" name="eqtesadi_code" class="form-control" 
+                           value="{{ customer.eqtesadi_code|default:'' }}" 
+                           placeholder="کد اقتصادی (اختیاری)">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">شماره ثبت:</label>
+                    <input type="text" name="sabt_number" class="form-control" 
+                           value="{{ customer.sabt_number|default:'' }}" 
+                           placeholder="شماره ثبت شرکت (اختیاری)">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">شناسه یکتا:</label>
+                    <input type="text" name="yekta_code" class="form-control" 
+                           value="{{ customer.yekta_code|default:'' }}" 
+                           placeholder="شناسه یکتا (اختیاری)">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">شماره تلفن رسمی:</label>
+                    <input type="text" name="invoice_phone_number" class="form-control" 
+                           value="{{ customer.invoice_phone_number|default:'' }}" 
+                           placeholder="شماره تلفن رسمی">
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">کد پستی:</label>
+                    <input type="text" name="invoice_postal_code" class="form-control" 
+                           value="{{ customer.invoice_postal_code|default:'' }}" 
+                           placeholder="کد پستی 10 رقمی">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">آدرس رسمی:</label>
+                <textarea name="invoice_address" class="form-control" rows="3" 
+                          placeholder="آدرس کامل رسمی">{{ customer.invoice_address|default:'' }}</textarea>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    ذخیره اطلاعات
+                </button>
+                
+                <a href="{% url 'proforma_step1' customer.id %}" class="btn btn-secondary">
+                    <i class="fas fa-file-invoice"></i>
+                    صدور پیش‌فاکتور
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- لیست پیش‌فاکتورهای این مشتری -->
+    {% if proformas %}
+    <div class="proformas-list">
+        <div class="section-title">
+            <i class="fas fa-list"></i>
+            پیش‌فاکتورهای {{ customer.name }}
+        </div>
+
+        {% for proforma in proformas %}
+        <div class="proforma-card">
+            <div class="proforma-info">
+                <h3>{{ proforma.invoice_number }}</h3>
+                <p><strong>تاریخ صدور:</strong> {{ proforma.issue_date }}</p>
+                <p><strong>مبلغ کل:</strong> {{ proforma.total_price|floatformat:0 }} ریال</p>
+                <p><strong>وضعیت:</strong> {% if proforma.is_finalized %}نهایی شده{% else %}پیش‌نویس{% endif %}</p>
+            </div>
+            
+            <div class="proforma-actions">
+                <a href="{% url 'proforma_preview' proforma.id %}" class="btn btn-secondary">
+                    <i class="fas fa-eye"></i>
+                    مشاهده
+                </a>
+                <a href="{% url 'proforma_download_pdf' proforma.id %}" class="btn btn-primary" target="_blank">
+                    <i class="fas fa-download"></i>
+                    دانلود PDF
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-search"></i>
+        <h2>جستجوی مشتری</h2>
+        <p>لطفاً از قسمت بالا مشتری مورد نظر را جستجو کنید</p>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('customerSearch');
+    let searchTimeout;
+    
+    // ایجاد المان برای نمایش نتایج
+    const resultsDiv = document.createElement('div');
+    resultsDiv.style.cssText = `
+        position: absolute;
+        top: 100%;
+        right: 0;
+        left: 0;
+        background: white;
+        border: 2px solid #D1FAE5;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    `;
+    searchInput.parentElement.style.position = 'relative';
+    searchInput.parentElement.appendChild(resultsDiv);
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            resultsDiv.style.display = 'none';
+            return;
+        }
+        
+        searchTimeout = setTimeout(() => {
+            fetch(`{% url 'customer_search_api' %}?q=${encodeURIComponent(query)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.customers && data.customers.length > 0) {
+                        resultsDiv.innerHTML = data.customers.map(customer => `
+                            <div class="customer-result" data-id="${customer.id}" style="
+                                padding: 15px;
+                                border-bottom: 1px solid #f3f4f6;
+                                cursor: pointer;
+                                transition: background 0.2s;
+                            " onmouseover="this.style.background='#ECFDF5'" onmouseout="this.style.background='white'">
+                                <div style="font-weight: bold; color: #065F46; margin-bottom: 5px;">
+                                    ${customer.name}
+                                </div>
+                                <div style="font-size: 14px; color: #6b7280;">
+                                    ${customer.phone ? '📞 ' + customer.phone : ''} 
+                                    ${customer.city ? '| 📍 ' + customer.city : ''}
+                                    ${customer.invoice_id_code ? '| 🆔 ' + customer.invoice_id_code : ''}
+                                </div>
+                            </div>
+                        `).join('');
+                        
+                        // اضافه کردن event listener برای هر نتیجه
+                        resultsDiv.querySelectorAll('.customer-result').forEach(item => {
+                            item.addEventListener('click', function() {
+                                const customerId = this.getAttribute('data-id');
+                                window.location.href = `{% url 'financial_dashboard' %}?customer_id=${customerId}`;
+                            });
+                        });
+                        
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">هیچ نتیجه‌ای یافت نشد</div>';
+                        resultsDiv.style.display = 'block';
+                    }
+                })
+                .catch(error => {
+                    console.error('خطا در جستجو:', error);
+                    resultsDiv.innerHTML = '<div style="padding: 20px; text-align: center; color: #dc2626;">خطا در جستجو</div>';
+                    resultsDiv.style.display = 'block';
+                });
+        }, 300);
+    });
+    
+    // بستن نتایج با کلیک خارج از المان
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+            resultsDiv.style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %}
+

@@ -125,6 +125,18 @@ class ProformaInvoice(models.Model):
         # استفاده از update برای جلوگیری از بی‌نهایت لوپ
         ProformaInvoice.objects.filter(id=self.id).update(total_price=total)
     
+    def get_base_total(self):
+        """محاسبه جمع کل پایه (قبل از تخفیف و اضافات)"""
+        return sum(item.get_base_total() for item in self.items.all())
+    
+    def get_total_discounts(self):
+        """محاسبه جمع کل تخفیفات"""
+        return sum(item.get_total_discount() for item in self.items.all())
+    
+    def get_total_extras(self):
+        """محاسبه جمع کل اضافات"""
+        return sum(item.extra_amount or 0 for item in self.items.all())
+    
     @staticmethod
     def generate_invoice_number():
         """تولید شماره یکتای پیش فاکتور"""
@@ -189,6 +201,19 @@ class ProformaInvoiceItem(models.Model):
     unit_price = models.DecimalField(_("قیمت واحد (ریال)"), max_digits=15, decimal_places=0,
                                     validators=[MinValueValidator(0)])
     
+    # تخفیف و اضافات
+    discount_percent = models.DecimalField(_("درصد تخفیف"), max_digits=5, decimal_places=2, 
+                                          default=0, validators=[MinValueValidator(0)],
+                                          help_text=_("درصد تخفیف (0-100)"))
+    discount_amount = models.DecimalField(_("تخفیف مستقیم (ریال)"), max_digits=15, decimal_places=0,
+                                         default=0, validators=[MinValueValidator(0)],
+                                         help_text=_("مبلغ تخفیف به ریال"))
+    extra_amount = models.DecimalField(_("اضافات (ریال)"), max_digits=15, decimal_places=0,
+                                      default=0, validators=[MinValueValidator(0)],
+                                      help_text=_("مبلغ اضافات به ریال"))
+    item_notes = models.TextField(_("ملاحظات محصول"), blank=True, null=True,
+                                  help_text=_("ملاحظات اختصاصی این محصول"))
+    
     # ترتیب نمایش
     order = models.PositiveIntegerField(_("ترتیب"), default=0)
     
@@ -200,9 +225,36 @@ class ProformaInvoiceItem(models.Model):
     def __str__(self):
         return f"{self.product_name} - {self.proforma.invoice_number}"
     
-    def get_line_total(self):
-        """محاسبه قیمت کل این آیتم"""
+    def get_base_total(self):
+        """محاسبه قیمت پایه (بدون تخفیف و اضافات)"""
         return self.quantity * self.unit_price
+    
+    def get_total_discount(self):
+        """محاسبه مجموع تخفیف (درصدی + مستقیم)"""
+        base_total = self.get_base_total()
+        total_discount = 0
+        
+        # تخفیف درصدی
+        if self.discount_percent and self.discount_percent > 0:
+            total_discount += base_total * (self.discount_percent / 100)
+        
+        # تخفیف مستقیم
+        if self.discount_amount and self.discount_amount > 0:
+            total_discount += self.discount_amount
+        
+        return total_discount
+    
+    def get_line_total(self):
+        """محاسبه قیمت کل این آیتم بعد از تخفیف و اضافات"""
+        base_total = self.get_base_total()
+        total_discount = self.get_total_discount()
+        extra = self.extra_amount if self.extra_amount else 0
+        
+        return base_total - total_discount + extra
+    
+    def get_discount_amount_calculated(self):
+        """محاسبه مبلغ تخفیف برای نمایش (alias برای سازگاری)"""
+        return self.get_total_discount()
     
     def get_formatted_quantity(self):
         """فرمت کردن مقدار با واحد"""
