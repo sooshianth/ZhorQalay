@@ -31,16 +31,36 @@
         }
         
         .invoice-header {
-            text-align: center;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 8px;
             padding-bottom: 6px;
             border-bottom: 1px solid #065F46;
         }
         
+        .header-left {
+            text-align: right;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: -24px;
+        }
+        
+        .header-right {
+            text-align: left;
+            flex: 1;
+        }
+        
         .company-logo {
-            max-width: 60px;
-            max-height: 30px;
-            margin-bottom: 4px;
+            max-width: 40px;
+            max-height: 40px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        
+        .header-text {
+            flex: 1;
         }
         
         .invoice-title {
@@ -51,9 +71,10 @@
         }
         
         .invoice-subtitle {
-            font-size: 8px;
+            font-size: 10px;
             color: #059669;
             margin-bottom: 2px;
+            font-weight: bold;
         }
         
         .invoice-number {
@@ -102,23 +123,41 @@
             border-bottom: 1px solid #059669;
         }
         
-        .party-detail {
-            margin-bottom: 2px;
+        .party-content {
+            width: 100%;
+        }
+        
+        .party-row {
             display: table;
             width: 100%;
+            margin-bottom: 2px;
+        }
+        
+        .party-detail {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-right: 3px;
             font-size: 6px;
         }
         
+        .party-detail.full-width {
+            display: table;
+            width: 100%;
+            margin-bottom: 2px;
+        }
+        
         .party-label {
-            display: table-cell;
             font-weight: 600;
-            width: 60px;
             color: #4b5563;
+            display: inline;
+            margin-left: 3px;
         }
         
         .party-value {
-            display: table-cell;
             color: #1a202c;
+            text-align: right;
+            display: inline;
         }
         
         .invoice-table {
@@ -293,17 +332,23 @@
     <div class="invoice-container">
         <!-- سربرگ -->
         <div class="invoice-header">
-            {% if proforma.company_info.logo %}
-            <img src="{{ proforma.company_info.logo.url }}" alt="لوگو" class="company-logo">
-            {% endif %}
+            <div class="header-left">
+                {% if proforma.company_info.logo %}
+                <img src="{{ proforma.company_info.logo.url }}" alt="لوگو" class="company-logo">
+                {% endif %}
+                
+                <div class="header-text">
+                    <div class="invoice-title">پیش فاکتور فروش</div>
+                    <div class="invoice-subtitle">{{ proforma.company_info.company_name }}</div>
+                </div>
+            </div>
             
-            <div class="invoice-title">پیش فاکتور فروش</div>
-            <div class="invoice-subtitle">{{ proforma.company_info.company_name }}</div>
-            <div class="invoice-number">شماره پیش‌فاکتور: {{ proforma.invoice_number }}</div>
-            
-            <div class="invoice-dates">
-                <div><strong>تاریخ صدور:</strong> {{ proforma.issue_date }}</div>
-                <div><strong>تاریخ اعتبار:</strong> {{ proforma.valid_until }}</div>
+            <div class="header-right">
+                <div class="invoice-number">سریال پیش‌فاکتور: {{ proforma.invoice_number }}</div>
+                <div class="invoice-dates">
+                    <div><strong>تاریخ صدور:</strong> {{ proforma.issue_date }}</div>
+                    <div><strong>تاریخ اعتبار:</strong> {{ proforma.valid_until }}</div>
+                </div>
             </div>
         </div>
 
@@ -312,74 +357,94 @@
             <!-- فروشنده -->
             <div class="party-box">
                 <div class="party-title">مشخصات فروشنده</div>
-                <div class="party-detail">
-                    <span class="party-label">نام:</span>
-                    <span class="party-value">{{ proforma.company_info.company_name }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">شناسه ملی:</span>
-                    <span class="party-value">{{ proforma.company_info.company_id_code|default:"—" }}</span>
-                </div>
-                {% if proforma.company_info.economic_code %}
-                <div class="party-detail">
-                    <span class="party-label">کد اقتصادی:</span>
-                    <span class="party-value">{{ proforma.company_info.economic_code }}</span>
-                </div>
-                {% endif %}
-                {% if proforma.company_info.registration_number %}
-                <div class="party-detail">
-                    <span class="party-label">شماره ثبت:</span>
-                    <span class="party-value">{{ proforma.company_info.registration_number }}</span>
-                </div>
-                {% endif %}
-                <div class="party-detail">
-                    <span class="party-label">تلفن:</span>
-                    <span class="party-value">{{ proforma.company_info.phone_number|default:"—" }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">کد پستی:</span>
-                    <span class="party-value">{{ proforma.company_info.postal_code|default:"—" }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">آدرس:</span>
-                    <span class="party-value">{{ proforma.company_info.address|default:"—" }}</span>
+                <div class="party-content">
+                    <div class="party-row">
+                        <div class="party-detail">
+                            <span class="party-label">نام:</span>
+                            <span class="party-value">{{ proforma.company_info.company_name }}</span>
+                        </div>
+                        <div class="party-detail">
+                            <span class="party-label">شناسه ملی:</span>
+                            <span class="party-value">{{ proforma.company_info.company_id_code|default:"—" }}</span>
+                        </div>
+                    </div>
+                    {% if proforma.company_info.economic_code or proforma.company_info.registration_number %}
+                    <div class="party-row">
+                        {% if proforma.company_info.registration_number %}
+                        <div class="party-detail">
+                            <span class="party-label">شماره ثبت:</span>
+                            <span class="party-value">{{ proforma.company_info.registration_number }}</span>
+                        </div>
+                        {% endif %}
+                        {% if proforma.company_info.economic_code %}
+                        <div class="party-detail">
+                            <span class="party-label">کد اقتصادی:</span>
+                            <span class="party-value">{{ proforma.company_info.economic_code }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="party-row">
+                        <div class="party-detail">
+                            <span class="party-label">تلفن:</span>
+                            <span class="party-value">{{ proforma.company_info.phone_number|default:"—" }}</span>
+                        </div>
+                        <div class="party-detail">
+                            <span class="party-label">کد پستی:</span>
+                            <span class="party-value">{{ proforma.company_info.postal_code|default:"—" }}</span>
+                        </div>
+                    </div>
+                    <div class="party-detail full-width">
+                        <span class="party-label">آدرس:</span>
+                        <span class="party-value">{{ proforma.company_info.address|default:"—" }}</span>
+                    </div>
                 </div>
             </div>
 
             <!-- خریدار -->
             <div class="party-box">
                 <div class="party-title">مشخصات خریدار</div>
-                <div class="party-detail">
-                    <span class="party-label">نام:</span>
-                    <span class="party-value">{{ proforma.customer.name }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">شناسه ملی:</span>
-                    <span class="party-value">{{ proforma.customer.invoice_id_code|default:"—" }}</span>
-                </div>
-                {% if proforma.customer.eqtesadi_code %}
-                <div class="party-detail">
-                    <span class="party-label">کد اقتصادی:</span>
-                    <span class="party-value">{{ proforma.customer.eqtesadi_code }}</span>
-                </div>
-                {% endif %}
-                {% if proforma.customer.sabt_number %}
-                <div class="party-detail">
-                    <span class="party-label">شماره ثبت:</span>
-                    <span class="party-value">{{ proforma.customer.sabt_number }}</span>
-                </div>
-                {% endif %}
-                <div class="party-detail">
-                    <span class="party-label">تلفن:</span>
-                    <span class="party-value">{{ proforma.customer.invoice_phone_number|default:"—" }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">کد پستی:</span>
-                    <span class="party-value">{{ proforma.customer.invoice_postal_code|default:"—" }}</span>
-                </div>
-                <div class="party-detail">
-                    <span class="party-label">آدرس:</span>
-                    <span class="party-value">{{ proforma.customer.invoice_address|default:"—" }}</span>
+                <div class="party-content">
+                    <div class="party-row">
+                        <div class="party-detail">
+                            <span class="party-label">نام:</span>
+                            <span class="party-value">{{ proforma.customer.name }}</span>
+                        </div>
+                        <div class="party-detail">
+                            <span class="party-label">شناسه ملی:</span>
+                            <span class="party-value">{{ proforma.customer.invoice_id_code|default:"—" }}</span>
+                        </div>
+                    </div>
+                    {% if proforma.customer.eqtesadi_code or proforma.customer.sabt_number %}
+                    <div class="party-row">
+                        {% if proforma.customer.sabt_number %}
+                        <div class="party-detail">
+                            <span class="party-label">شماره ثبت:</span>
+                            <span class="party-value">{{ proforma.customer.sabt_number }}</span>
+                        </div>
+                        {% endif %}
+                        {% if proforma.customer.eqtesadi_code %}
+                        <div class="party-detail">
+                            <span class="party-label">کد اقتصادی:</span>
+                            <span class="party-value">{{ proforma.customer.eqtesadi_code }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <div class="party-row">
+                        <div class="party-detail">
+                            <span class="party-label">تلفن:</span>
+                            <span class="party-value">{{ proforma.customer.invoice_phone_number|default:"—" }}</span>
+                        </div>
+                        <div class="party-detail">
+                            <span class="party-label">کد پستی:</span>
+                            <span class="party-value">{{ proforma.customer.invoice_postal_code|default:"—" }}</span>
+                        </div>
+                    </div>
+                    <div class="party-detail full-width">
+                        <span class="party-label">آدرس:</span>
+                        <span class="party-value">{{ proforma.customer.invoice_address|default:"—" }}</span>
+                    </div>
                 </div>
             </div>
         </div>
