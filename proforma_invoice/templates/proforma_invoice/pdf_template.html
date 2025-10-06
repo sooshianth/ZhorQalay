@@ -1,3 +1,4 @@
+{% load persian_numbers %}
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
@@ -14,9 +15,9 @@
         
         body {
             font-family: 'Vazir', 'Tahoma', 'Arial', sans-serif;
-            font-size: 9px;
+            font-size: 7px;
             color: #1a202c;
-            line-height: 1.3;
+            line-height: 1.2;
             direction: rtl;
             padding: 0;
             margin: 0;
@@ -24,58 +25,58 @@
         
         .invoice-container {
             border: 2px solid #065F46;
-            border-radius: 5px;
-            padding: 15px;
+            border-radius: 3px;
+            padding: 10px;
             background: white;
         }
         
         .invoice-header {
             text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 12px;
-            border-bottom: 2px double #065F46;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #065F46;
         }
         
         .company-logo {
-            max-width: 100px;
-            max-height: 50px;
-            margin-bottom: 8px;
+            max-width: 60px;
+            max-height: 30px;
+            margin-bottom: 4px;
         }
         
         .invoice-title {
-            font-size: 16px;
+            font-size: 11px;
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 8px;
-        }
-        
-        .invoice-subtitle {
-            font-size: 12px;
-            color: #059669;
-            margin-bottom: 5px;
-        }
-        
-        .invoice-number {
-            font-size: 11px;
-            color: #4b5563;
-            direction: ltr;
             margin-bottom: 3px;
         }
         
+        .invoice-subtitle {
+            font-size: 8px;
+            color: #059669;
+            margin-bottom: 2px;
+        }
+        
+        .invoice-number {
+            font-size: 8px;
+            color: #4b5563;
+            direction: ltr;
+            margin-bottom: 2px;
+        }
+        
         .invoice-dates {
-            margin-top: 8px;
-            font-size: 9px;
+            margin-top: 4px;
+            font-size: 7px;
             color: #6b7280;
         }
         
         .invoice-dates div {
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
         
         .invoice-parties {
             display: table;
             width: 100%;
-            margin-bottom: 12px;
+            margin-bottom: 6px;
         }
         
         .party-box {
@@ -83,8 +84,8 @@
             width: 48%;
             background: #f0fdf4;
             border: 1px solid #bbf7d0;
-            border-radius: 5px;
-            padding: 10px;
+            border-radius: 3px;
+            padding: 5px;
             vertical-align: top;
         }
         
@@ -93,25 +94,25 @@
         }
         
         .party-title {
-            font-size: 11px;
+            font-size: 8px;
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 8px;
-            padding-bottom: 5px;
+            margin-bottom: 3px;
+            padding-bottom: 2px;
             border-bottom: 1px solid #059669;
         }
         
         .party-detail {
-            margin-bottom: 5px;
+            margin-bottom: 2px;
             display: table;
             width: 100%;
-            font-size: 8px;
+            font-size: 6px;
         }
         
         .party-label {
             display: table-cell;
             font-weight: 600;
-            width: 90px;
+            width: 60px;
             color: #4b5563;
         }
         
@@ -123,25 +124,25 @@
         .invoice-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
-            border: 2px solid #065F46;
+            margin-bottom: 6px;
+            border: 1px solid #065F46;
         }
         
         .invoice-table th {
             background: #065F46;
             color: white;
-            padding: 6px 4px;
+            padding: 3px 2px;
             text-align: center;
-            font-size: 9px;
+            font-size: 7px;
             font-weight: bold;
             border: 1px solid #065F46;
         }
         
         .invoice-table td {
-            padding: 4px 3px;
+            padding: 2px 1px;
             text-align: center;
             border: 1px solid #bbf7d0;
-            font-size: 8px;
+            font-size: 6px;
         }
         
         .invoice-table tbody tr {
@@ -155,28 +156,28 @@
         .product-name {
             font-weight: bold;
             color: #065F46;
-            font-size: 8px;
+            font-size: 6px;
         }
         
         .product-description {
-            font-size: 7px;
+            font-size: 5px;
             color: #6b7280;
-            margin-top: 2px;
+            margin-top: 1px;
         }
         
         .invoice-summary {
-            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-            border: 2px solid #f59e0b;
-            border-radius: 6px;
-            padding: 12px;
-            margin-bottom: 12px;
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 3px;
+            padding: 5px;
+            margin-bottom: 6px;
         }
         
         .summary-row {
             display: table;
             width: 100%;
-            padding: 4px 0;
-            font-size: 10px;
+            padding: 2px 0;
+            font-size: 7px;
         }
         
         .summary-label {
@@ -195,10 +196,10 @@
         }
         
         .summary-row.total {
-            border-top: 2px solid #f59e0b;
-            margin-top: 5px;
-            padding-top: 6px;
-            font-size: 12px;
+            border-top: 1px solid #f59e0b;
+            margin-top: 2px;
+            padding-top: 3px;
+            font-size: 8px;
         }
         
         .summary-row.total .summary-label,
@@ -209,66 +210,49 @@
         .invoice-notes {
             background: #f9fafb;
             border: 1px dashed #d1d5db;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 12px;
+            border-radius: 3px;
+            padding: 5px;
+            margin-bottom: 6px;
         }
         
         .notes-title {
             font-weight: bold;
             color: #065F46;
-            margin-bottom: 5px;
-            font-size: 9px;
+            margin-bottom: 3px;
+            font-size: 7px;
         }
         
         .notes-content {
             color: #4b5563;
-            line-height: 1.3;
-            font-size: 8px;
+            line-height: 1.2;
+            font-size: 6px;
+        }
+        
+        .bank-info-inline {
+            background: #e0f2fe;
+            padding: 3px 5px;
+            margin-top: 4px;
+            border-radius: 2px;
+            border-right: 2px solid #0284c7;
         }
         
         .invoice-footer {
-            margin-top: 12px;
-            padding-top: 10px;
+            margin-top: 6px;
+            padding-top: 5px;
             border-top: 1px solid #e5e7eb;
-        }
-        
-        .bank-info {
-            background: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 5px;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .bank-info-title {
-            font-weight: bold;
-            color: #075985;
-            margin-bottom: 5px;
-            font-size: 9px;
-        }
-        
-        .bank-detail {
-            margin-bottom: 3px;
-            color: #0c4a6e;
-            font-size: 8px;
-        }
-        
-        .bank-detail strong {
-            color: #075985;
         }
         
         .signature-section {
             display: table;
             width: 100%;
-            margin-top: 12px;
+            margin-top: 6px;
         }
         
         .signature-box {
             display: table-cell;
             width: 48%;
             text-align: center;
-            padding: 10px;
+            padding: 4px;
         }
         
         .signature-box:first-child {
@@ -278,21 +262,21 @@
         .signature-title {
             font-weight: bold;
             color: #4b5563;
-            margin-bottom: 20px;
-            font-size: 9px;
+            margin-bottom: 8px;
+            font-size: 7px;
         }
         
         .signature-line {
             border-top: 1px solid #9ca3af;
-            padding-top: 5px;
+            padding-top: 3px;
             color: #6b7280;
-            font-size: 8px;
+            font-size: 6px;
         }
         
         .signature-image {
-            max-width: 80px;
-            max-height: 40px;
-            margin: 10px 0;
+            max-width: 50px;
+            max-height: 25px;
+            margin: 4px 0;
         }
         
         .page-break {
@@ -300,8 +284,8 @@
         }
         
         @page {
-            size: A4 landscape;
-            margin: 1cm;
+            size: A4;
+            margin: 0.8cm;
         }
     </style>
 </head>
@@ -315,7 +299,7 @@
             
             <div class="invoice-title">پیش فاکتور فروش</div>
             <div class="invoice-subtitle">{{ proforma.company_info.company_name }}</div>
-            <div class="invoice-number">Invoice Number: {{ proforma.invoice_number }}</div>
+            <div class="invoice-number">شماره پیش‌فاکتور: {{ proforma.invoice_number }}</div>
             
             <div class="invoice-dates">
                 <div><strong>تاریخ صدور:</strong> {{ proforma.issue_date }}</div>
@@ -404,28 +388,34 @@
         <table class="invoice-table">
             <thead>
                 <tr>
-                    <th style="width: 8%;">ردیف</th>
-                    <th style="width: 35%;">شرح کالا/خدمات</th>
-                    <th style="width: 12%;">مقدار</th>
-                    <th style="width: 10%;">واحد</th>
-                    <th style="width: 17%;">قیمت واحد (ریال)</th>
-                    <th style="width: 18%;">قیمت کل (ریال)</th>
+                    <th style="width: 5%;">ردیف</th>
+                    <th style="width: 25%;">شرح کالا/خدمات</th>
+                    <th style="width: 8%;">مقدار</th>
+                    <th style="width: 7%;">واحد</th>
+                    <th style="width: 12%;">قیمت واحد</th>
+                    <th style="width: 12%;">قیمت کل پایه</th>
+                    <th style="width: 10%;">تخفیف</th>
+                    <th style="width: 10%;">اضافات</th>
+                    <th style="width: 11%;">مبلغ نهایی</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in proforma.items.all %}
                 <tr>
-                    <td>{{ forloop.counter }}</td>
+                    <td>{{ forloop.counter|persian_number }}</td>
                     <td style="text-align: right;">
                         <div class="product-name">{{ item.product_name }}</div>
                         {% if item.product_description %}
                         <div class="product-description">{{ item.product_description }}</div>
                         {% endif %}
                     </td>
-                    <td>{{ item.quantity|floatformat:2 }}</td>
+                    <td>{{ item.quantity|floatformat:2|persian_number }}</td>
                     <td>{{ item.get_unit_display }}</td>
-                    <td>{{ item.unit_price|floatformat:0 }}</td>
-                    <td><strong>{{ item.get_line_total|floatformat:0 }}</strong></td>
+                    <td>{{ item.unit_price|persian_price }}</td>
+                    <td>{{ item.get_base_total|persian_price }}</td>
+                    <td>{{ item.get_total_discount|persian_price }}</td>
+                    <td>{{ item.extra_amount|persian_price }}</td>
+                    <td><strong>{{ item.get_line_total|persian_price }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -434,46 +424,58 @@
         <!-- خلاصه مالی -->
         <div class="invoice-summary">
             <div class="summary-row">
-                <span class="summary-label">جمع کل:</span>
-                <span class="summary-value">{{ proforma.total_price|floatformat:0 }} ریال</span>
+                <span class="summary-label">جمع کل (پایه):</span>
+                <span class="summary-value">{{ proforma.get_base_total|persian_price }} ریال</span>
             </div>
+            {% if proforma.get_total_discounts > 0 %}
+            <div class="summary-row" style="color: #dc2626;">
+                <span class="summary-label">جمع تخفیفات:</span>
+                <span class="summary-value">{{ proforma.get_total_discounts|persian_price }} ریال</span>
+            </div>
+            {% endif %}
+            {% if proforma.get_total_extras > 0 %}
+            <div class="summary-row" style="color: #059669;">
+                <span class="summary-label">جمع اضافات:</span>
+                <span class="summary-value">{{ proforma.get_total_extras|persian_price }} ریال</span>
+            </div>
+            {% endif %}
             <div class="summary-row total">
                 <span class="summary-label">مبلغ قابل پرداخت:</span>
-                <span class="summary-value">{{ proforma.total_price|floatformat:0 }} ریال</span>
+                <span class="summary-value">{{ proforma.total_price|persian_price }} ریال</span>
             </div>
         </div>
 
-        <!-- ملاحظات -->
-        {% if proforma.notes or proforma.company_info.default_notes %}
+        <!-- ملاحظات و اطلاعات بانکی -->
+        {% if proforma.notes or proforma.company_info.default_notes or proforma.company_info.account_number or proforma.company_info.iban %}
         <div class="invoice-notes">
-            <div class="notes-title">ملاحظات:</div>
+            <div class="notes-title">ملاحظات و اطلاعات پرداخت:</div>
             <div class="notes-content">
                 {% if proforma.notes %}
-                    <div>{{ proforma.notes|linebreaks }}</div>
+                    <div style="margin-bottom: 3px;">{{ proforma.notes|linebreaks }}</div>
                 {% endif %}
                 {% if proforma.company_info.default_notes %}
-                    <div>{{ proforma.company_info.default_notes|linebreaks }}</div>
+                    <div style="margin-bottom: 3px;">{{ proforma.company_info.default_notes|linebreaks }}</div>
+                {% endif %}
+                
+                <!-- اطلاعات بانکی در همین بخش -->
+                {% if proforma.company_info.account_number or proforma.company_info.iban %}
+                <div class="bank-info-inline">
+                    <strong style="color: #075985;">اطلاعات حساب:</strong>
+                    {% if proforma.company_info.bank_name %}
+                        بانک {{ proforma.company_info.bank_name }}
+                    {% endif %}
+                    {% if proforma.company_info.account_number %}
+                        | حساب: {{ proforma.company_info.account_number }}
+                    {% endif %}
+                    {% if proforma.company_info.iban %}
+                        | شبا: {{ proforma.company_info.iban }}
+                    {% endif %}
+                    {% if proforma.company_info.card_number %}
+                        | کارت: {{ proforma.company_info.card_number }}
+                    {% endif %}
+                </div>
                 {% endif %}
             </div>
-        </div>
-        {% endif %}
-
-        <!-- اطلاعات بانکی -->
-        {% if proforma.company_info.account_number or proforma.company_info.iban %}
-        <div class="bank-info">
-            <div class="bank-info-title">اطلاعات بانکی:</div>
-            {% if proforma.company_info.bank_name %}
-            <div class="bank-detail"><strong>بانک:</strong> {{ proforma.company_info.bank_name }}</div>
-            {% endif %}
-            {% if proforma.company_info.account_number %}
-            <div class="bank-detail"><strong>شماره حساب:</strong> {{ proforma.company_info.account_number }}</div>
-            {% endif %}
-            {% if proforma.company_info.iban %}
-            <div class="bank-detail"><strong>شماره شبا:</strong> {{ proforma.company_info.iban }}</div>
-            {% endif %}
-            {% if proforma.company_info.card_number %}
-            <div class="bank-detail"><strong>شماره کارت:</strong> {{ proforma.company_info.card_number }}</div>
-            {% endif %}
         </div>
         {% endif %}
 

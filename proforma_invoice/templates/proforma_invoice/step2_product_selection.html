@@ -485,6 +485,35 @@ function addItem() {
             <input type="number" class="form-control" id="price-${itemId}" placeholder="مثال: 50000" required onchange="updateCalculations()">
         </div>
         
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">تخفیف درصدی (%):</label>
+                <input type="number" class="form-control" id="discount-percent-${itemId}" placeholder="مثال: 10" min="0" max="100" step="0.01" onchange="updateCalculations()">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">تخفیف مستقیم (ریال):</label>
+                <input type="number" class="form-control" id="discount-amount-${itemId}" placeholder="مثال: 50000" min="0" onchange="updateCalculations()">
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label class="form-label">اضافات (ریال):</label>
+                <input type="number" class="form-control" id="extra-amount-${itemId}" placeholder="مثال: 10000" min="0" onchange="updateCalculations()">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">مبلغ نهایی:</label>
+                <input type="text" class="form-control" id="total-after-discount-${itemId}" placeholder="محاسبه خودکار" readonly style="background: #f0fdf4; font-weight: bold; color: #065F46;">
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">ملاحظات محصول:</label>
+            <textarea class="form-control" id="item-notes-${itemId}" placeholder="ملاحظات اختصاصی این محصول (اختیاری)" style="min-height: 60px;"></textarea>
+        </div>
+        
         <input type="hidden" id="product-id-${itemId}" value="">
         <input type="hidden" id="product-type-${itemId}" value="">
     `;
@@ -547,22 +576,50 @@ function updateCalculations() {
         const itemId = card.id.split('-')[1];
         const qtyElement = document.getElementById(`qty-${itemId}`);
         const priceElement = document.getElementById(`price-${itemId}`);
+        const discountPercentElement = document.getElementById(`discount-percent-${itemId}`);
+        const discountAmountElement = document.getElementById(`discount-amount-${itemId}`);
+        const extraAmountElement = document.getElementById(`extra-amount-${itemId}`);
+        const totalAfterDiscountElement = document.getElementById(`total-after-discount-${itemId}`);
         const unitElement = document.getElementById(`unit-${itemId}`);
         const nameElement = document.getElementById(`name-${itemId}`);
         
         const qty = parseFloat(qtyElement?.value || 0);
         const price = parseFloat(priceElement?.value || 0);
+        const discountPercent = parseFloat(discountPercentElement?.value || 0);
+        const discountAmount = parseFloat(discountAmountElement?.value || 0);
+        const extraAmount = parseFloat(extraAmountElement?.value || 0);
         const unit = unitElement?.selectedOptions[0]?.text || 'کیلوگرم';
         const name = nameElement?.value || `محصول ${index + 1}`;
         
-        const lineTotal = qty * price;
-        grandTotal += lineTotal;
+        // محاسبه با تخفیف و اضافات
+        const baseTotal = qty * price;
+        const discountPercentAmount = baseTotal * (discountPercent / 100);
+        const totalDiscount = discountPercentAmount + discountAmount;
+        const lineTotalFinal = baseTotal - totalDiscount + extraAmount;
+        
+        // نمایش مبلغ نهایی
+        if (totalAfterDiscountElement) {
+            if (qty > 0 && price > 0) {
+                totalAfterDiscountElement.value = `${lineTotalFinal.toLocaleString('fa-IR')} ریال`;
+            } else {
+                totalAfterDiscountElement.value = '';
+            }
+        }
+        
+        grandTotal += lineTotalFinal;
         
         if (qty > 0 && price > 0) {
+            let extraInfo = '';
+            if (discountPercent > 0 || discountAmount > 0) {
+                extraInfo += ` (تخفیف: ${totalDiscount.toLocaleString('fa-IR')})`;
+            }
+            if (extraAmount > 0) {
+                extraInfo += ` (اضافات: ${extraAmount.toLocaleString('fa-IR')})`;
+            }
             calcItemsHtml += `
                 <div class="calculation-row">
-                    <span>${name}:</span>
-                    <span>${lineTotal.toLocaleString('fa-IR')} ریال</span>
+                    <span>${name}${extraInfo}:</span>
+                    <span>${lineTotalFinal.toLocaleString('fa-IR')} ریال</span>
                 </div>
             `;
         }
@@ -600,6 +657,10 @@ function collectFormData() {
         const qtyElement = document.getElementById(`qty-${itemId}`);
         const unitElement = document.getElementById(`unit-${itemId}`);
         const priceElement = document.getElementById(`price-${itemId}`);
+        const discountPercentElement = document.getElementById(`discount-percent-${itemId}`);
+        const discountAmountElement = document.getElementById(`discount-amount-${itemId}`);
+        const extraAmountElement = document.getElementById(`extra-amount-${itemId}`);
+        const itemNotesElement = document.getElementById(`item-notes-${itemId}`);
         
         const productId = productIdElement?.value || '';
         const productType = productTypeElement?.value || '';
@@ -608,8 +669,12 @@ function collectFormData() {
         const qty = parseFloat(qtyElement?.value || 0);
         const unit = unitElement?.value || 'kg';
         const price = parseFloat(priceElement?.value || 0);
+        const discountPercent = parseFloat(discountPercentElement?.value || 0);
+        const discountAmount = parseFloat(discountAmountElement?.value || 0);
+        const extraAmount = parseFloat(extraAmountElement?.value || 0);
+        const itemNotes = itemNotesElement?.value || '';
         
-        console.log('داده‌های آیتم:', { name, qty, price });
+        console.log('داده‌های آیتم:', { name, qty, price, discountPercent, discountAmount, extraAmount });
         
         if (name && qty > 0 && price > 0) {
             items.push({
@@ -619,7 +684,11 @@ function collectFormData() {
                 product_description: desc,
                 quantity: qty,
                 unit: unit,
-                unit_price: price
+                unit_price: price,
+                discount_percent: discountPercent,
+                discount_amount: discountAmount,
+                extra_amount: extraAmount,
+                item_notes: itemNotes
             });
         }
     });
