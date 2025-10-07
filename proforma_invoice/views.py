@@ -6,13 +6,17 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from django.conf import settings
 from core.CustomerModel import Customer
 from core.CargoProductModel import CargoProduct
 from core.SalesAgentModel import SalesAgent
 from core.decorators.decorators import role_required
 from major.models.NonBazargahProduct import NonBazargahProduct
 from major.models.Product import Product
-from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem
+from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem, ProformaInvoiceDelivery
 import jdatetime
 import tempfile
 import os
@@ -384,7 +388,332 @@ def customer_search_api(request):
         
         logger.debug(f"تعداد نتایج جستجو: {len(results)}")
         return JsonResponse({'customers': results})
-    
     except Exception as e:
         logger.error(f"خطا در جستجوی مشتری: {str(e)}", exc_info=True)
         return JsonResponse({'error': 'خطا در جستجو'}, status=500)
+
+
+@role_required('sales_agent', 'admin', 'financial_manager')
+@login_required
+def send_sms_popup(request, proforma_id):
+    """نمایش پاپ‌آپ برای انتخاب شماره‌های ارسال پیامک"""
+    proforma = get_object_or_404(ProformaInvoice, id=proforma_id)
+    
+    logger.info(f"کاربر {request.user.username} وارد صفحه ارسال پیامک برای پیش‌فاکتور {proforma.invoice_number} شد")
+    
+    # بررسی دسترسی
+    if hasattr(request.user, 'sales_agent'):
+        sales_agent = request.user.sales_agent
+        if proforma.sales_agent != sales_agent and not request.user.is_superuser:
+            logger.warning(f"کاربر {request.user.username} سعی در دسترسی بدون مجوز کرد")
+            messages.error(request, "شما دسترسی به این پیش فاکتور ندارید.")
+            return redirect('general_customer_CRUD')
+    
+    # دریافت شماره‌های مشتری
+    customer = proforma.customer
+    phone_numbers = []
+    
+    # شماره‌های ثبت شده در PhoneNumber model
+    for phone in customer.phone_numbers.all():
+        phone_numbers.append({
+            'number': phone.number,
+            'description': phone.description or 'شماره ثبت شده',
+            'is_primary': phone.is_primary,
+            'sms_enabled': phone.sms_enabled,
+        })
+    
+    # شماره تلفن رسمی
+    if customer.invoice_phone_number:
+        phone_numbers.append({
+            'number': customer.invoice_phone_number,
+            'description': 'شماره تلفن رسمی',
+            'is_primary': False,
+            'sms_enabled': True,
+        })
+    
+    if request.method == 'POST':
+        try:
+            from .models import ProformaInvoiceDelivery
+            
+            # دریافت شماره‌های انتخاب شده
+            selected_phones = request.POST.getlist('selected_phones[]')
+            
+            # دریافت شماره‌های دستی
+            manual_phones = request.POST.get('manual_phones', '').strip()
+            if manual_phones:
+                # پردازش شماره‌های دستی (با کاما یا خط جدید جدا شده)
+                import re
+                manual_list = re.split(r'[,\n\r]+', manual_phones)
+                for phone in manual_list:
+                    phone = phone.strip()
+                    if phone:
+                        selected_phones.append(phone)
+            
+            if not selected_phones:
+                messages.error(request, "لطفاً حداقل یک شماره تلفن انتخاب کنید.")
+                return redirect('send_sms_popup', proforma_id=proforma_id)
+            
+            # ایجاد درخواست ارسال
+            delivery = ProformaInvoiceDelivery()
+            delivery.proforma = proforma
+            delivery.phone_numbers = selected_phones
+            delivery.sent_by = request.user
+            delivery.status = 'pending'
+            delivery.save()
+            
+            logger.info(f"درخواست ارسال پیش‌فاکتور {proforma.invoice_number} توسط {request.user.username} ثبت شد با {len(selected_phones)} شماره")
+            
+            messages.success(request, f"درخواست ارسال به {len(selected_phones)} شماره با موفقیت ثبت شد. پیش‌فاکتور به زودی برای مشتری ارسال خواهد شد.")
+            return redirect('proforma_preview', proforma_id=proforma_id)
+            
+        except Exception as e:
+            logger.error(f"خطا در ثبت درخواست ارسال: {str(e)}", exc_info=True)
+            messages.error(request, f"خطا در ثبت درخواست: {str(e)}")
+    
+    context = {
+        'proforma': proforma,
+        'phone_numbers': phone_numbers,
+    }
+    
+    return render(request, 'proforma_invoice/send_sms_popup.html', context)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_poll_pending_deliveries(request):
+    """
+    API endpoint برای KunQalay جهت دریافت پیش‌فاکتورهای در انتظار ارسال
+    این endpoint هر 20 ثانیه توسط KunQalay فراخوانی می‌شود
+    """
+    # بررسی API Key
+    api_key = request.headers.get('X-API-KEY')
+    expected_key = getattr(settings, 'CRM_API_KEY', None)
+    
+    if not settings.DEBUG:
+        if not api_key or not expected_key or api_key != expected_key:
+            logger.warning(f"تلاش ناموفق برای دسترسی به API: {request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=401)
+    
+    try:
+        from .models import ProformaInvoiceDelivery
+        
+        # دریافت درخواست‌های pending
+        pending_deliveries = ProformaInvoiceDelivery.objects.filter(
+            status='pending'
+        ).select_related('proforma', 'proforma__customer', 'proforma__company_info')[:10]
+        
+        deliveries_data = []
+        
+        for delivery in pending_deliveries:
+            proforma = delivery.proforma
+            
+            # تولید PDF
+            try:
+                from weasyprint import HTML, CSS
+                from weasyprint.text.fonts import FontConfiguration
+                from django.template.loader import render_to_string
+                
+                # رندر HTML
+                html_string = render_to_string('proforma_invoice/pdf_template.html', {
+                    'proforma': proforma,
+                })
+                
+                # تبدیل به PDF
+                html = HTML(string=html_string, base_url=request.build_absolute_uri('/'))
+                
+                # کانفیگ فونت برای فارسی
+                font_config = FontConfiguration()
+                
+                # CSS برای فونت وزیر
+                css = CSS(string='''
+                    @font-face {
+                        font-family: 'Vazir';
+                        src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Regular.ttf') format('truetype');
+                        font-weight: normal;
+                        font-style: normal;
+                    }
+                    @font-face {
+                        font-family: 'Vazir';
+                        src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Bold.ttf') format('truetype');
+                        font-weight: bold;
+                        font-style: normal;
+                    }
+                    body {
+                        font-family: 'Vazir', sans-serif;
+                    }
+                ''', font_config=font_config)
+                
+                # تولید PDF
+                pdf_bytes = html.write_pdf(stylesheets=[css], font_config=font_config)
+                
+                # تبدیل به base64 برای انتقال
+                import base64
+                pdf_base64 = base64.b64encode(pdf_bytes).decode('utf-8')
+                
+                deliveries_data.append({
+                    'delivery_id': delivery.id,
+                    'invoice_number': proforma.invoice_number,
+                    'customer_name': proforma.customer.name,
+                    'customer_phone': proforma.customer.get_primary_phone(),
+                    'phone_numbers': delivery.phone_numbers,
+                    'pdf_base64': pdf_base64,
+                    'total_price': str(proforma.total_price),
+                    'created_at': delivery.created_at.isoformat() if delivery.created_at else None,
+                })
+                
+                # تغییر وضعیت به sent
+                delivery.status = 'sent'
+                delivery.sent_at = timezone.now()
+                delivery.save()
+                
+                logger.info(f"پیش‌فاکتور {proforma.invoice_number} برای ارسال به KunQalay آماده شد")
+                
+            except Exception as e:
+                logger.error(f"خطا در تولید PDF برای {proforma.invoice_number}: {str(e)}", exc_info=True)
+                delivery.status = 'failed'
+                delivery.notes = f"خطا در تولید PDF: {str(e)}"
+                delivery.save()
+                continue
+        
+        return JsonResponse({
+            'success': True,
+            'count': len(deliveries_data),
+            'deliveries': deliveries_data,
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در API دریافت پیش‌فاکتورها: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'خطای داخلی سرور'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_confirm_delivery(request):
+    """
+    API endpoint برای تایید دریافت پیش‌فاکتور توسط KunQalay
+    """
+    # بررسی API Key
+    api_key = request.headers.get('X-API-KEY')
+    expected_key = getattr(settings, 'CRM_API_KEY', None)
+    
+    if not settings.DEBUG:
+        if not api_key or not expected_key or api_key != expected_key:
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=401)
+    
+    try:
+        data = json.loads(request.body)
+        delivery_id = data.get('delivery_id')
+        
+        if not delivery_id:
+            return JsonResponse({
+                'success': False,
+                'error': 'delivery_id is required'
+            }, status=400)
+        
+        from .models import ProformaInvoiceDelivery
+        
+        delivery = ProformaInvoiceDelivery.objects.get(id=delivery_id)
+        delivery.status = 'downloaded'
+        delivery.downloaded_at = timezone.now()
+        delivery.save()
+        
+        logger.info(f"دریافت پیش‌فاکتور {delivery.proforma.invoice_number} توسط KunQalay تایید شد")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Delivery confirmed'
+        })
+        
+    except ProformaInvoiceDelivery.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Delivery not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"خطا در تایید دریافت: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_queue_proforma_sms(request):
+    """
+    API endpoint برای queue کردن پیامک پیش‌فاکتور
+    این endpoint توسط KunQalay بعد از دریافت پیش‌فاکتور فراخوانی می‌شود
+    """
+    # بررسی API Key
+    api_key = request.headers.get('X-API-KEY')
+    expected_key = getattr(settings, 'CRM_API_KEY', None)
+    
+    if not settings.DEBUG:
+        if not api_key or not expected_key or api_key != expected_key:
+            logger.warning(f"تلاش ناموفق برای دسترسی به API queue SMS: {request.META.get('REMOTE_ADDR')}")
+            return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=401)
+    
+    try:
+        from sms_api.apis import queue_sms
+        
+        data = json.loads(request.body)
+        phone_numbers = data.get('phone_numbers', [])
+        invoice_number = data.get('invoice_number', '')
+        download_url = data.get('download_url', '')
+        
+        if not phone_numbers or not download_url:
+            return JsonResponse({
+                'success': False,
+                'error': 'phone_numbers and download_url are required'
+            }, status=400)
+        
+        # متن پیامک
+        message = f"""با سلام؛
+
+پیش‌فاکتور شماره {invoice_number} برای شما صادر شد.
+
+برای دانلود فایل PDF به لینک زیر مراجعه کنید:
+{download_url}
+
+⏰ اعتبار لینک: 24 ساعت
+📥 قابل دانلود: 3 بار
+
+شرکت تامین نهاده سیمرغ
+021-66562216"""
+        
+        # queue کردن پیامک برای هر شماره
+        queued_count = 0
+        failed_numbers = []
+        
+        for phone in phone_numbers:
+            try:
+                queue_sms(
+                    number=phone,
+                    message=message,
+                    notification_type='custom',
+                    purchase=None,
+                    suspended=False
+                )
+                queued_count += 1
+                logger.info(f"پیامک پیش‌فاکتور {invoice_number} برای شماره {phone} queue شد")
+            except Exception as e:
+                logger.error(f"خطا در queue کردن پیامک برای {phone}: {str(e)}")
+                failed_numbers.append(phone)
+        
+        return JsonResponse({
+            'success': True,
+            'queued_count': queued_count,
+            'failed_count': len(failed_numbers),
+            'failed_numbers': failed_numbers,
+            'message': f'{queued_count} پیامک با موفقیت queue شد'
+        })
+        
+    except Exception as e:
+        logger.error(f"خطا در API queue کردن پیامک: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'error': 'خطای داخلی سرور'
+        }, status=500)

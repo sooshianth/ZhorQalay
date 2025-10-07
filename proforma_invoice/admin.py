@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem
+from .models import CompanyInfo, ProformaInvoice, ProformaInvoiceItem, ProformaInvoiceDelivery
 
 
 @admin.register(CompanyInfo)
@@ -69,3 +69,29 @@ class ProformaInvoiceItemAdmin(admin.ModelAdmin):
     list_display = ['proforma', 'product_name', 'quantity', 'unit', 'unit_price', 'order']
     list_filter = ['unit', 'proforma__issue_date']
     search_fields = ['product_name', 'proforma__invoice_number']
+
+
+@admin.register(ProformaInvoiceDelivery)
+class ProformaInvoiceDeliveryAdmin(admin.ModelAdmin):
+    list_display = ['proforma', 'status', 'sent_by', 'created_at', 'sent_at']
+    list_filter = ['status', 'created_at', 'sent_at']
+    search_fields = ['proforma__invoice_number', 'proforma__customer__name', 'notes']
+    readonly_fields = ['created_at', 'sent_at', 'downloaded_at']
+    
+    fieldsets = (
+        ('اطلاعات پیش‌فاکتور', {
+            'fields': ('proforma', 'sent_by')
+        }),
+        ('شماره‌های تلفن', {
+            'fields': ('phone_numbers',)
+        }),
+        ('وضعیت', {
+            'fields': ('status',)
+        }),
+        ('زمان‌بندی', {
+            'fields': ('created_at', 'sent_at', 'downloaded_at')
+        }),
+        ('یادداشت', {
+            'fields': ('notes',)
+        }),
+    )

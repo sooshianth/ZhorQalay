@@ -1,0 +1,354 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ارسال پیامک به مشتری</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Vazir', 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .invoice-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .invoice-info h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .invoice-info p {
+            color: #555;
+            margin: 5px 0;
+        }
+        
+        .phone-section {
+            margin-bottom: 30px;
+        }
+        
+        .section-title {
+            font-size: 18px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+        
+        .phone-list {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .phone-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .phone-item:hover {
+            border-color: #667eea;
+            transform: translateX(-5px);
+        }
+        
+        .phone-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-left: 15px;
+            cursor: pointer;
+        }
+        
+        .phone-details {
+            flex: 1;
+        }
+        
+        .phone-number {
+            font-size: 16px;
+            color: #333;
+            font-weight: bold;
+            direction: ltr;
+            text-align: right;
+        }
+        
+        .phone-desc {
+            font-size: 13px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .badge {
+            background: #667eea;
+            color: white;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 11px;
+            margin-right: 10px;
+        }
+        
+        .badge.primary {
+            background: #28a745;
+        }
+        
+        .manual-input {
+            margin-top: 20px;
+        }
+        
+        .manual-input label {
+            display: block;
+            color: #333;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .manual-input textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s;
+        }
+        
+        .manual-input textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .help-text {
+            color: #999;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .empty-message {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+        
+        .count-badge {
+            background: #28a745;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📱 ارسال پیامک به مشتری</h1>
+            <p>شماره‌های مورد نظر برای ارسال پیامک را انتخاب کنید</p>
+        </div>
+        
+        <div class="invoice-info">
+            <h3>📄 اطلاعات پیش‌فاکتور</h3>
+            <p><strong>شماره:</strong> {{ proforma.invoice_number }}</p>
+            <p><strong>مشتری:</strong> {{ proforma.customer.name }}</p>
+            <p><strong>مبلغ کل:</strong> {{ proforma.total_price|floatformat:0 }} ریال</p>
+        </div>
+        
+        <form method="post" id="smsForm">
+            {% csrf_token %}
+            
+            <div class="phone-section">
+                <div class="section-title">
+                    📞 شماره‌های ثبت شده
+                    <span class="count-badge" id="selectedCount">0 انتخاب شده</span>
+                </div>
+                
+                {% if phone_numbers %}
+                <div class="phone-list">
+                    {% for phone in phone_numbers %}
+                    <div class="phone-item">
+                        <input type="checkbox" 
+                               name="selected_phones[]" 
+                               value="{{ phone.number }}"
+                               {% if phone.is_primary %}checked{% endif %}
+                               class="phone-checkbox">
+                        <div class="phone-details">
+                            <div class="phone-number">{{ phone.number }}</div>
+                            <div class="phone-desc">
+                                {{ phone.description }}
+                                {% if phone.is_primary %}
+                                <span class="badge primary">اصلی</span>
+                                {% endif %}
+                                {% if phone.sms_enabled %}
+                                <span class="badge">پیامک فعال</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-message">
+                    <p>هیچ شماره‌ای ثبت نشده است</p>
+                </div>
+                {% endif %}
+                
+                <div class="manual-input">
+                    <label for="manual_phones">➕ افزودن شماره‌های دستی:</label>
+                    <textarea 
+                        id="manual_phones" 
+                        name="manual_phones" 
+                        placeholder="شماره‌های تلفن را وارد کنید (هر شماره در یک خط یا با کاما جدا شده)&#10;مثال:&#10;09123456789&#10;09124567890"></textarea>
+                    <p class="help-text">می‌توانید چندین شماره را با کاما یا در خطوط جدا وارد کنید</p>
+                </div>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    ❌ انصراف
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    ✅ ارسال درخواست
+                </button>
+            </div>
+        </form>
+    </div>
+    
+    <script>
+        // شمارش تعداد انتخاب شده‌ها
+        const checkboxes = document.querySelectorAll('.phone-checkbox');
+        const countBadge = document.getElementById('selectedCount');
+        const submitBtn = document.getElementById('submitBtn');
+        
+        function updateCount() {
+            const checked = document.querySelectorAll('.phone-checkbox:checked').length;
+            countBadge.textContent = checked + ' انتخاب شده';
+            
+            if (checked === 0) {
+                countBadge.style.background = '#dc3545';
+            } else {
+                countBadge.style.background = '#28a745';
+            }
+        }
+        
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateCount);
+        });
+        
+        // اولیه‌سازی شمارش
+        updateCount();
+        
+        // اعتبارسنجی فرم
+        document.getElementById('smsForm').addEventListener('submit', function(e) {
+            const checkedCount = document.querySelectorAll('.phone-checkbox:checked').length;
+            const manualPhones = document.getElementById('manual_phones').value.trim();
+            
+            if (checkedCount === 0 && !manualPhones) {
+                e.preventDefault();
+                alert('لطفاً حداقل یک شماره تلفن انتخاب کنید یا به صورت دستی وارد کنید.');
+                return false;
+            }
+            
+            // نمایش loading
+            submitBtn.innerHTML = '⏳ در حال ثبت...';
+            submitBtn.disabled = true;
+        });
+    </script>
+</body>
+</html>
+

@@ -274,3 +274,46 @@ class ProformaInvoiceItem(models.Model):
         # بروزرسانی قیمت کل پیش فاکتور
         if self.proforma_id:
             self.proforma.calculate_total()
+
+
+class ProformaInvoiceDelivery(models.Model):
+    """مدل ارسال پیش‌فاکتور به سرور مشتری (KunQalay)"""
+    
+    # پیش‌فاکتور مرتبط
+    proforma = models.ForeignKey(ProformaInvoice, on_delete=models.CASCADE,
+                                related_name='deliveries',
+                                verbose_name=_("پیش فاکتور"))
+    
+    # شماره‌های انتخاب شده برای ارسال پیامک
+    phone_numbers = models.JSONField(_("شماره‌های تلفن"), default=list,
+                                    help_text=_("لیست شماره‌های تلفن برای ارسال پیامک"))
+    
+    # وضعیت ارسال
+    STATUS_CHOICES = [
+        ('pending', 'در انتظار'),
+        ('sent', 'ارسال شده'),
+        ('downloaded', 'دانلود شده'),
+        ('failed', 'ناموفق'),
+    ]
+    status = models.CharField(_("وضعیت"), max_length=20, choices=STATUS_CHOICES, default='pending')
+    
+    # زمان‌ها
+    created_at = jmodels.jDateTimeField(_("تاریخ ایجاد"), auto_now_add=True)
+    sent_at = jmodels.jDateTimeField(_("زمان ارسال"), null=True, blank=True)
+    downloaded_at = jmodels.jDateTimeField(_("زمان دانلود"), null=True, blank=True)
+    
+    # یادداشت
+    notes = models.TextField(_("یادداشت"), blank=True, null=True)
+    
+    # کاربر ارسال کننده
+    sent_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL,
+                               null=True, blank=True,
+                               verbose_name=_("ارسال شده توسط"))
+    
+    class Meta:
+        verbose_name = _("ارسال پیش فاکتور")
+        verbose_name_plural = _("ارسال‌های پیش فاکتور")
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"ارسال {self.proforma.invoice_number} - {self.get_status_display()}"

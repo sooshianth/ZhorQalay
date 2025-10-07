@@ -455,6 +455,13 @@
                         </button>
                     </form>
                     {% endif %}
+                    
+                    {% if proforma.is_finalized %}
+                    <a href="{% url 'send_sms_popup' proforma.id %}" class="btn" style="background: #8b5cf6; color: white;">
+                        <i class="fas fa-sms"></i>
+                        ارسال پیامک به مشتری
+                    </a>
+                    {% endif %}
 
                     <a href="{% url 'proforma_download_pdf' proforma.id %}" class="btn btn-download" target="_blank">
                         <i class="fas fa-download"></i>
