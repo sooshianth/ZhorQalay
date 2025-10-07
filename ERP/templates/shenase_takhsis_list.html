@@ -364,9 +364,6 @@
     <div class="page-header">
         <h1><i class="fas fa-id-card"></i> لیست شناسه‌های تخصیص</h1>
         <div class="d-flex gap-2">
-            <button id="exportSelectedBtn" class="btn btn-secondary" disabled>
-                <i class="fas fa-file-excel"></i> خروجی اکسل
-            </button>
             <a href="{% url 'export_full_shenase_takhsis' %}{% if search_query %}?search={{ search_query }}{% endif %}{% if request.GET.purchase_id %}&purchase_id={{ request.GET.purchase_id }}{% endif %}" class="btn btn-primary">
                 <i class="fas fa-download"></i> خروجی اکسل کامل
             </a>
@@ -400,27 +397,21 @@
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th style="width: 3%;">
-                            <input type="checkbox" id="selectAllCheckbox" class="form-check-input" style="width: 20px; height: 20px; cursor: pointer;">
-                        </th>
-                        <th style="width: 10%;">شناسه تخصیص</th>
-                        <th style="width: 8%;">شماره خرید</th>
-                        <th style="width: 8%;">کد درون سازمانی</th>
-                        <th style="width: 12%;">نام مشتری</th>
-                        <th style="width: 8%;">وزن (کیلوگرم)</th>
-                        <th style="width: 10%;">کد ملی تحویل</th>
-                        <th style="width: 10%;">شماره تلفن تحویل</th>
-                        <th style="width: 12%;">نام تحویل گیرنده</th>
-                        <th style="width: 8%;">تاریخ ثبت</th>
-                        <th style="width: 8%;">عملیات</th>
+                        <th style="width: 12%;">شناسه تخصیص</th>
+                        <th style="width: 10%;">شماره خرید</th>
+                        <th style="width: 10%;">کد درون سازمانی</th>
+                        <th style="width: 15%;">نام مشتری</th>
+                        <th style="width: 10%;">وزن (کیلوگرم)</th>
+                        <th style="width: 12%;">کد ملی تحویل</th>
+                        <th style="width: 12%;">شماره تلفن تحویل</th>
+                        <th style="width: 15%;">نام تحویل گیرنده</th>
+                        <th style="width: 10%;">تاریخ ثبت</th>
+                        <th style="width: 10%;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for shenase in shenase_list %}
                     <tr data-id="{{ shenase.id }}">
-                        <td>
-                            <input type="checkbox" class="row-checkbox form-check-input" value="{{ shenase.id }}" style="width: 18px; height: 18px; cursor: pointer;">
-                        </td>
                         <td>
                             <span class="badge badge-primary">{{ shenase.code }}</span>
                         </td>
@@ -530,206 +521,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    // مدیریت انتخاب ها - مشابه لیست خریدها
-    let selectedIds = new Set();
-
-    // تابع ساده برای تغییر رنگ سطر انتخاب شده (مشابه لیست خریدها)
-    function toggleRowSelection(checkbox) {
-        console.log('toggleRowSelection called:', checkbox.checked);
-        
-        const row = checkbox.closest('tr');
-        const id = parseInt(checkbox.value);
-        
-        if (row) {
-            if (checkbox.checked) {
-                row.classList.add('selected-row');
-                row.style.backgroundColor = '#e3f2fd';
-                row.style.borderLeft = '4px solid #2196f3';
-                selectedIds.add(id);
-                console.log('Row selected - added class and style');
-            } else {
-                row.classList.remove('selected-row');
-                row.style.backgroundColor = '';
-                row.style.borderLeft = '';
-                selectedIds.delete(id);
-                console.log('Row deselected - removed class and style');
-            }
-        }
-        
-        // آپدیت checkbox انتخاب همه
-        const allCheckboxes = document.querySelectorAll('.row-checkbox');
-        const allChecked = Array.from(allCheckboxes).every(cb => cb.checked);
-        document.getElementById('selectAllCheckbox').checked = allChecked;
-        
-        updateExportButton();
-    }
-
-    // انتخاب همه
-    document.getElementById('selectAllCheckbox')?.addEventListener('change', function() {
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = this.checked;
-            toggleRowSelection(checkbox);
-        });
-    });
-
-    // انتخاب تک تک - استفاده از onchange در HTML
-    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            toggleRowSelection(this);
-        });
-    });
-
-    // آپدیت دکمه export - مشابه لیست خریدها
-    function updateExportButton() {
-        const exportBtn = document.getElementById('exportSelectedBtn');
-        if (!exportBtn) return;
-        
-        const selectedCount = selectedIds.size;
-        console.log(`📊 تعداد شناسه‌های تخصیص انتخاب شده: ${selectedCount}`);
-        
-        // تنظیم وضعیت دکمه
-        exportBtn.disabled = selectedCount === 0;
-        
-        // تغییر متن دکمه
-        if (selectedCount > 0) {
-            exportBtn.innerHTML = `<i class="fas fa-file-excel"></i> خروجی اکسل (${selectedCount} مورد)`;
-            exportBtn.classList.remove('btn-secondary');
-            exportBtn.classList.add('btn-success');
-        } else {
-            exportBtn.innerHTML = '<i class="fas fa-file-excel"></i> خروجی اکسل';
-            exportBtn.classList.remove('btn-success');
-            exportBtn.classList.add('btn-secondary');
-        }
-        
-        console.log(`🔘 وضعیت دکمه - disabled: ${exportBtn.disabled}, text: ${exportBtn.textContent}`);
-    }
-
-    // دکمه export انتخاب شده
-    document.getElementById('exportSelectedBtn')?.addEventListener('click', function() {
-        if (selectedIds.size === 0) {
-            alert('لطفاً حداقل یک مورد انتخاب کنید');
-            return;
-        }
-
-        console.log('🖱️ کلیک روی دکمه خروجی اکسل');
-
-        // نمایش لودینگ
-        const originalText = this.innerHTML;
-        this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ایجاد فایل...';
-        this.disabled = true;
-
-        // ارسال درخواست
-        fetch("{% url 'export_shenase_takhsis' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                selected_ids: Array.from(selectedIds)
-            })
-        })
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(data => {
-                    throw new Error(data.message || 'خطا در ایجاد فایل اکسل');
-                });
-            }
-            return response.blob();
-        })
-        .then(blob => {
-            // دانلود فایل
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `shenase_takhsis_${new Date().getTime()}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-
-            // بازگشت دکمه به حالت عادی بعد از 3 ثانیه
-            setTimeout(() => {
-                this.innerHTML = originalText;
-                this.disabled = false;
-                updateExportButton();
-            }, 3000);
-
-            // نمایش پیام موفقیت
-            alert('فایل اکسل با موفقیت دانلود شد');
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert(error.message || 'خطا در ایجاد فایل اکسل');
-            this.innerHTML = originalText;
-            this.disabled = false;
-            updateExportButton();
-        });
-    });
-
-    // بروزرسانی اولیه
-    updateExportButton();
-
-    // اضافه کردن visual feedback برای دکمه
-    const exportBtn = document.getElementById('exportSelectedBtn');
-    if (exportBtn) {
-        exportBtn.addEventListener('mouseenter', function() {
-            if (!this.disabled) {
-                this.style.transform = 'translateY(-2px)';
-                this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-            }
-        });
-
-        exportBtn.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '';
-        });
-    }
-
-    // استایل برای سطرهای انتخاب شده
-    const style = document.createElement('style');
-    style.textContent = `
-        .selected-row {
-            background-color: #e3f2fd !important;
-            border-left: 4px solid #2196f3 !important;
-        }
-        .selected-row:hover {
-            background-color: #bbdefb !important;
-        }
-        .page-header .btn {
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .page-header .btn-success {
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border: none;
-        }
-        .page-header .btn-success:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-        }
-        .page-header .btn-secondary {
-            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
-            border: none;
-            color: white;
-        }
-        .page-header .btn-primary {
-            background: linear-gradient(135deg, #065F46 0%, #047857 100%);
-            border: none;
-            color: white;
-            text-decoration: none;
-        }
-        .page-header .btn-primary:hover {
-            background: linear-gradient(135deg, #064e3b 0%, #065F46 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(6, 95, 70, 0.4);
-            color: white;
-        }
-    `;
-    document.head.appendChild(style);
-</script>
+<!-- JavaScript حذف شد - فقط دکمه خروجی اکسل کامل باقی مانده -->
 {% endblock %}
