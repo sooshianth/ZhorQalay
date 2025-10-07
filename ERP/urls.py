@@ -9,6 +9,7 @@ from .views import (
     notification_view,
     support_agent_profile,
     create_purchase_view,
+    shenase_takhsis_list_view,
 )
 
 urlpatterns = [
@@ -18,6 +19,9 @@ urlpatterns = [
     path('support_agent_profile/', support_agent_profile.support_agent_profile_view, name='support_agent_profile'),
   
     path('purchase_list/', purchase_list_view.purchase_list, name='purchase_list' ),
+    path('shenase-takhsis-list/', shenase_takhsis_list_view.shenase_takhsis_list, name='shenase_takhsis_list'),
+    path('shenase-takhsis/export/', shenase_takhsis_list_view.export_shenase_takhsis_excel, name='export_shenase_takhsis'),
+    path('shenase-takhsis/export-full/', shenase_takhsis_list_view.export_full_shenase_takhsis_excel, name='export_full_shenase_takhsis'),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
     path('update_column_order/', purchase_list_view.update_column_order, name='update_column_order'),
     path('get_column_order/', purchase_list_view.get_column_order, name='get_column_order'),
