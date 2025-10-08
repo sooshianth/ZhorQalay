@@ -22,6 +22,10 @@ urlpatterns = [
     path('shenase-takhsis-list/', shenase_takhsis_list_view.shenase_takhsis_list, name='shenase_takhsis_list'),
     path('shenase-takhsis/export/', shenase_takhsis_list_view.export_shenase_takhsis_excel, name='export_shenase_takhsis'),
     path('shenase-takhsis/export-full/', shenase_takhsis_list_view.export_full_shenase_takhsis_excel, name='export_full_shenase_takhsis'),
+    
+    # APIهای فیلتر سمت سرور برای شناسه‌های تخصیص
+    path('shenase-takhsis/filter/apply/', shenase_takhsis_list_view.apply_shenase_takhsis_filter, name='apply_shenase_takhsis_filter'),
+    path('shenase-takhsis/filter/column-values/', shenase_takhsis_list_view.get_shenase_takhsis_column_values, name='get_shenase_takhsis_column_values'),
     path('purchases/update-columns/', purchase_list_view.update_columns, name='update_columns'),
     path('update_column_order/', purchase_list_view.update_column_order, name='update_column_order'),
     path('get_column_order/', purchase_list_view.get_column_order, name='get_column_order'),
