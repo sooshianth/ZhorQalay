@@ -47,6 +47,43 @@
         margin-left: 10px;
     }
 
+    .page-header .btn {
+        transition: all 0.3s ease;
+    }
+    
+    .page-header .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+    
+    .page-header .btn-warning {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+    }
+    
+    .page-header .btn-warning:hover {
+        background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+    }
+    
+    .page-header .btn-primary {
+        background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+        color: white;
+        border: none;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-weight: bold;
+        text-decoration: none;
+    }
+    
+    .page-header .btn-primary:hover {
+        background: linear-gradient(135deg, #064e3b 0%, #065F46 100%);
+        color: white;
+    }
+
     .search-container {
         background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
         padding: 20px;
@@ -200,6 +237,10 @@
         box-shadow: 0 2px 10px rgba(6, 95, 70, 0.1);
     }
 
+    .table tbody tr.selectable-row {
+        cursor: pointer;
+    }
+
     .table tbody td {
         padding: 14px 12px;
         vertical-align: middle;
@@ -317,6 +358,113 @@
         color: #065F46;
     }
 
+    /* استایل‌های ویرایش گروهی */
+    .bulk-edit-controls-top {
+        animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+        from {
+            transform: translateY(-20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    .bulk-edit-panel-top {
+        background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+        color: white;
+        border-radius: 15px;
+        padding: 15px 25px;
+        box-shadow: 0 10px 40px rgba(6, 95, 70, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 25px;
+        flex-wrap: wrap;
+    }
+
+    .bulk-edit-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .bulk-edit-info i {
+        font-size: 1.5rem;
+    }
+
+    .bulk-edit-info .count {
+        font-size: 1.3rem;
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 5px 15px;
+        border-radius: 10px;
+    }
+
+    .bulk-edit-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .bulk-edit-actions .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .bulk-edit-actions .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .bulk-edit-actions .btn-primary {
+        background: white;
+        color: #065F46;
+    }
+
+    .bulk-edit-actions .btn-success {
+        background: #10b981;
+        color: white;
+    }
+
+    .bulk-edit-actions .btn-info {
+        background: #06b6d4;
+        color: white;
+    }
+
+    .bulk-edit-actions .btn-secondary {
+        background: #6b7280;
+        color: white;
+    }
+
+    .bulk-edit-actions .btn-warning {
+        background: #f59e0b;
+        color: white;
+    }
+    
+    .bulk-edit-actions .btn-warning:hover {
+        background: #d97706;
+    }
+
+    /* استایل برای سطرهای انتخاب شده */
+    .table tbody tr.selected,
+    .table tbody tr.bulk-selected {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+        border-right: 4px solid #065F46;
+    }
+
     /* Responsive */
     @media (max-width: 768px) {
         .page-header {
@@ -354,6 +502,21 @@
             padding: 6px 10px;
             font-size: 14px;
         }
+
+        .bulk-edit-panel-top {
+            flex-direction: column;
+        }
+
+        .bulk-edit-actions {
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 100%;
+        }
+        
+        .bulk-edit-actions .btn {
+            font-size: 0.85rem;
+            padding: 6px 12px;
+        }
     }
 </style>
 {% endblock %}
@@ -364,6 +527,9 @@
     <div class="page-header">
         <h1><i class="fas fa-id-card"></i> لیست شناسه‌های تخصیص</h1>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-warning export-selected-excel-btn-header" style="display: none;">
+                <i class="fas fa-file-download"></i> خروجی اکسل (<span class="selected-count">0</span>)
+            </button>
             <a href="{% url 'export_full_shenase_takhsis' %}{% if search_query %}?search={{ search_query }}{% endif %}{% if request.GET.purchase_id %}&purchase_id={{ request.GET.purchase_id }}{% endif %}" class="btn btn-primary">
                 <i class="fas fa-download"></i> خروجی اکسل کامل
             </a>
@@ -390,28 +556,63 @@
         </form>
     </div>
 
+    <!-- کنترل پنل ویرایش گروهی - بالای جدول -->
+    <div class="bulk-edit-controls-top" style="display: none; margin-bottom: 20px;">
+        <div class="bulk-edit-panel-top">
+            <div class="bulk-edit-info">
+                <i class="fas fa-check-circle"></i>
+                <span class="count">0</span>
+                <span class="text">شناسه تخصیص انتخاب شده</span>
+            </div>
+            <div class="bulk-edit-actions">
+                <button type="button" class="btn btn-primary bulk-edit-btn" data-section="active">
+                    <i class="fas fa-edit"></i>
+                    ویرایش گروهی
+                </button>
+                <button type="button" class="btn btn-success bulk-edit-excel-btn" data-section="active">
+                    <i class="fas fa-file-excel"></i>
+                    ویرایش اکسلی
+                </button>
+                <button type="button" class="btn btn-info download-template-btn" data-section="active">
+                    <i class="fas fa-download"></i>
+                    دانلود قالب
+                </button>
+                <button type="button" class="btn btn-secondary clear-selection-btn" data-section="active">
+                    <i class="fas fa-times"></i>
+                    لغو انتخاب
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- جدول -->
     <div class="table-container">
         {% if shenase_list %}
         <div class="table-responsive">
-            <table class="table table-hover">
+            <table class="table table-hover" id="shenaseTakhsisTable">
                 <thead>
                     <tr>
+                        <th style="width: 3%; text-align: center;">
+                            <input type="checkbox" id="select-all-checkbox" style="cursor: pointer; width: 18px; height: 18px;">
+                        </th>
                         <th style="width: 12%;">شناسه تخصیص</th>
                         <th style="width: 10%;">شماره خرید</th>
                         <th style="width: 10%;">کد درون سازمانی</th>
-                        <th style="width: 15%;">نام مشتری</th>
-                        <th style="width: 10%;">وزن (کیلوگرم)</th>
-                        <th style="width: 12%;">کد ملی تحویل</th>
-                        <th style="width: 12%;">شماره تلفن تحویل</th>
-                        <th style="width: 15%;">نام تحویل گیرنده</th>
-                        <th style="width: 10%;">تاریخ ثبت</th>
-                        <th style="width: 10%;">عملیات</th>
+                        <th style="width: 14%;">نام مشتری</th>
+                        <th style="width: 9%;">وزن (کیلوگرم)</th>
+                        <th style="width: 11%;">کد ملی تحویل</th>
+                        <th style="width: 11%;">شماره تلفن تحویل</th>
+                        <th style="width: 13%;">نام تحویل گیرنده</th>
+                        <th style="width: 9%;">تاریخ ثبت</th>
+                        <th style="width: 8%;">عملیات</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for shenase in shenase_list %}
-                    <tr data-id="{{ shenase.id }}">
+                    <tr class="selectable-row" data-id="{{ shenase.id }}">
+                        <td style="text-align: center; padding: 8px;">
+                            <input type="checkbox" class="row-checkbox" data-id="{{ shenase.id }}" style="cursor: pointer; width: 18px; height: 18px;">
+                        </td>
                         <td>
                             <span class="badge badge-primary">{{ shenase.code }}</span>
                         </td>
@@ -518,8 +719,323 @@
         {% endif %}
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
-<!-- JavaScript حذف شد - فقط دکمه خروجی اکسل کامل باقی مانده -->
+<!-- JavaScript مستقیماً در انتهای صفحه -->
+<input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{% static 'table_filter/js/bulk_edit.js' %}"></script>
+<script>
+(function() {
+    'use strict';
+    
+    console.log('🚀 JavaScript شروع شد - لیست شناسه‌های تخصیص');
+    
+    // تابع اصلی
+    function initRowSelection() {
+        console.log('📌 شروع initRowSelection');
+        
+        const table = document.getElementById('shenaseTakhsisTable');
+        const controlPanel = document.querySelector('.bulk-edit-controls-top');
+        const countElement = controlPanel ? controlPanel.querySelector('.count') : null;
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        
+        if (!table) {
+            console.error('❌ جدول پیدا نشد');
+            return;
+        }
+        
+        if (!controlPanel) {
+            console.error('❌ کنترل پنل پیدا نشد');
+            return;
+        }
+        
+        console.log('✅ جدول و کنترل پنل پیدا شدند');
+        
+        const rows = table.querySelectorAll('tbody tr.selectable-row');
+        console.log(`📊 تعداد سطرها: ${rows.length}`);
+        
+        if (rows.length === 0) {
+            console.warn('⚠️ هیچ سطری وجود ندارد');
+            return;
+        }
+        
+        // تابع بروزرسانی نمایش پنل
+        function updateControlPanel() {
+            const checkedCount = table.querySelectorAll('.row-checkbox:checked').length;
+            if (countElement) {
+                countElement.textContent = checkedCount;
+            }
+            controlPanel.style.display = checkedCount > 0 ? 'block' : 'none';
+            
+            // بروزرسانی دکمه خروجی اکسل در header
+            const exportBtnHeader = document.querySelector('.export-selected-excel-btn-header');
+            const selectedCountSpan = exportBtnHeader ? exportBtnHeader.querySelector('.selected-count') : null;
+            if (exportBtnHeader) {
+                exportBtnHeader.style.display = checkedCount > 0 ? 'inline-block' : 'none';
+                if (selectedCountSpan) {
+                    selectedCountSpan.textContent = checkedCount;
+                }
+            }
+            
+            // بروزرسانی وضعیت select-all
+            if (selectAllCheckbox) {
+                const allChecked = checkedCount === rows.length;
+                const someChecked = checkedCount > 0 && checkedCount < rows.length;
+                selectAllCheckbox.checked = allChecked;
+                selectAllCheckbox.indeterminate = someChecked;
+            }
+            
+            console.log(`📊 تعداد انتخاب شده: ${checkedCount}`);
+        }
+        
+        // Event listener برای checkbox انتخاب همه
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                console.log(`🔘 انتخاب همه: ${isChecked}`);
+                
+                rows.forEach(row => {
+                    const checkbox = row.querySelector('.row-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = isChecked;
+                        if (isChecked) {
+                            row.classList.add('selected', 'bulk-selected');
+                        } else {
+                            row.classList.remove('selected', 'bulk-selected');
+                        }
+                    }
+                });
+                
+                updateControlPanel();
+            });
+        }
+        
+        // اضافه کردن event listener به هر checkbox سطر
+        rows.forEach((row, index) => {
+            const checkbox = row.querySelector('.row-checkbox');
+            
+            if (!checkbox) {
+                console.error(`❌ checkbox در سطر ${index} پیدا نشد`);
+                return;
+            }
+            
+            // کلیک روی checkbox
+            checkbox.addEventListener('change', function(e) {
+                console.log(`🔘 تغییر checkbox: ${this.checked}`);
+                
+                if (this.checked) {
+                    row.classList.add('selected', 'bulk-selected');
+                } else {
+                    row.classList.remove('selected', 'bulk-selected');
+                }
+                
+                updateControlPanel();
+                
+                // جلوگیری از propagation برای جلوگیری از کلیک دوباره روی سطر
+                e.stopPropagation();
+            });
+            
+            // کلیک روی سطر (به جز checkbox)
+            row.addEventListener('click', function(e) {
+                // نادیده گرفتن کلیک روی checkbox، لینک و دکمه
+                if (e.target.tagName === 'INPUT' || 
+                    e.target.tagName === 'A' || e.target.closest('a') || 
+                    e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                    return;
+                }
+                
+                // تغییر وضعیت checkbox
+                checkbox.checked = !checkbox.checked;
+                
+                // ایجاد event
+                const changeEvent = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(changeEvent);
+            });
+        });
+        
+        // دکمه لغو انتخاب
+        const clearBtn = document.querySelector('.clear-selection-btn');
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                console.log('🔄 لغو همه انتخاب‌ها');
+                rows.forEach(row => {
+                    const checkbox = row.querySelector('.row-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = false;
+                        row.classList.remove('selected', 'bulk-selected');
+                    }
+                });
+                if (selectAllCheckbox) {
+                    selectAllCheckbox.checked = false;
+                }
+                updateControlPanel();
+            });
+        }
+        
+        // دکمه ویرایش گروهی
+        const bulkEditBtn = document.querySelector('.bulk-edit-btn');
+        if (bulkEditBtn) {
+            bulkEditBtn.addEventListener('click', function() {
+                const selectedIds = Array.from(table.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+                
+                if (selectedIds.length === 0) {
+                    alert('لطفاً حداقل یک شناسه تخصیص را انتخاب کنید');
+                    return;
+                }
+                
+                console.log('📝 ویرایش گروهی:', selectedIds);
+                
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/table_filter/bulk-edit-page/';
+                
+                const fields = {
+                    'selected_ids': JSON.stringify(selectedIds),
+                    'app_name': 'core',
+                    'model_name': 'ShenaseTakhsis',
+                    'section': 'active',
+                    'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                };
+                
+                Object.keys(fields).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = fields[key];
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+        
+        // دکمه ویرایش اکسلی
+        const bulkEditExcelBtn = document.querySelector('.bulk-edit-excel-btn');
+        if (bulkEditExcelBtn) {
+            bulkEditExcelBtn.addEventListener('click', function() {
+                const selectedIds = Array.from(table.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+                
+                if (selectedIds.length === 0) {
+                    alert('لطفاً حداقل یک شناسه تخصیص را انتخاب کنید');
+                    return;
+                }
+                
+                console.log('📊 ویرایش اکسلی:', selectedIds);
+                
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/table_filter/bulk-edit-excel-page/';
+                
+                const fields = {
+                    'selected_ids': JSON.stringify(selectedIds),
+                    'app_name': 'core',
+                    'model_name': 'ShenaseTakhsis',
+                    'section': 'active',
+                    'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                };
+                
+                Object.keys(fields).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = fields[key];
+                    form.appendChild(input);
+                });
+                
+                document.body.appendChild(form);
+                form.submit();
+            });
+        }
+        
+        // دکمه دانلود قالب
+        const downloadTemplateBtn = document.querySelector('.download-template-btn');
+        if (downloadTemplateBtn) {
+            downloadTemplateBtn.addEventListener('click', function() {
+                console.log('📥 دانلود قالب');
+                const url = '/table_filter/bulk-edit-template/?app_name=core&model_name=ShenaseTakhsis';
+                window.open(url, '_blank');
+            });
+        }
+        
+        // دکمه خروجی اکسل در header (فقط سطرهای انتخاب شده)
+        const exportExcelBtnHeader = document.querySelector('.export-selected-excel-btn-header');
+        if (exportExcelBtnHeader) {
+            exportExcelBtnHeader.addEventListener('click', function() {
+                const selectedIds = Array.from(table.querySelectorAll('.row-checkbox:checked')).map(cb => cb.dataset.id);
+                
+                if (selectedIds.length === 0) {
+                    alert('لطفاً حداقل یک شناسه تخصیص را انتخاب کنید');
+                    return;
+                }
+                
+                console.log('📥 خروجی اکسل سطرهای انتخاب شده:', selectedIds);
+                
+                // نمایش پیام بارگذاری
+                const originalHTML = this.innerHTML;
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> در حال ایجاد فایل...';
+                
+                // ارسال درخواست POST به سرور
+                fetch('{% url "export_shenase_takhsis" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({
+                        selected_ids: selectedIds
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'خطا در دریافت فایل');
+                        });
+                    }
+                    return response.blob();
+                })
+                .then(blob => {
+                    // دانلود فایل
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'shenase_takhsis_selected_' + new Date().getTime() + '.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    console.log('✅ فایل اکسل دانلود شد');
+                    
+                    // بازگرداندن دکمه به حالت اولیه
+                    exportExcelBtnHeader.disabled = false;
+                    exportExcelBtnHeader.innerHTML = originalHTML;
+                })
+                .catch(error => {
+                    console.error('❌ خطا در خروجی اکسل:', error);
+                    alert('خطا در ایجاد فایل اکسل: ' + error.message);
+                    
+                    // بازگرداندن دکمه به حالت اولیه
+                    exportExcelBtnHeader.disabled = false;
+                    exportExcelBtnHeader.innerHTML = originalHTML;
+                });
+            });
+        }
+        
+        console.log('✅ همه سطرها و دکمه‌ها آماده شدند');
+    }
+    
+    // اجرا بعد از بارگذاری کامل صفحه
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📄 DOMContentLoaded');
+            setTimeout(initRowSelection, 100);
+        });
+    } else {
+        console.log('📄 Document آماده است');
+        setTimeout(initRowSelection, 100);
+    }
+})();
+</script>
+
 {% endblock %}

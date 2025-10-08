@@ -21,7 +21,7 @@ class BulkEditManager {
         
         // برای صفحه بارنامه‌ها و خریدهای خارج بازارگاه، یک panel واحد وجود دارد
         const tableType = this.detectTableType();
-        if (tableType === 'barnameh' || tableType === 'non_bazargah_purchase' || tableType === 'non_bazargah_barnameh') {
+        if (tableType === 'barnameh' || tableType === 'non_bazargah_purchase' || tableType === 'non_bazargah_barnameh' || tableType === 'shenase_takhsis') {
             this.controlPanels = {
                 active: document.querySelector('.bulk-edit-controls')
             };
@@ -93,6 +93,23 @@ class BulkEditManager {
         // برای صفحه بارنامه‌های خارج بازارگاه، کنترل‌پنل‌ها را تنظیم کنیم
         if (this.detectTableType() === 'non_bazargah_barnameh') {
             console.log('🔍 تشخیص صفحه بارنامه‌های خارج بازارگاه، تنظیم کنترل‌پنل‌ها');
+            this.controlPanels = {
+                active: document.querySelector('.bulk-edit-controls')
+            };
+            
+            // حذف control panelهای null
+            Object.keys(this.controlPanels).forEach(key => {
+                if (!this.controlPanels[key]) {
+                    delete this.controlPanels[key];
+                }
+            });
+            
+            this.updateAllControlPanels();
+        }
+        
+        // برای صفحه شناسه‌های تخصیص، کنترل‌پنل‌ها را تنظیم کنیم
+        if (this.detectTableType() === 'shenase_takhsis') {
+            console.log('🔍 تشخیص صفحه شناسه‌های تخصیص، تنظیم کنترل‌پنل‌ها');
             this.controlPanels = {
                 active: document.querySelector('.bulk-edit-controls')
             };
@@ -253,6 +270,8 @@ class BulkEditManager {
             checkboxes = document.querySelectorAll('#purchasesTable .row-checkbox');
         } else if (tableType === 'non_bazargah_barnameh') {
             checkboxes = document.querySelectorAll('#barnamehsTable .row-checkbox');
+        } else if (tableType === 'shenase_takhsis') {
+            checkboxes = document.querySelectorAll('#shenaseTakhsisTable .row-checkbox');
         } else if (tableType === 'cargo_product') {
             if (checkbox.classList.contains('select-all-checkbox-archived')) {
                 checkboxes = document.querySelectorAll('#inactiveProductsTable .row-checkbox');
@@ -337,6 +356,8 @@ class BulkEditManager {
             tableSelector = '#purchasesTable .row-checkbox:checked';
         } else if (tableType === 'non_bazargah_barnameh') {
             tableSelector = '#barnamehsTable .row-checkbox:checked';
+        } else if (tableType === 'shenase_takhsis') {
+            tableSelector = '#shenaseTakhsisTable .row-checkbox:checked';
         } else if (tableType === 'cargo_product') {
             switch(targetSection) {
                 case 'archived':
@@ -378,8 +399,8 @@ class BulkEditManager {
                 const details = document.querySelector('details.dropdown-container');
                 isSectionVisible = details && details.hasAttribute('open');
             }
-        } else if (tableType === 'non_bazargah_purchase' || tableType === 'non_bazargah_barnameh' || tableType === 'vared_konandeh' || tableType === 'barbary') {
-            // برای خریدهای خارج بازارگاه، بارنامه‌های خارج بازارگاه، واردکنندگان و باربری‌ها، همیشه نمایان هستند
+        } else if (tableType === 'non_bazargah_purchase' || tableType === 'non_bazargah_barnameh' || tableType === 'shenase_takhsis' || tableType === 'vared_konandeh' || tableType === 'barbary') {
+            // برای خریدهای خارج بازارگاه، بارنامه‌های خارج بازارگاه، شناسه‌های تخصیص، واردکنندگان و باربری‌ها، همیشه نمایان هستند
             isSectionVisible = true;
         } else {
             const sectionElement = document.getElementById(`${targetSection}Content`);
@@ -431,6 +452,8 @@ class BulkEditManager {
             return 'non_bazargah_purchase';
         } else if (url.includes('non-bazargah-barnameh') || url.includes('non_bazargah_barnameh')) {
             return 'non_bazargah_barnameh';
+        } else if (url.includes('shenase-takhsis') || url.includes('shenase_takhsis')) {
+            return 'shenase_takhsis';
         } else if (url.includes('purchase')) {
             return 'purchase';
         } else if (url.includes('customer')) {
@@ -480,6 +503,13 @@ class BulkEditManager {
                     active: '#barnamehsTable .row-checkbox:checked',
                     pending: '#barnamehsTable .row-checkbox:checked',
                     archived: '#barnamehsTable .row-checkbox:checked'
+                };
+            } else if (tableType === 'shenase_takhsis') {
+                // برای صفحه شناسه‌های تخصیص
+                tableMap = {
+                    active: '#shenaseTakhsisTable .row-checkbox:checked',
+                    pending: '#shenaseTakhsisTable .row-checkbox:checked',
+                    archived: '#shenaseTakhsisTable .row-checkbox:checked'
                 };
             } else if (tableType === 'cargo_product') {
                 // برای صفحه کوتاژها
@@ -595,6 +625,13 @@ class BulkEditManager {
                     pending: '#barnamehsTable .row-checkbox:checked',
                     archived: '#barnamehsTable .row-checkbox:checked'
                 };
+            } else if (tableType === 'shenase_takhsis') {
+                // برای صفحه شناسه‌های تخصیص
+                tableMap = {
+                    active: '#shenaseTakhsisTable .row-checkbox:checked',
+                    pending: '#shenaseTakhsisTable .row-checkbox:checked',
+                    archived: '#shenaseTakhsisTable .row-checkbox:checked'
+                };
             } else if (tableType === 'cargo_product') {
                 // برای صفحه کوتاژها
                 tableMap = {
@@ -687,7 +724,8 @@ class BulkEditManager {
             'cargo_product': 'CargoProduct',
             'barnameh': 'Barnameh',
             'non_bazargah_purchase': 'NonBazargahPurchase',
-            'non_bazargah_barnameh': 'Barnameh'
+            'non_bazargah_barnameh': 'Barnameh',
+            'shenase_takhsis': 'ShenaseTakhsis'
         };
         return modelMap[tableType] || 'Purchase';
     }
@@ -699,7 +737,8 @@ class BulkEditManager {
             'cargo_product': 'core',
             'barnameh': 'bki_barnameh',
             'non_bazargah_purchase': 'major',
-            'non_bazargah_barnameh': 'bki_barnameh'
+            'non_bazargah_barnameh': 'bki_barnameh',
+            'shenase_takhsis': 'core'
         };
         return appMap[tableType] || 'core';
     }
@@ -749,6 +788,8 @@ class BulkEditManager {
             checkboxes = document.querySelectorAll('#purchasesTable .row-checkbox');
         } else if (tableType === 'non_bazargah_barnameh') {
             checkboxes = document.querySelectorAll('#barnamehsTable .row-checkbox');
+        } else if (tableType === 'shenase_takhsis') {
+            checkboxes = document.querySelectorAll('#shenaseTakhsisTable .row-checkbox');
         } else if (tableType === 'cargo_product') {
             if (targetSection === 'archived') {
                 checkboxes = document.querySelectorAll('#inactiveProductsTable .row-checkbox');

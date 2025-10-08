@@ -88,6 +88,9 @@ def export_shenase_takhsis_excel(request):
         ws = wb.active
         ws.title = "شناسه‌های تخصیص"
         
+        # تنظیم راست به چپ برای worksheet
+        ws.sheet_view.rightToLeft = True
+        
         # تنظیمات استایل
         header_fill = PatternFill(start_color="065F46", end_color="065F46", fill_type="solid")
         header_font = Font(name='B Nazanin', size=12, bold=True, color="FFFFFF")
@@ -205,6 +208,9 @@ def export_full_shenase_takhsis_excel(request):
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "شناسه‌های تخصیص"
+        
+        # تنظیم راست به چپ برای worksheet
+        ws.sheet_view.rightToLeft = True
         
         # تنظیمات استایل
         header_fill = PatternFill(start_color="065F46", end_color="065F46", fill_type="solid")
