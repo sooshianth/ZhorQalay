@@ -441,17 +441,27 @@ def apply_shenase_takhsis_filter(request):
         
         # اعمال جستجوی سریع
         if global_search:
-            search_conditions = (
-                Q(code__icontains=global_search) |
-                Q(purchase_number__icontains=global_search) |
-                Q(purchase__invoice_id__icontains=global_search) |
-                Q(purchase__customer__name__icontains=global_search) |
-                Q(purchase__purchase_number__icontains=global_search) |
-                Q(code_melli_tahvil__icontains=global_search) |
-                Q(tahvil_phone_number__icontains=global_search) |
-                Q(delivery_receiver_name__icontains=global_search)
-            )
+            logger.info(f"اعمال جستجوی سریع با عبارت: {global_search}")
+            search_conditions = Q()
+            
+            # جستجو در فیلدهای مستقیم شناسه تخصیص
+            search_conditions |= Q(code__icontains=global_search)
+            search_conditions |= Q(purchase_number__icontains=global_search)
+            search_conditions |= Q(code_melli_tahvil__icontains=global_search)
+            search_conditions |= Q(tahvil_phone_number__icontains=global_search)
+            search_conditions |= Q(delivery_receiver_name__icontains=global_search)
+            search_conditions |= Q(delivery_address__icontains=global_search)
+            search_conditions |= Q(delivery_postal_code__icontains=global_search)
+            
+            # جستجو در فیلدهای مرتبط با خرید (فقط برای رکوردهایی که purchase دارند)
+            search_conditions |= Q(purchase__isnull=False, purchase__invoice_id__icontains=global_search)
+            search_conditions |= Q(purchase__isnull=False, purchase__purchase_number__icontains=global_search)
+            search_conditions |= Q(purchase__isnull=False, purchase__customer__isnull=False, purchase__customer__name__icontains=global_search)
+            
+            before_count = base_queryset.count()
             base_queryset = base_queryset.filter(search_conditions).distinct()
+            after_count = base_queryset.count()
+            logger.info(f"جستجو: {before_count} -> {after_count} نتیجه")
         
         # اعمال مرتب‌سازی
         if sort_config and sort_config.get('column'):
@@ -626,16 +636,22 @@ def get_shenase_takhsis_column_values(request):
         
         # اعمال جستجوی سریع
         if global_search:
-            search_conditions = (
-                Q(code__icontains=global_search) |
-                Q(purchase_number__icontains=global_search) |
-                Q(purchase__invoice_id__icontains=global_search) |
-                Q(purchase__customer__name__icontains=global_search) |
-                Q(purchase__purchase_number__icontains=global_search) |
-                Q(code_melli_tahvil__icontains=global_search) |
-                Q(tahvil_phone_number__icontains=global_search) |
-                Q(delivery_receiver_name__icontains=global_search)
-            )
+            search_conditions = Q()
+            
+            # جستجو در فیلدهای مستقیم شناسه تخصیص
+            search_conditions |= Q(code__icontains=global_search)
+            search_conditions |= Q(purchase_number__icontains=global_search)
+            search_conditions |= Q(code_melli_tahvil__icontains=global_search)
+            search_conditions |= Q(tahvil_phone_number__icontains=global_search)
+            search_conditions |= Q(delivery_receiver_name__icontains=global_search)
+            search_conditions |= Q(delivery_address__icontains=global_search)
+            search_conditions |= Q(delivery_postal_code__icontains=global_search)
+            
+            # جستجو در فیلدهای مرتبط با خرید (فقط برای رکوردهایی که purchase دارند)
+            search_conditions |= Q(purchase__isnull=False, purchase__invoice_id__icontains=global_search)
+            search_conditions |= Q(purchase__isnull=False, purchase__purchase_number__icontains=global_search)
+            search_conditions |= Q(purchase__isnull=False, purchase__customer__isnull=False, purchase__customer__name__icontains=global_search)
+            
             base_queryset = base_queryset.filter(search_conditions).distinct()
         
         # دریافت مقادیر بر اساس نوع ستون
