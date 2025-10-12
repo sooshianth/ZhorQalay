@@ -509,6 +509,13 @@ def purchase_CRUD_view(request, purchase_id):
     # دریافت شناسه‌های تخصیص مرتبط با خرید
     shenase_takhsis_list = ShenaseTakhsis.objects.filter(purchase=purchase)
     
+    # محاسبه مجموع وزن شناسه‌های تخصیص
+    total_takhsis_weight = 0
+    if shenase_takhsis_list.exists():
+        for takhsis in shenase_takhsis_list:
+            if takhsis.weight:
+                total_takhsis_weight += takhsis.weight
+    
     # دریافت بارنامه‌های مرتبط با شناسه‌های تخصیص
     barnamehs = []
     
@@ -870,6 +877,7 @@ def purchase_CRUD_view(request, purchase_id):
         'notifications': notifications,
         'barnamehs': barnamehs,
         'shenase_takhsis_list': shenase_takhsis_list,
+        'total_takhsis_weight': total_takhsis_weight,
     }
     return render(request, 'purchase_CRUD_view.html', context)
 
