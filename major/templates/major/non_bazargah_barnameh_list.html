@@ -156,6 +156,24 @@
         font-weight: 600;
         color: #dc2626;
     }
+
+    /* Per Page Selector */
+    #barnamehPerPage {
+        min-width: 80px;
+        border: 2px solid #064E3B;
+        color: #064E3B;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    #barnamehPerPage:focus {
+        border-color: #064E3B;
+        box-shadow: 0 0 0 0.2rem rgba(6, 78, 59, 0.25);
+    }
+
+    #barnamehPerPage:hover {
+        background-color: #f0fdf4;
+    }
 </style>
 {% endblock %}
 
@@ -242,9 +260,24 @@
 
     <!-- جدول بارنامه‌ها -->
     <div class="table-container">
-        <h5 class="mb-4">
-            <i class="fas fa-list"></i> لیست بارنامه‌های خارج از بازارگاه
-        </h5>
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="mb-0">
+                <i class="fas fa-list"></i> لیست بارنامه‌های خارج از بازارگاه
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <label for="barnamehPerPage" class="mb-0 text-muted">نمایش در هر صفحه:</label>
+                <select id="barnamehPerPage" class="form-select form-select-sm" style="width: auto;">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                    <option value="10000">همه</option>
+                </select>
+            </div>
+        </div>
         
             <div class="table-responsive" style="overflow-x: auto;">
             <table class="table table-hover" id="barnamehsTable"

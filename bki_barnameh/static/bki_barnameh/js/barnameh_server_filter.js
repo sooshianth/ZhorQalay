@@ -269,7 +269,7 @@ class BarnamehServerFilter {
     }
     
     setupFilterButtons() {
-        const filterableHeaders = this.table.querySelectorAll('th[data-column-id]:not([data-column-id="actions"])');
+        const filterableHeaders = this.table.querySelectorAll('th[data-column-id]:not([data-column-id="actions"]):not([data-column-id="select"])');
         
         filterableHeaders.forEach(header => {
             const columnId = header.getAttribute('data-column-id');
@@ -319,7 +319,8 @@ class BarnamehServerFilter {
     async showFilterModal(columnId, columnType, headerElement) {
         console.log(`Showing filter modal for column: ${columnId}`);
         
-        this.showLoading();
+        // نمایش یک loading indicator کوچک بدون تغییر جدول
+        const loadingToast = this.showToast('در حال بارگذاری مقادیر فیلتر...', 'info');
         
         try {
             // دریافت مقادیر از سرور
@@ -332,8 +333,6 @@ class BarnamehServerFilter {
         } catch (error) {
             console.error('Error loading filter modal:', error);
             this.showToast('خطا در بارگذاری فیلتر', 'error');
-        } finally {
-            this.hideLoading();
         }
     }
     
@@ -364,86 +363,43 @@ class BarnamehServerFilter {
         const headerText = headerElement.querySelector('.header-text')?.textContent || headerElement.textContent;
         
         modal.innerHTML = `
-            <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
-                    <div class="modal-header bg-primary text-white">
+                    <div class="modal-header">
                         <h5 class="modal-title">
                             <i class="fas fa-filter me-2"></i>
-                            فیلتر ستون: ${headerText}
+                            فیلتر ${headerText}
                         </h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body">
-                        <!-- آمار فیلتر -->
-                        <div class="filter-stats mb-3 p-3 bg-light rounded">
-                            <div class="row text-center">
-                                <div class="col-4">
-                                    <h6 class="mb-1">${totalValues}</h6>
-                                    <small class="text-muted">مقادیر موجود</small>
-                                </div>
-                                <div class="col-4">
-                                    <h6 class="mb-1" id="selectedCount">${selectedValues}</h6>
-                                    <small class="text-muted">انتخاب شده</small>
-                                </div>
-                                <div class="col-4">
-                                    <h6 class="mb-1">${totalValues - selectedValues}</h6>
-                                    <small class="text-muted">انتخاب نشده</small>
-                                </div>
-                            </div>
-                        </div>
-                        
                         <!-- نوع فیلتر -->
-                        <div class="filter-type mb-3">
-                            <label class="form-label fw-bold">نوع فیلتر:</label>
+                        <div class="mb-3">
+                            <label class="form-label">نوع فیلتر:</label>
                             <div class="btn-group w-100" role="group">
                                 <input type="radio" class="btn-check" name="filterType" id="includeType" value="include" ${currentType === 'include' ? 'checked' : ''}>
-                                <label class="btn btn-outline-success" for="includeType">
-                                    <i class="fas fa-check me-1"></i>شامل موارد انتخابی
-                                </label>
+                                <label class="btn btn-outline-success" for="includeType">شامل</label>
                                 
                                 <input type="radio" class="btn-check" name="filterType" id="excludeType" value="exclude" ${currentType === 'exclude' ? 'checked' : ''}>
-                                <label class="btn btn-outline-danger" for="excludeType">
-                                    <i class="fas fa-times me-1"></i>بجز موارد انتخابی
-                                </label>
+                                <label class="btn btn-outline-danger" for="excludeType">حذف</label>
                             </div>
                         </div>
                         
                         <!-- جستجو در مقادیر -->
-                        <div class="search-container mb-3">
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    <i class="fas fa-search"></i>
-                                </span>
-                                <input type="text" 
-                                       class="form-control" 
-                                       id="valueSearchInput" 
-                                       placeholder="جستجو در مقادیر...">
-                                <button class="btn btn-outline-secondary" type="button" id="clearValueSearch">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
+                        <div class="mb-3">
+                            <label for="filterSearch" class="form-label">جستجو در مقادیر:</label>
+                            <input type="text" id="valueSearchInput" class="form-control" placeholder="تایپ کنید...">
                         </div>
                         
-                        <!-- دکمه‌های کنترل -->
-                        <div class="control-buttons mb-3">
-                            <div class="btn-group w-100 mb-2" role="group">
-                                <button type="button" class="btn btn-outline-primary" id="selectAllBtn">
-                                    <i class="fas fa-check-square me-1"></i>انتخاب همه
-                                </button>
-                                <button type="button" class="btn btn-outline-secondary" id="deselectAllBtn">
-                                    <i class="fas fa-square me-1"></i>لغو همه
-                                </button>
-                                <button type="button" class="btn btn-outline-info" id="invertSelectionBtn">
-                                    <i class="fas fa-exchange-alt me-1"></i>معکوس کردن
-                                </button>
-                            </div>
-                            <!-- دکمه‌های مرتب‌سازی جدول -->
+                        <!-- دکمه‌های مرتب‌سازی -->
+                        <div class="mb-3">
+                            <label class="form-label">مرتب‌سازی:</label>
                             <div class="btn-group w-100" role="group">
-                                <button type="button" class="btn btn-outline-success" id="sortAscBtn">
-                                    <i class="fas fa-sort-alpha-down me-1"></i>مرتب‌سازی جدول صعودی
+                                <button type="button" class="btn btn-outline-primary sort-btn" data-direction="asc" id="sortAscBtn">
+                                    <i class="fas fa-sort-amount-up me-2"></i>صعودی
                                 </button>
-                                <button type="button" class="btn btn-outline-warning" id="sortDescBtn">
-                                    <i class="fas fa-sort-alpha-up me-1"></i>مرتب‌سازی جدول نزولی
+                                <button type="button" class="btn btn-outline-primary sort-btn" data-direction="desc" id="sortDescBtn">
+                                    <i class="fas fa-sort-amount-down me-2"></i>نزولی
                                 </button>
                             </div>
                         </div>
@@ -459,10 +415,10 @@ class BarnamehServerFilter {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                            <i class="fas fa-times me-1"></i>انصراف
+                            <i class="fas fa-times me-1"></i>لغو
                         </button>
                         <button type="button" class="btn btn-warning" id="clearFilterBtn">
-                            <i class="fas fa-eraser me-1"></i>پاک کردن فیلتر
+                            <i class="fas fa-times me-1"></i>حذف فیلتر
                         </button>
                         <button type="button" class="btn btn-primary" id="applyFilterBtn">
                             <i class="fas fa-check me-1"></i>اعمال فیلتر
@@ -495,14 +451,10 @@ class BarnamehServerFilter {
     setupModalEventHandlers(modal, columnId) {
         const valuesList = modal.querySelector('#valuesList');
         const valueSearchInput = modal.querySelector('#valueSearchInput');
-        const selectAllBtn = modal.querySelector('#selectAllBtn');
-        const deselectAllBtn = modal.querySelector('#deselectAllBtn');
-        const invertSelectionBtn = modal.querySelector('#invertSelectionBtn');
         const sortAscBtn = modal.querySelector('#sortAscBtn');
         const sortDescBtn = modal.querySelector('#sortDescBtn');
         const clearFilterBtn = modal.querySelector('#clearFilterBtn');
         const applyFilterBtn = modal.querySelector('#applyFilterBtn');
-        const clearValueSearch = modal.querySelector('#clearValueSearch');
         
         // Event handlers برای جستجو در مقادیر
         const searchHandler = () => {
@@ -527,31 +479,6 @@ class BarnamehServerFilter {
             searchTimeout = setTimeout(searchHandler, 300);
         });
         
-        // پاک کردن جستجو
-        clearValueSearch.addEventListener('click', () => {
-            valueSearchInput.value = '';
-            searchHandler();
-        });
-        
-        // دکمه‌های کنترل
-        selectAllBtn.addEventListener('click', () => {
-            const visibleCheckboxes = valuesList.querySelectorAll('.form-check:not([style*="display: none"]) input[type="checkbox"]');
-            visibleCheckboxes.forEach(cb => cb.checked = true);
-            this.updateSelectedCount();
-        });
-        
-        deselectAllBtn.addEventListener('click', () => {
-            const visibleCheckboxes = valuesList.querySelectorAll('.form-check:not([style*="display: none"]) input[type="checkbox"]');
-            visibleCheckboxes.forEach(cb => cb.checked = false);
-            this.updateSelectedCount();
-        });
-        
-        invertSelectionBtn.addEventListener('click', () => {
-            const visibleCheckboxes = valuesList.querySelectorAll('.form-check:not([style*="display: none"]) input[type="checkbox"]');
-            visibleCheckboxes.forEach(cb => cb.checked = !cb.checked);
-            this.updateSelectedCount();
-        });
-        
         // دکمه‌های مرتب‌سازی
         sortAscBtn.addEventListener('click', () => {
             this.currentSort = { column: columnId, direction: 'asc' };
@@ -570,6 +497,7 @@ class BarnamehServerFilter {
         // پاک کردن فیلتر
         clearFilterBtn.addEventListener('click', () => {
             delete this.currentFilters[columnId];
+            this.currentPage = 1;
             this.applyFilters();
             bootstrap.Modal.getInstance(modal).hide();
         });
@@ -608,6 +536,17 @@ class BarnamehServerFilter {
             return;
         }
         
+        // اضافه کردن انتخاب همه در ابتدا
+        const selectAllHtml = `
+            <div class="form-check mb-2 border-bottom pb-2">
+                <input class="form-check-input" type="checkbox" id="selectAll" checked>
+                <label class="form-check-label fw-bold" for="selectAll">
+                    انتخاب همه (${serverValues.length})
+                </label>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', selectAllHtml);
+        
         serverValues.forEach(valueObj => {
             const value = valueObj.value || valueObj;
             const display = valueObj.display || value;
@@ -616,7 +555,7 @@ class BarnamehServerFilter {
             
             const checkboxHtml = `
                 <div class="form-check mb-2">
-                    <input class="form-check-input" type="checkbox" 
+                    <input class="form-check-input value-checkbox" type="checkbox" 
                            value="${value}" id="val_${value}" ${isChecked ? 'checked' : ''}>
                     <label class="form-check-label w-100" for="val_${value}" 
                            style="cursor: pointer; padding: 5px 0;">
@@ -628,30 +567,34 @@ class BarnamehServerFilter {
             container.insertAdjacentHTML('beforeend', checkboxHtml);
         });
         
-        // اضافه کردن event listener برای تغییر selection count
-        const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-        checkboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                this.updateSelectedCount();
-            });
+        // مدیریت انتخاب همه
+        const selectAllCheckbox = container.querySelector('#selectAll');
+        selectAllCheckbox.addEventListener('change', function() {
+            const valueCheckboxes = container.querySelectorAll('.value-checkbox');
+            valueCheckboxes.forEach(cb => cb.checked = this.checked);
         });
         
-        this.updateSelectedCount();
+        // مدیریت تغییر checkbox های جزئی
+        container.addEventListener('change', function(e) {
+            if (e.target.classList.contains('value-checkbox')) {
+                const allCheckboxes = container.querySelectorAll('.value-checkbox');
+                const checkedCheckboxes = container.querySelectorAll('.value-checkbox:checked');
+                
+                if (checkedCheckboxes.length === allCheckboxes.length) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                } else if (checkedCheckboxes.length === 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                } else {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = true;
+                }
+            }
+        });
     }
     
 
-    
-    updateSelectedCount() {
-        const modal = document.getElementById('barnamehFilterModal');
-        if (!modal) return;
-        
-        const checkedBoxes = modal.querySelectorAll('#valuesList input[type="checkbox"]:checked');
-        const selectedCountElement = modal.querySelector('#selectedCount');
-        
-        if (selectedCountElement) {
-            selectedCountElement.textContent = checkedBoxes.length;
-        }
-    }
     
     async getColumnValues(columnId) {
         try {
@@ -847,7 +790,7 @@ class BarnamehServerFilter {
         });
         
         let rowHtml = `
-            <td class="text-center">
+            <td class="text-center" data-column="select">
                 <input type="checkbox" class="row-checkbox" data-id="${barnameh.id}" 
                        value="${barnameh.id}"
                        style="width: 18px; height: 18px; cursor: pointer;" 
@@ -856,93 +799,90 @@ class BarnamehServerFilter {
         `;
         
         visibleColumns.forEach(columnId => {
-            if (columnId === 'number') {
-                rowHtml += `<td class="column-number">${barnameh.number || "-"}</td>`;
+            if (columnId === 'select') {
+                // قبلاً اضافه شده
+                return;
+            } else if (columnId === 'number') {
+                rowHtml += `<td class="column-number" data-column="number">${barnameh.number || "-"}</td>`;
             } else if (columnId === 'serial') {
-                rowHtml += `<td class="column-serial">${barnameh.serial || "-"}</td>`;
+                rowHtml += `<td class="column-serial" data-column="serial">${barnameh.serial || "-"}</td>`;
             } else if (columnId === 'tonnage') {
-                rowHtml += `<td class="column-tonnage">${barnameh.tonnage || "-"}</td>`;
+                rowHtml += `<td class="column-tonnage" data-column="tonnage">${barnameh.tonnage || "-"}</td>`;
             } else if (columnId === 'status') {
                 const statusText = barnameh.status_display || barnameh.status || "";
                 const statusClass = this.getStatusBadgeClass(statusText);
-                rowHtml += `<td class="column-status">
+                rowHtml += `<td class="column-status" data-column="status">
                     <span class="badge rounded-pill ${statusClass}">${statusText}</span>
                 </td>`;
             } else if (columnId === 'driver_name') {
-                rowHtml += `<td class="column-driver_name">${barnameh.driver_name || "-"}</td>`;
+                rowHtml += `<td class="column-driver_name" data-column="driver_name">${barnameh.driver_name || "-"}</td>`;
             } else if (columnId === 'driver_phone') {
-                rowHtml += `<td class="column-driver_phone">${barnameh.driver_phone || "-"}</td>`;
+                rowHtml += `<td class="column-driver_phone" data-column="driver_phone">${barnameh.driver_phone || "-"}</td>`;
             } else if (columnId === 'vehicle_plate') {
-                rowHtml += `<td class="column-vehicle_plate">${barnameh.vehicle_plate || "-"}</td>`;
+                rowHtml += `<td class="column-vehicle_plate" data-column="vehicle_plate">${barnameh.vehicle_plate || "-"}</td>`;
             } else if (columnId === 'receiver_name') {
-                rowHtml += `<td class="column-receiver_name">${barnameh.receiver_name || "-"}</td>`;
+                rowHtml += `<td class="column-receiver_name" data-column="receiver_name">${barnameh.receiver_name || "-"}</td>`;
             } else if (columnId === 'destination') {
-                rowHtml += `<td class="column-destination">${barnameh.destination || "-"}</td>`;
+                rowHtml += `<td class="column-destination" data-column="destination">${barnameh.destination || "-"}</td>`;
             } else if (columnId === 'barnameh_date') {
-                rowHtml += `<td class="column-barnameh_date">${barnameh.barnameh_date || "-"}</td>`;
+                rowHtml += `<td class="column-barnameh_date" data-column="barnameh_date">${barnameh.barnameh_date || "-"}</td>`;
             } else if (columnId === 'transport_date') {
-                rowHtml += `<td class="column-transport_date">${barnameh.transport_date || "-"}</td>`;
+                rowHtml += `<td class="column-transport_date" data-column="transport_date">${barnameh.transport_date || "-"}</td>`;
             } else if (columnId === 'purchase_number') {
-                rowHtml += `<td class="column-purchase_number">${barnameh.purchase_number || "-"}</td>`;
+                rowHtml += `<td class="column-purchase_number" data-column="purchase_number">${barnameh.purchase_number || "-"}</td>`;
             } else if (columnId === 'shenase_takhsis_code') {
-                rowHtml += `<td class="column-shenase_takhsis_code">${barnameh.shenase_takhsis_code || "-"}</td>`;
+                rowHtml += `<td class="column-shenase_takhsis_code" data-column="shenase_takhsis_code">${barnameh.shenase_takhsis_code || "-"}</td>`;
             } else if (columnId === 'cargo') {
-                rowHtml += `<td class="column-cargo">${barnameh.cargo || "-"}</td>`;
+                rowHtml += `<td class="column-cargo" data-column="cargo">${barnameh.cargo || "-"}</td>`;
             } else if (columnId === 'company_price') {
-                rowHtml += `<td class="column-company_price">${barnameh.company_price || "-"}</td>`;
+                rowHtml += `<td class="column-company_price" data-column="company_price">${barnameh.company_price || "-"}</td>`;
             } else if (columnId === 'customer_price') {
-                rowHtml += `<td class="column-customer_price">${barnameh.customer_price || "-"}</td>`;
+                rowHtml += `<td class="column-customer_price" data-column="customer_price">${barnameh.customer_price || "-"}</td>`;
             } else if (columnId === 'total_sales_amount') {
-                rowHtml += `<td class="column-total_sales_amount">${barnameh.total_sales_amount || "-"}</td>`;
+                rowHtml += `<td class="column-total_sales_amount" data-column="total_sales_amount">${barnameh.total_sales_amount || "-"}</td>`;
             } else if (columnId === 'total_purchase_amount') {
-                rowHtml += `<td class="column-total_purchase_amount">${barnameh.total_purchase_amount || "-"}</td>`;
+                rowHtml += `<td class="column-total_purchase_amount" data-column="total_purchase_amount">${barnameh.total_purchase_amount || "-"}</td>`;
             } else if (columnId === 'buyer_name') {
-                rowHtml += `<td class="column-buyer_name">${barnameh.buyer_name || "-"}</td>`;
+                rowHtml += `<td class="column-buyer_name" data-column="buyer_name">${barnameh.buyer_name || "-"}</td>`;
             } else if (columnId === 'buyer_national_code') {
-                rowHtml += `<td class="column-buyer_national_code">${barnameh.buyer_national_code || "-"}</td>`;
+                rowHtml += `<td class="column-buyer_national_code" data-column="buyer_national_code">${barnameh.buyer_national_code || "-"}</td>`;
             } else if (columnId === 'buyer_postal_code') {
-                rowHtml += `<td class="column-buyer_postal_code">${barnameh.buyer_postal_code || "-"}</td>`;
+                rowHtml += `<td class="column-buyer_postal_code" data-column="buyer_postal_code">${barnameh.buyer_postal_code || "-"}</td>`;
             } else if (columnId === 'buyer_address') {
-                rowHtml += `<td class="column-buyer_address">${barnameh.buyer_address || "-"}</td>`;
+                rowHtml += `<td class="column-buyer_address" data-column="buyer_address">${barnameh.buyer_address || "-"}</td>`;
             } else if (columnId === 'demand_amount') {
-                rowHtml += `<td class="column-demand_amount">${barnameh.demand_amount || "-"}</td>`;
+                rowHtml += `<td class="column-demand_amount" data-column="demand_amount">${barnameh.demand_amount || "-"}</td>`;
             } else if (columnId === 'importer') {
-                rowHtml += `<td class="column-importer">${barnameh.importer || "-"}</td>`;
+                rowHtml += `<td class="column-importer" data-column="importer">${barnameh.importer || "-"}</td>`;
             } else if (columnId === 'product_type') {
-                rowHtml += `<td class="column-product_type">${barnameh.product_type || "-"}</td>`;
+                rowHtml += `<td class="column-product_type" data-column="product_type">${barnameh.product_type || "-"}</td>`;
             } else if (columnId === 'product_country') {
-                rowHtml += `<td class="column-product_country">${barnameh.product_country || "-"}</td>`;
+                rowHtml += `<td class="column-product_country" data-column="product_country">${barnameh.product_country || "-"}</td>`;
             } else if (columnId === 'successful_send_date') {
-                rowHtml += `<td class="column-successful_send_date">${barnameh.successful_send_date || "-"}</td>`;
+                rowHtml += `<td class="column-successful_send_date" data-column="successful_send_date">${barnameh.successful_send_date || "-"}</td>`;
             } else if (columnId === 'is_sent_to_bki') {
                 const isSentToBki = barnameh.is_sent_to_bki;
-                rowHtml += `<td class="column-is_sent_to_bki">
+                rowHtml += `<td class="column-is_sent_to_bki" data-column="is_sent_to_bki">
                     ${isSentToBki ? '<span class="badge bg-success">بله</span>' : '<span class="badge bg-secondary">خیر</span>'}
                 </td>`;
             } else if (columnId === 'factor_sodoor_season') {
-                rowHtml += `<td class="column-factor_sodoor_season">${barnameh.factor_sodoor_season || "-"}</td>`;
+                rowHtml += `<td class="column-factor_sodoor_season" data-column="factor_sodoor_season">${barnameh.factor_sodoor_season || "-"}</td>`;
             } else if (columnId === 'is_factored') {
                 const isFactored = barnameh.is_factored;
-                rowHtml += `<td class="column-is_factored">
+                rowHtml += `<td class="column-is_factored" data-column="is_factored">
                     ${isFactored ? '<span class="badge bg-success">بله</span>' : '<span class="badge bg-secondary">خیر</span>'}
                 </td>`;
             } else if (columnId === 'is_created_by_excel') {
                 const isCreatedByExcel = barnameh.is_created_by_excel;
-                rowHtml += `<td class="column-is_created_by_excel">
+                rowHtml += `<td class="column-is_created_by_excel" data-column="is_created_by_excel">
                     ${isCreatedByExcel ? '<span class="badge bg-success">بله</span>' : '<span class="badge bg-secondary">خیر</span>'}
                 </td>`;
             } else if (columnId === 'factor_date') {
-                rowHtml += `<td class="column-factor_date">${barnameh.factor_date || "-"}</td>`;
+                rowHtml += `<td class="column-factor_date" data-column="factor_date">${barnameh.factor_date || "-"}</td>`;
             } else if (columnId === 'created_at') {
-                rowHtml += `<td class="column-created_at">${barnameh.created_at || "-"}</td>`;
-            } else if (columnId === 'transport_date') {
-                rowHtml += `<td class="column-transport_date">${barnameh.transport_date || "-"}</td>`;
-            } else if (columnId === 'factor_sodoor_season') {
-                rowHtml += `<td class="column-factor_sodoor_season">${barnameh.factor_sodoor_season || "-"}</td>`;
-            } else if (columnId === 'buyer_postal_code') {
-                rowHtml += `<td class="column-buyer_postal_code">${barnameh.buyer_postal_code || "-"}</td>`;
+                rowHtml += `<td class="column-created_at" data-column="created_at">${barnameh.created_at || "-"}</td>`;
             } else if (columnId === 'actions') {
-                rowHtml += `<td class="text-center">
+                rowHtml += `<td class="text-center" data-column="actions">
                     <div class="btn-group">
                         <a href="/bki/barnameh/detail/${barnameh.id}/" 
                            class="btn btn-info btn-sm rounded-circle" 
@@ -1274,94 +1214,139 @@ class BarnamehServerFilter {
     }
     
     updatePagination(pagination) {
-        const paginationContainer = document.getElementById('barnamehPagination');
-        if (!paginationContainer) return;
+        // پیدا کردن یا ایجاد container pagination
+        let paginationContainer = document.querySelector('#barnameh-server-pagination');
+        
+        if (!paginationContainer) {
+            paginationContainer = document.createElement('div');
+            paginationContainer.id = 'barnameh-server-pagination';
+            paginationContainer.className = 'pagination-container mt-4';
+            
+            // اضافه کردن بعد از جدول
+            const tableContainer = this.table.closest('.table-container') || this.table.parentNode;
+            tableContainer.insertAdjacentElement('afterend', paginationContainer);
+        }
         
         this.currentPage = pagination.current_page;
         this.totalPages = pagination.total_pages;
         this.totalCount = pagination.count;
         
-        // به‌روزرسانی اطلاعات pagination
+        // بروزرسانی اطلاعات pagination
         this.updatePaginationInfo(paginationContainer, pagination);
-        
-        // به‌روزرسانی لینک‌های pagination
-        const paginationNav = paginationContainer.querySelector('nav');
-        if (paginationNav) {
-            let paginationHtml = '<ul class="pagination justify-content-center">';
-            
-            // دکمه صفحه اول
-            if (pagination.has_previous) {
-                paginationHtml += `
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="1">
-                            <i class="fas fa-angle-double-right"></i> اول
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="${pagination.current_page - 1}">
-                            <i class="fas fa-angle-right"></i> قبلی
-                        </a>
-                    </li>
-                `;
-            }
-            
-            // شماره صفحات
-            const startPage = Math.max(1, pagination.current_page - 2);
-            const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const isActive = i === pagination.current_page;
-                paginationHtml += `
-                    <li class="page-item ${isActive ? 'active' : ''}">
-                        <a class="page-link" href="#" data-page="${i}">${i}</a>
-                    </li>
-                `;
-            }
-            
-            // دکمه صفحه آخر
-            if (pagination.has_next) {
-                paginationHtml += `
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="${pagination.current_page + 1}">
-                            بعدی <i class="fas fa-angle-left"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="#" data-page="${pagination.total_pages}">
-                            آخر <i class="fas fa-angle-double-left"></i>
-                        </a>
-                    </li>
-                `;
-            }
-            
-            paginationHtml += '</ul>';
-            paginationNav.innerHTML = paginationHtml;
-            
-            // اتصال event listener‌ها
-            const pageLinks = paginationNav.querySelectorAll('a[data-page]');
-            pageLinks.forEach(link => {
-                link.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const page = parseInt(link.getAttribute('data-page'));
-                    if (page && page !== this.currentPage) {
-                        this.currentPage = page;
-                        this.applyFilters();
-                    }
-                });
-            });
-        }
-        
-        // به‌روزرسانی شمارنده ردیف‌ها
-        this.updateRowCounter(pagination);
     }
     
     updatePaginationInfo(paginationContainer, pagination) {
-        const infoElement = paginationContainer.querySelector('.pagination-details span');
-        if (infoElement) {
-            const startIndex = ((pagination.current_page - 1) * this.perPage) + 1;
-            const endIndex = Math.min(pagination.current_page * this.perPage, pagination.count);
-            infoElement.textContent = `نمایش ${startIndex} تا ${endIndex} از ${pagination.count} بارنامه`;
+        let paginationHtml = '';
+        
+        const startIndex = ((pagination.current_page - 1) * this.perPage) + 1;
+        const endIndex = Math.min(pagination.current_page * this.perPage, pagination.count);
+        
+        // اطلاعات pagination
+        paginationHtml += `
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="text-muted mb-0">
+                        نمایش ${startIndex} تا ${endIndex} از ${pagination.count} بارنامه
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-end mb-0">
+        `;
+        
+        // دکمه قبلی
+        if (pagination.has_previous) {
+            paginationHtml += `
+                <li class="page-item">
+                    <button class="page-link" data-page="${pagination.current_page - 1}">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </li>
+            `;
+        } else {
+            paginationHtml += `
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-right"></i></span>
+                </li>
+            `;
         }
+        
+        // شماره صفحات
+        const startPage = Math.max(1, pagination.current_page - 2);
+        const endPage = Math.min(pagination.total_pages, pagination.current_page + 2);
+        
+        if (startPage > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <button class="page-link" data-page="1">1</button>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === pagination.current_page) {
+                paginationHtml += `
+                    <li class="page-item active">
+                        <span class="page-link">${i}</span>
+                    </li>
+                `;
+            } else {
+                paginationHtml += `
+                    <li class="page-item">
+                        <button class="page-link" data-page="${i}">${i}</button>
+                    </li>
+                `;
+            }
+        }
+        
+        if (endPage < pagination.total_pages) {
+            if (endPage < pagination.total_pages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHtml += `
+                <li class="page-item">
+                    <button class="page-link" data-page="${pagination.total_pages}">${pagination.total_pages}</button>
+                </li>
+            `;
+        }
+        
+        // دکمه بعدی
+        if (pagination.has_next) {
+            paginationHtml += `
+                <li class="page-item">
+                    <button class="page-link" data-page="${pagination.current_page + 1}">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                </li>
+            `;
+        } else {
+            paginationHtml += `
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-chevron-left"></i></span>
+                </li>
+            `;
+        }
+        
+        paginationHtml += `
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        `;
+        
+        paginationContainer.innerHTML = paginationHtml;
+        
+        // اتصال event listener ها
+        const pageButtons = paginationContainer.querySelectorAll('button[data-page]');
+        pageButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.currentPage = parseInt(btn.dataset.page);
+                this.applyFilters();
+            });
+        });
     }
     
     updateRowCounter(pagination) {
@@ -1373,6 +1358,28 @@ class BarnamehServerFilter {
     }
     
     async loadInitialData() {
+        // بررسی اینکه آیا جدول از قبل داده دارد یا خیر
+        const tbody = this.table.querySelector('tbody');
+        const existingRows = tbody ? tbody.querySelectorAll('tr.barnameh-row') : [];
+        
+        // اگر جدول از قبل داده دارد، فقط pagination را اماده کن و فیلتر نزن
+        if (existingRows.length > 0) {
+            console.log('Table has existing data, skipping initial filter');
+            // فقط یک pagination ساده بساز
+            const paginationInfo = {
+                current_page: 1,
+                total_pages: 1,
+                count: existingRows.length,
+                has_next: false,
+                has_previous: false
+            };
+            this.updatePagination(paginationInfo);
+            this.connectEventListeners();
+            return;
+        }
+        
+        // اگر جدول خالی است، داده‌ها را از سرور بارگذاری کن
+        console.log('Table is empty, loading initial data from server');
         await this.applyFilters();
     }
     
