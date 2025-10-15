@@ -411,11 +411,13 @@ def apply_barnameh_filter(request):
                     date_values = []
                     for v in values:
                         try:
-                            # پارس تاریخ
-                            if '/' in v:
-                                date_obj = datetime.strptime(v, "%Y/%m/%d").date()
-                                date_values.append(date_obj)
-                        except (ValueError, TypeError):
+                            # پارس تاریخ شمسی
+                            if v and v.strip() and '/' in v:
+                                date_obj = parse_jalali_date(v)
+                                if date_obj:
+                                    date_values.append(date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {v}: {str(e)}")
                             continue
                     
                     if date_values:
@@ -519,26 +521,24 @@ def apply_barnameh_filter(request):
                                 filter_conditions &= ~Q(purchase__cargo__product_type__in=product_codes)
                 
                 elif column_id == 'successful_send_date':
-                    # فیلتر تاریخی
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(purchase__successful_send_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
+                    # فیلتر تاریخی شمسی
+                    date_conditions = Q()
+                    for date_str in values:
+                        try:
+                            if date_str and date_str.strip() and '/' in date_str:
+                                # استفاده از تابع parse_jalali_date برای تبدیل صحیح تاریخ شمسی
+                                date_obj = parse_jalali_date(date_str)
+                                if date_obj:
+                                    date_conditions |= Q(purchase__successful_send_date=date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            continue
+                    
+                    if date_conditions:
+                        if filter_type == 'include':
+                            filter_conditions &= date_conditions
+                        else:
+                            filter_conditions &= ~date_conditions
                 
                 elif column_id in ['factor_sodoor_season', 'buyer_postal_code']:
                     values = [v for v in values if v and v.strip()]
@@ -553,10 +553,12 @@ def apply_barnameh_filter(request):
                     for v in values:
                         try:
                             # پارس تاریخ شمسی
-                            if '/' in v:
-                                date_obj = datetime.strptime(v, "%Y/%m/%d").date()
-                                date_values.append(date_obj)
-                        except (ValueError, TypeError):
+                            if v and v.strip() and '/' in v:
+                                date_obj = parse_jalali_date(v)
+                                if date_obj:
+                                    date_values.append(date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {v}: {str(e)}")
                             continue
                     
                     if date_values:
@@ -908,26 +910,24 @@ def get_barnameh_column_values(request):
                         continue
                         
                 elif filter_column_id == 'barnameh_date':
-                    # فیلتر تاریخی
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(barnameh_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
+                    # فیلتر تاریخی شمسی
+                    date_conditions = Q()
+                    for date_str in values:
+                        try:
+                            if date_str and date_str.strip() and '/' in date_str:
+                                # استفاده از تابع parse_jalali_date برای تبدیل صحیح تاریخ شمسی
+                                date_obj = parse_jalali_date(date_str)
+                                if date_obj:
+                                    date_conditions |= Q(barnameh_date=date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            continue
+                    
+                    if date_conditions:
+                        if filter_type == 'include':
+                            filter_conditions &= date_conditions
+                        else:
+                            filter_conditions &= ~date_conditions
                 
                 elif filter_column_id in ['is_sent_to_bki', 'is_factored', 'is_created_by_excel']:
                     bool_values = []
@@ -1044,26 +1044,24 @@ def get_barnameh_column_values(request):
                                 filter_conditions &= ~Q(purchase__cargo__country__in=country_codes)
                 
                 elif filter_column_id == 'successful_send_date':
-                    # فیلتر تاریخی
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(purchase__successful_send_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
+                    # فیلتر تاریخی شمسی
+                    date_conditions = Q()
+                    for date_str in values:
+                        try:
+                            if date_str and date_str.strip() and '/' in date_str:
+                                # استفاده از تابع parse_jalali_date برای تبدیل صحیح تاریخ شمسی
+                                date_obj = parse_jalali_date(date_str)
+                                if date_obj:
+                                    date_conditions |= Q(purchase__successful_send_date=date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            continue
+                    
+                    if date_conditions:
+                        if filter_type == 'include':
+                            filter_conditions &= date_conditions
+                        else:
+                            filter_conditions &= ~date_conditions
                 
                 elif filter_column_id in ['factor_sodoor_season', 'buyer_postal_code']:
                     values = [v for v in values if v and v.strip()]
@@ -1074,26 +1072,24 @@ def get_barnameh_column_values(request):
                             filter_conditions &= ~Q(**{f'{filter_column_id}__in': values})
                 
                 elif filter_column_id == 'factor_date':
-                    # فیلتر تاریخی برای تاریخ ثبت فاکتور
-                    try:
-                        date_conditions = Q()
-                        for date_str in values:
-                            if date_str and date_str.strip():
-                                if '/' in date_str:
-                                    parts = date_str.split('/')
-                                    if len(parts) == 3:
-                                        year, month, day = parts
-                                        date_obj = datetime(int(year), int(month), int(day)).date()
-                                        date_conditions |= Q(factor_date=date_obj)
-                        
-                        if date_conditions:
-                            if filter_type == 'include':
-                                filter_conditions &= date_conditions
-                            else:
-                                filter_conditions &= ~date_conditions
-                                
-                    except (ValueError, TypeError):
-                        continue
+                    # فیلتر تاریخی شمسی برای تاریخ ثبت فاکتور
+                    date_conditions = Q()
+                    for date_str in values:
+                        try:
+                            if date_str and date_str.strip() and '/' in date_str:
+                                # استفاده از تابع parse_jalali_date برای تبدیل صحیح تاریخ شمسی
+                                date_obj = parse_jalali_date(date_str)
+                                if date_obj:
+                                    date_conditions |= Q(factor_date=date_obj)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            continue
+                    
+                    if date_conditions:
+                        if filter_type == 'include':
+                            filter_conditions &= date_conditions
+                        else:
+                            filter_conditions &= ~date_conditions
                 
             
             # اعمال فیلترها
