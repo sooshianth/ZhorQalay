@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .forms.forms import WeeklyAttendanceForm
 from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary, AttendanceConfiguration
+from .MorqkModel import MorqkTask, MonthlyMorqkSummary, TaskAssignment
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.template.response import TemplateResponse
@@ -11,7 +12,8 @@ from admin_list_charts.admin import ListChartMixin
 
 @admin.register(Employee)
 class EmployeeAdmin(ListChartMixin, admin.ModelAdmin):
-    list_display = ('user', 'first_name', 'last_name', 'email')
+    list_display = ('user', 'first_name', 'last_name', 'email', 'is_manager')
+    list_filter = ('is_manager',)
     search_fields = ('user__username', 'first_name', 'last_name', 'email')
     date_hierarchy = 'hire_date'
 
@@ -90,3 +92,42 @@ class AttendanceConfigurationAdmin(ListChartMixin, admin.ModelAdmin):
         if obj.is_active:
             AttendanceConfiguration.objects.filter(is_active=True).exclude(pk=obj.pk).update(is_active=False)
         super().save_model(request, obj, form, change)
+
+
+class TaskAssignmentInline(admin.TabularInline):
+    model = TaskAssignment
+    extra = 1
+    fields = ('employee', 'percentage', 'status', 'completed_at')
+    readonly_fields = ('completed_at',)
+
+
+@admin.register(MorqkTask)
+class MorqkTaskAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('title', 'assigned_to', 'is_multi_assigned', 'morqk_value', 'status', 'created_by', 'created_at', 'due_date')
+    list_filter = ('status', 'is_multi_assigned', 'morqk_value', 'created_at', 'assigned_to')
+    search_fields = ('title', 'description', 'assigned_to__username', 'created_by__username')
+    date_hierarchy = 'created_at'
+    readonly_fields = ('created_at', 'completed_at', 'approved_at')
+    inlines = [TaskAssignmentInline]
+    
+    fieldsets = (
+        ('اطلاعات اصلی', {
+            'fields': ('title', 'description', 'is_multi_assigned', 'assigned_to', 'created_by', 'morqk_value', 'due_date')
+        }),
+        ('وضعیت', {
+            'fields': ('status', 'completion_note', 'approval_note', 'rejection_note')
+        }),
+        ('تاریخ‌ها', {
+            'fields': ('created_at', 'completed_at', 'approved_at', 'approved_by'),
+            'classes': ('collapse',),
+        }),
+    )
+
+
+@admin.register(MonthlyMorqkSummary)
+class MonthlyMorqkSummaryAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('employee', 'month', 'total_approved_morqk', 'approved_tasks', 'total_tasks', 'last_updated')
+    list_filter = ('month', 'employee')
+    search_fields = ('employee__username', 'month')
+    readonly_fields = ('last_updated',)
+    date_hierarchy = 'last_updated'

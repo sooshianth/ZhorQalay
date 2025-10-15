@@ -1,0 +1,249 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش وظیفه - {{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-task-container {
+        max-width: 800px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(13, 115, 119, 0.3);
+    }
+    
+    .form-header h1 {
+        margin: 0;
+        color: white;
+        font-size: 28px;
+    }
+    
+    .form-container {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #0d7377;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .form-group label.required::after {
+        content: " *";
+        color: #ef476f;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        font-family: 'Vazir', sans-serif;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #0d7377;
+        box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
+    }
+    
+    .morqk-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .morqk-option {
+        position: relative;
+    }
+    
+    .morqk-option input[type="radio"] {
+        display: none;
+    }
+    
+    .morqk-label {
+        display: block;
+        padding: 15px;
+        text-align: center;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        font-weight: bold;
+        color: #666;
+    }
+    
+    .morqk-option input[type="radio"]:checked + .morqk-label {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        border-color: #0d7377;
+        transform: scale(1.05);
+    }
+    
+    .morqk-label:hover {
+        border-color: #0d7377;
+        transform: translateY(-2px);
+    }
+    
+    .form-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        box-shadow: 0 2px 10px rgba(13, 115, 119, 0.3);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(13, 115, 119, 0.4);
+    }
+    
+    .btn-secondary {
+        background: #e0e0e0;
+        color: #666;
+    }
+    
+    .btn-secondary:hover {
+        background: #d0d0d0;
+        transform: translateY(-2px);
+    }
+    
+    .btn-danger {
+        background: #ef476f;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #d63f61;
+        transform: translateY(-2px);
+    }
+    
+    .help-text {
+        font-size: 14px;
+        color: #999;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-task-container">
+    <div class="form-header">
+        <h1><i class="fas fa-edit"></i> ویرایش وظیفه</h1>
+        <p style="margin: 5px 0 0 0;">ویرایش اطلاعات وظیفه</p>
+    </div>
+    
+    <div class="form-container">
+        <form method="post" action="{% url 'edit_task' task.id %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title" class="required">عنوان وظیفه</label>
+                <input type="text" id="title" name="title" class="form-control" value="{{ task.title }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">شرح وظیفه</label>
+                <textarea id="description" name="description" class="form-control" rows="5">{{ task.description }}</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="assigned_to" class="required">واگذار شود به</label>
+                <select id="assigned_to" name="assigned_to" class="form-control" required>
+                    {% for employee in employees %}
+                    <option value="{{ employee.id }}" {% if employee.id == task.assigned_to.id %}selected{% endif %}>
+                        {{ employee.get_full_name|default:employee.username }}
+                        {% if employee.employee.job_title %} - {{ employee.employee.job_title }}{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">مقدار مرغک</label>
+                <div class="morqk-selector">
+                    {% for value in morqk_choices %}
+                    <div class="morqk-option">
+                        <input type="radio" id="morqk_{{ value }}" name="morqk_value" value="{{ value }}" 
+                               {% if value == task.morqk_value %}checked{% endif %}>
+                        <label for="morqk_{{ value }}" class="morqk-label">{{ value }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="due_date">مهلت انجام</label>
+                <input type="text" id="due_date" name="due_date" class="form-control" 
+                       value="{% if task.due_date %}{{ task.due_date }}{% endif %}" 
+                       placeholder="YYYY-MM-DD">
+                <p class="help-text">تاریخ به صورت شمسی وارد کنید (مثال: 1403-10-15)</p>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> ذخیره تغییرات
+                </button>
+                <a href="{% url 'task_detail' task.id %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> انصراف
+                </a>
+                
+                <form method="post" action="{% url 'delete_task' task.id %}" style="margin-right: auto;" onsubmit="return confirm('آیا از حذف این وظیفه اطمینان دارید؟');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> حذف وظیفه
+                    </button>
+                </form>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // می‌توانید اینجا datepicker فارسی اضافه کنید
+    $('#due_date').persianDatepicker({
+        format: 'YYYY-MM-DD',
+        initialValue: false,
+        autoClose: true
+    });
+});
+</script>
+{% endblock %}
+

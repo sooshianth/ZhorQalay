@@ -1,0 +1,473 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ایجاد وظیفه جدید{% endblock %}
+
+{% block extra_css %}
+<style>
+    .create-task-container {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        padding: 25px;
+        border-radius: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(13, 115, 119, 0.3);
+    }
+    
+    .form-header h1 {
+        margin: 0;
+        color: white;
+        font-size: 28px;
+    }
+    
+    .form-container {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 2px 15px rgba(0,0,0,0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #0d7377;
+        font-weight: bold;
+        font-size: 16px;
+    }
+    
+    .form-group label.required::after {
+        content: " *";
+        color: #ef476f;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        font-family: 'Vazir', sans-serif;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #0d7377;
+        box-shadow: 0 0 0 3px rgba(13, 115, 119, 0.1);
+    }
+    
+    .assignment-type-selector {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .assignment-type-option {
+        flex: 1;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    
+    .assignment-type-option.active {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        border-color: #0d7377;
+    }
+    
+    .assignment-type-option:hover {
+        border-color: #0d7377;
+    }
+    
+    .morqk-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 10px;
+        margin-top: 10px;
+    }
+    
+    .morqk-option {
+        position: relative;
+    }
+    
+    .morqk-option input[type="radio"] {
+        display: none;
+    }
+    
+    .morqk-label {
+        display: block;
+        padding: 15px;
+        text-align: center;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+        font-weight: bold;
+        color: #666;
+    }
+    
+    .morqk-option input[type="radio"]:checked + .morqk-label {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        border-color: #0d7377;
+        transform: scale(1.05);
+    }
+    
+    .morqk-label:hover {
+        border-color: #0d7377;
+        transform: translateY(-2px);
+    }
+    
+    /* واگذاری چندنفره */
+    .multi-assignment-container {
+        display: none;
+    }
+    
+    .multi-assignment-container.active {
+        display: block;
+    }
+    
+    .assignment-item {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+    
+    .assignment-item select,
+    .assignment-item input {
+        flex: 1;
+        padding: 10px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-family: 'Vazir', sans-serif;
+    }
+    
+    .assignment-item .percentage-input {
+        max-width: 100px;
+    }
+    
+    .btn-remove {
+        background: #ef476f;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+    
+    .btn-add {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+    
+    .percentage-total {
+        text-align: left;
+        margin-top: 10px;
+        font-weight: bold;
+        color: #0d7377;
+    }
+    
+    .percentage-total.invalid {
+        color: #ef476f;
+    }
+    
+    .single-assignment-container {
+        display: block;
+    }
+    
+    .single-assignment-container.hidden {
+        display: none;
+    }
+    
+    .form-buttons {
+        display: flex;
+        gap: 15px;
+        margin-top: 30px;
+    }
+    
+    .btn {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #0d7377 0%, #14ffec 100%);
+        color: white;
+        box-shadow: 0 2px 10px rgba(13, 115, 119, 0.3);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(13, 115, 119, 0.4);
+    }
+    
+    .btn-secondary {
+        background: #e0e0e0;
+        color: #666;
+    }
+    
+    .btn-secondary:hover {
+        background: #d0d0d0;
+        transform: translateY(-2px);
+    }
+    
+    .help-text {
+        font-size: 14px;
+        color: #999;
+        margin-top: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-task-container">
+    <div class="form-header">
+        <h1><i class="fas fa-plus-circle"></i> ایجاد وظیفه جدید</h1>
+        <p style="margin: 5px 0 0 0;">تعریف وظیفه با امتیاز مرغک برای کارمندان</p>
+    </div>
+    
+    <div class="form-container">
+        <form method="post" action="{% url 'create_morqk_task' %}" id="taskForm">
+            {% csrf_token %}
+            <input type="hidden" id="is_multi_assigned" name="is_multi_assigned" value="false">
+            <input type="hidden" id="assignments_data" name="assignments" value="">
+            
+            <div class="form-group">
+                <label for="title" class="required">عنوان وظیفه</label>
+                <input type="text" id="title" name="title" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">شرح وظیفه</label>
+                <textarea id="description" name="description" class="form-control" rows="5" placeholder="توضیحات تکمیلی در مورد وظیفه..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label class="required">مقدار مرغک</label>
+                <div class="morqk-selector">
+                    {% for value in morqk_choices %}
+                    <div class="morqk-option">
+                        <input type="radio" id="morqk_{{ value }}" name="morqk_value" value="{{ value }}" {% if forloop.first %}checked{% endif %}>
+                        <label for="morqk_{{ value }}" class="morqk-label">{{ value }}</label>
+                    </div>
+                    {% endfor %}
+                </div>
+                <p class="help-text">امتیاز مرغک بر اساس پیچیدگی و حجم کار تعیین می‌شود</p>
+            </div>
+            
+            <div class="form-group">
+                <label>نوع واگذاری</label>
+                <div class="assignment-type-selector">
+                    <div class="assignment-type-option active" data-type="single">
+                        <i class="fas fa-user"></i>
+                        <div>تک‌نفره</div>
+                    </div>
+                    <div class="assignment-type-option" data-type="multi">
+                        <i class="fas fa-users"></i>
+                        <div>چندنفره</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- واگذاری تک‌نفره -->
+            <div id="singleAssignment" class="single-assignment-container">
+                <div class="form-group">
+                    <label for="assigned_to" class="required">واگذار شود به</label>
+                    <select id="assigned_to" name="assigned_to" class="form-control">
+                        <option value="">-- انتخاب کارمند --</option>
+                        {% for employee in employees %}
+                        <option value="{{ employee.id }}">
+                            {{ employee.get_full_name|default:employee.username }}
+                            {% if employee.employee.job_title %} - {{ employee.employee.job_title }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <!-- واگذاری چندنفره -->
+            <div id="multiAssignment" class="multi-assignment-container">
+                <div class="form-group">
+                    <label class="required">تخصیص به کارمندان</label>
+                    <div id="assignmentsList">
+                        <div class="assignment-item">
+                            <select class="employee-select" required>
+                                <option value="">-- انتخاب کارمند --</option>
+                                {% for employee in employees %}
+                                <option value="{{ employee.id }}">
+                                    {{ employee.get_full_name|default:employee.username }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <input type="number" class="percentage-input" placeholder="درصد" min="1" max="100" value="50" required>
+                            <button type="button" class="btn-remove" onclick="removeAssignment(this)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-add" onclick="addAssignment()">
+                        <i class="fas fa-plus"></i> افزودن کارمند
+                    </button>
+                    <div class="percentage-total" id="percentageTotal">مجموع: 0%</div>
+                    <p class="help-text">مجموع درصدها باید دقیقاً 100 باشد</p>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="due_date">مهلت انجام</label>
+                <input type="text" id="due_date" name="due_date" class="form-control" placeholder="YYYY-MM-DD">
+                <p class="help-text">تاریخ به صورت شمسی وارد کنید (مثال: 1403-10-15)</p>
+            </div>
+            
+            <div class="form-buttons">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check"></i> ایجاد وظیفه
+                </button>
+                <a href="{% url 'morqk_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> انصراف
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // تنظیم datepicker
+    $('#due_date').persianDatepicker({
+        format: 'YYYY-MM-DD',
+        initialValue: false,
+        autoClose: true
+    });
+    
+    // تغییر نوع واگذاری
+    document.querySelectorAll('.assignment-type-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.assignment-type-option').forEach(o => o.classList.remove('active'));
+            this.classList.add('active');
+            
+            const type = this.getAttribute('data-type');
+            if (type === 'single') {
+                document.getElementById('singleAssignment').classList.remove('hidden');
+                document.getElementById('multiAssignment').classList.remove('active');
+                document.getElementById('is_multi_assigned').value = 'false';
+                document.getElementById('assigned_to').required = true;
+            } else {
+                document.getElementById('singleAssignment').classList.add('hidden');
+                document.getElementById('multiAssignment').classList.add('active');
+                document.getElementById('is_multi_assigned').value = 'true';
+                document.getElementById('assigned_to').required = false;
+            }
+        });
+    });
+    
+    // محاسبه درصد کل
+    updatePercentageTotal();
+    
+    // ارسال فرم
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        const isMulti = document.getElementById('is_multi_assigned').value === 'true';
+        
+        if (isMulti) {
+            e.preventDefault();
+            
+            const assignments = [];
+            document.querySelectorAll('#assignmentsList .assignment-item').forEach(item => {
+                const empId = item.querySelector('.employee-select').value;
+                const percentage = item.querySelector('.percentage-input').value;
+                
+                if (empId && percentage) {
+                    assignments.push({
+                        employee_id: empId,
+                        percentage: parseInt(percentage)
+                    });
+                }
+            });
+            
+            const total = assignments.reduce((sum, a) => sum + a.percentage, 0);
+            
+            if (assignments.length === 0) {
+                alert('لطفاً حداقل یک کارمند انتخاب کنید');
+                return false;
+            }
+            
+            if (total !== 100) {
+                alert('مجموع درصدها باید دقیقاً 100 باشد. مجموع فعلی: ' + total);
+                return false;
+            }
+            
+            document.getElementById('assignments_data').value = JSON.stringify(assignments);
+            this.submit();
+        }
+    });
+});
+
+function addAssignment() {
+    const container = document.getElementById('assignmentsList');
+    const template = container.querySelector('.assignment-item').cloneNode(true);
+    template.querySelector('.employee-select').value = '';
+    template.querySelector('.percentage-input').value = '';
+    container.appendChild(template);
+    updatePercentageTotal();
+}
+
+function removeAssignment(btn) {
+    const container = document.getElementById('assignmentsList');
+    if (container.querySelectorAll('.assignment-item').length > 1) {
+        btn.closest('.assignment-item').remove();
+        updatePercentageTotal();
+    } else {
+        alert('حداقل یک کارمند باید وجود داشته باشد');
+    }
+}
+
+function updatePercentageTotal() {
+    const inputs = document.querySelectorAll('#assignmentsList .percentage-input');
+    let total = 0;
+    
+    inputs.forEach(input => {
+        input.addEventListener('input', updatePercentageTotal);
+        const value = parseInt(input.value) || 0;
+        total += value;
+    });
+    
+    const totalEl = document.getElementById('percentageTotal');
+    totalEl.textContent = `مجموع: ${total}%`;
+    
+    if (total === 100) {
+        totalEl.classList.remove('invalid');
+    } else {
+        totalEl.classList.add('invalid');
+    }
+}
+</script>
+{% endblock %}

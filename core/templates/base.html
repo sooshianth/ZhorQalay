@@ -312,6 +312,7 @@
                     <div class="submenu-container collapsed" id="reports-management">
                         {% if request.user.employee %}
                         <li><a href="{% url 'weekly_attendance_view' %}"><i class="fas fa-clock"></i> ثبت ساعات کاری</a></li>
+                        <li><a href="{% url 'morqk_dashboard' %}"><i class="fas fa-trophy"></i> سیستم مرغک</a></li>
                         {% endif %}
                         {% if request.user.is_superuser %}
                         <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-line"></i> گزارش کارکرد</a></li>

@@ -12,6 +12,7 @@ class Employee(models.Model):
     birth_date = jmodels.jDateField(null=True, blank=True, verbose_name="تاریخ تولد")
     hire_date = jmodels.jDateField(null=True, blank=True, verbose_name="تاریخ استخدام")
     job_title = models.CharField(max_length=100, null=True, blank=True, verbose_name="عنوان شغلی")
+    is_manager = models.BooleanField(default=False, verbose_name="مدیر است")
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
