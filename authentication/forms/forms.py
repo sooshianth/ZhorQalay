@@ -9,9 +9,11 @@ from django.core.cache import cache
 import time
 from django.conf import settings
 import logging
+from core.logging_levels import *  # Import custom log levels (ACTIVITY, ALERT, BREACH)
 
 # ایجاد لاگر برای ثبت رویدادها
 logger = logging.getLogger("auth_form")
+auth_logger = logging.getLogger("authentication")
 
 def send_verify_code(number:str):
     """
@@ -215,11 +217,23 @@ class OTPLoginForm(forms.Form):
             login_attempts_key = f"login_attempts_phone_{phone}"
             current_attempts = cache.get(login_attempts_key, 0)
             client_ip = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown') if request else 'Unknown'
+            
             logger.warning(f"phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
+            
+            # Extra fields for auth logging
+            extra = {
+                'user_id': 'Anonymous',
+                'action': 'login_attempt',
+            }
                 
             # If more than 10 attempts, always return false
             if current_attempts >= 10:
                 logger.warning(f"HACK ATTEMPT! phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
+                auth_logger.alert(
+                    f"TOO MANY LOGIN ATTEMPTS - Phone: {phone} - Attempts: {current_attempts}",
+                    extra=extra
+                )
                 
                 return {'success': False, 'message': "تعداد تلاش‌های ورود بیش از حد مجاز است. لطفا بعدا تلاش کنید"}
             
@@ -233,6 +247,11 @@ class OTPLoginForm(forms.Form):
                     # Increment login attempts
                     cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
                     
+                    auth_logger.warning(
+                        f"LOGIN FAILED - Phone not found: {phone}",
+                        extra=extra
+                    )
+                    
                     # پاک کردن کلیدهای کش برای این شماره
                     self.reset_verification(phone)
                     
@@ -241,6 +260,15 @@ class OTPLoginForm(forms.Form):
                     
                 if user and request:
                     login(request, user)
+                    
+                    # Log successful login
+                    extra['user_id'] = user.id
+                    extra['action'] = 'login_success'
+                    auth_logger.info(
+                        f"LOGIN SUCCESS - User: {user.username} - Phone: {phone}",
+                        extra=extra
+                    )
+                    
                     # پاک کردن کلیدهای کش پس از ورود موفق
                     self.reset_verification(phone)
                     # Reset login attempts on successful login
@@ -250,6 +278,12 @@ class OTPLoginForm(forms.Form):
             else:
                 # Increment login attempts for failed verification
                 cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
+                
+                auth_logger.warning(
+                    f"LOGIN FAILED - Wrong OTP code for phone: {phone}",
+                    extra=extra
+                )
+                
                 return {'success': False, 'message': "کد تایید اشتباه است"}
         
         return {'success': False, 'message': "شماره موبایل یا کد تایید وارد نشده است"}

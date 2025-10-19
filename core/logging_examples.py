@@ -6,6 +6,7 @@ from django.http import HttpResponse, HttpResponseForbidden
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.core.cache import cache
+from core.logging_levels import *  # Import custom log levels (ACTIVITY, ALERT, BREACH)
 
 # Get loggers
 logger = logging.getLogger(__name__)

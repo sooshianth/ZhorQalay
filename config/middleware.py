@@ -11,9 +11,12 @@ from django.core.cache import cache
 from core.logging_filters import set_log_context
 from time import time
 import logging
+import json
+from core.logging_levels import *  # Import custom log levels (ACTIVITY, ALERT, BREACH)
 
 # ایجاد لاگر برای middleware امنیتی
 security_logger = logging.getLogger('security')
+auth_logger = logging.getLogger('authentication')
 logger = logging.getLogger('core.middleware')
 
 
@@ -72,6 +75,8 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
     Middleware برای لاگ کردن تمام درخواست‌ها و محافظت امنیتی
     """
     
+    SENSITIVE_KEYS = {'password', 'token', 'secret', 'api_key', 'csrf', 'csrfmiddlewaretoken', 'verification_code', 'otp'}
+    
     def __init__(self, get_response):
         self.get_response = get_response
         super().__init__(get_response)
@@ -90,23 +95,54 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
         elif real_ip:
             client_ip = real_ip
         
-        def is_local_ip(ip):
-            if ip == 'Unknown':
-                return False
-            return (ip.startswith('192.168.') or 
-                   ip.startswith('10.') or 
-                   ip.startswith('172.') or 
-                   ip.startswith('127.') or
-                   ip == 'localhost')
+        return client_ip
+    
+    def get_payload_summary(self, request):
+        """
+        استخراج خلاصه payload با حذف اطلاعات حساس
+        """
+        payload = {}
         
-        ip_type = "local" if is_local_ip(client_ip) else "external"
-        
-        if forwarded_for or real_ip:
-            proxy_info = f" (via {direct_ip})"
+        try:
+            # GET parameters
+            if request.GET:
+                get_params = {k: v for k, v in request.GET.items() if k.lower() not in self.SENSITIVE_KEYS}
+                if get_params:
+                    payload['GET'] = get_params
+            
+            # POST parameters
+            if request.POST:
+                post_params = {k: '***' if k.lower() in self.SENSITIVE_KEYS else v 
+                              for k, v in request.POST.items()}
+                if post_params:
+                    payload['POST'] = post_params
+            
+            # Limit payload size
+            payload_str = json.dumps(payload, ensure_ascii=False)[:500]
+            return payload_str if payload_str != '{}' else '-'
+        except:
+            return '-'
+    
+    def get_action_from_path(self, path):
+        """
+        تعیین action از مسیر URL
+        """
+        if 'login' in path:
+            return 'login'
+        elif 'logout' in path:
+            return 'logout'
+        elif 'create' in path or 'insert' in path:
+            return 'create'
+        elif 'update' in path or 'edit' in path:
+            return 'update'
+        elif 'delete' in path:
+            return 'delete'
+        elif 'list' in path or 'view' in path:
+            return 'view'
+        elif 'api' in path:
+            return 'api_call'
         else:
-            proxy_info = ""
-        
-        return f"{client_ip}({ip_type}){proxy_info}"
+            return 'request'
     
     def process_request(self, request):
         """
@@ -114,18 +150,38 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
         """
         # ثبت زمان شروع درخواست
         request.start_time = time()
+        request._start_time_ms = time() * 1000
         
         # دریافت اطلاعات درخواست
         client_ip = self.get_client_ip(request)
         method = request.method
         path = request.path
         user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
-        username = request.user.username if hasattr(request, 'user') and request.user.is_authenticated else 'Anonymous'
+        action = self.get_action_from_path(path)
         
-        # لاگ درخواست
-        logger.info(f"REQUEST: {method} {path} - User: {username} - IP: {client_ip} - UA: {user_agent[:100]}")
+        # بروزرسانی context برای logging
+        user = getattr(request, 'user', None)
+        user_phone = None
+        if user and user.is_authenticated:
+            if request.session.get('is_admin_session'):
+                user_phone = request.session.get('admin_phone_number')
+            else:
+                user_phone = request.session.get('logged_in_phone_number')
         
-        client_ip_main = client_ip.split('(')[0]  # فقط IP اصلی
+        set_log_context(
+            user=user,
+            ip=client_ip,
+            user_phone=user_phone,
+            up=int(request.META.get('CONTENT_LENGTH', 0) or 0),
+            down=0,
+            method=method,
+            endpoint=path,
+            user_agent=user_agent,
+            action=action
+        )
+        
+        # Rate limiting check
+        client_ip_main = client_ip.split('(')[0] if '(' in client_ip else client_ip
 
         # Skip specific IP from rate limit
         if client_ip_main == "80.210.45.53":
@@ -139,48 +195,91 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
 
             # Check limit
             if current_requests >= 100:
+                # Create a log record with all required attributes
+                extra = {
+                    'user_id': user.id if user and user.is_authenticated else 'Anonymous',
+                    'action': action,
+                    'status_code': 403,
+                    'duration_ms': 0,
+                    'payload_summary': '-',
+                }
                 security_logger.alert(
-                    f"RATE LIMIT EXCEEDED: IP {client_ip_main} - User: {username} - Path: {path}"
+                    f"RATE LIMIT EXCEEDED - Path: {path}",
+                    extra=extra
                 )
                 return HttpResponseForbidden(
                     "تعداد درخواست‌های شما بیش از حد مجاز است. لطفا کمی صبر کنید."
                 )
 
-            # Increment count — uses fixed window, no timeout reset problem
+            # Increment count
             cache.set(rate_limit_key, current_requests + 1, timeout=60)
         
         return None
     
     def process_response(self, request, response):
         """
-        پردازش پاسخ خروجی
+        پردازش پاسخ خروجی - LOG ALL REQUESTS HERE
         """
         # محاسبه زمان پردازش درخواست
-        if hasattr(request, 'start_time'):
-            processing_time = time() - request.start_time
+        if hasattr(request, '_start_time_ms'):
+            duration_ms = int((time() * 1000) - request._start_time_ms)
         else:
-            processing_time = 0
+            duration_ms = 0
         
         # دریافت اطلاعات درخواست
         client_ip = self.get_client_ip(request)
         method = request.method
         path = request.path
         status_code = response.status_code
-        username = request.user.username if hasattr(request, 'user') and request.user.is_authenticated else 'Anonymous'
+        user = getattr(request, 'user', None)
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
+        action = self.get_action_from_path(path)
+        payload_summary = self.get_payload_summary(request)
         
-        # لاگ پاسخ
-        logger.info(f"RESPONSE: {method} {path} - Status: {status_code} - User: {username} - IP: {client_ip} - Time: {processing_time:.3f}s")
+        # Get user info
+        user_id = 'Anonymous'
+        user_phone = '-'
+        if user and user.is_authenticated:
+            user_id = user.id
+            if request.session.get('is_admin_session'):
+                user_phone = request.session.get('admin_phone_number', '-')
+            else:
+                user_phone = request.session.get('logged_in_phone_number', '-')
         
-        # لاگ امنیتی برای status code های مشکوک
-        if status_code >= 400:
+        # Update context for final log
+        set_log_context(
+            user=user,
+            ip=client_ip,
+            user_phone=user_phone,
+            up=int(request.META.get('CONTENT_LENGTH', 0) or 0),
+            down=len(response.content) if hasattr(response, 'content') else 0,
+            method=method,
+            endpoint=path,
+            user_agent=user_agent,
+            action=action
+        )
+        
+        # Prepare extra fields for structured logging
+        extra = {
+            'user_id': user_id,
+            'action': action,
+            'status_code': status_code,
+            'duration_ms': duration_ms,
+            'payload_summary': payload_summary,
+        }
+        
+        # لاگ همه درخواست‌ها در security.log
+        if status_code >= 500:
+            security_logger.error(f"REQUEST - {method} {path}", extra=extra)
+        elif status_code >= 400:
             if status_code == 404:
-                security_logger.info(f"404 NOT FOUND: {method} {path} - User: {username} - IP: {client_ip}")
-            elif status_code == 403:
-                security_logger.alert(f"403 FORBIDDEN: {method} {path} - User: {username} - IP: {client_ip}")
-            elif status_code == 401:
-                security_logger.alert(f"401 UNAUTHORIZED: {method} {path} - User: {username} - IP: {client_ip}")
-            elif status_code >= 500:
-                security_logger.error(f"SERVER ERROR {status_code}: {method} {path} - User: {username} - IP: {client_ip}")
+                security_logger.info(f"REQUEST - {method} {path}", extra=extra)
+            elif status_code in [401, 403]:
+                security_logger.alert(f"REQUEST - {method} {path}", extra=extra)
+            else:
+                security_logger.warning(f"REQUEST - {method} {path}", extra=extra)
+        else:
+            security_logger.info(f"REQUEST - {method} {path}", extra=extra)
         
         return response
     
@@ -191,10 +290,21 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
         client_ip = self.get_client_ip(request)
         method = request.method
         path = request.path
-        username = request.user.username if hasattr(request, 'user') and request.user.is_authenticated else 'Anonymous'
+        user = getattr(request, 'user', None)
+        
+        extra = {
+            'user_id': user.id if user and user.is_authenticated else 'Anonymous',
+            'action': 'exception',
+            'status_code': 500,
+            'duration_ms': 0,
+            'payload_summary': '-',
+        }
         
         # لاگ امنیتی برای exception ها
-        security_logger.error(f"EXCEPTION: {method} {path} - User: {username} - IP: {client_ip} - Exception: {str(exception)}")
+        security_logger.error(
+            f"EXCEPTION - {method} {path} - Exception: {str(exception)}",
+            extra=extra
+        )
         
         return None
 
@@ -225,6 +335,7 @@ class LoginAttemptMiddleware(MiddlewareMixin):
         # فقط برای مسیرهای مربوط به authentication
         if request.path.startswith('/authentication/'):
             client_ip = self.get_client_ip(request)
+            user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown')
             
             # بررسی تعداد تلاش‌های ناموفق ورود در 1 ساعت گذشته
             failed_attempts_key = f"failed_login_attempts_{client_ip}"
@@ -232,13 +343,23 @@ class LoginAttemptMiddleware(MiddlewareMixin):
             
             # اگر بیش از 20 تلاش ناموفق در ساعت گذشته داشته باشد
             if failed_attempts >= 20:
-                security_logger.alert(f"SUSPICIOUS LOGIN ACTIVITY: IP {client_ip} has {failed_attempts} failed attempts in last hour")
+                extra = {
+                    'user_id': 'Anonymous',
+                    'action': 'login_blocked',
+                }
+                auth_logger.alert(
+                    f"SUSPICIOUS LOGIN ACTIVITY - {failed_attempts} failed attempts in last hour",
+                    extra=extra
+                )
                 
                 # بلاک کردن IP برای 1 ساعت
                 blocked_key = f"blocked_ip_{client_ip}"
                 if not cache.get(blocked_key):
                     cache.set(blocked_key, True, timeout=3600)  # 1 ساعت
-                    security_logger.alert(f"IP BLOCKED: {client_ip} blocked for 1 hour due to suspicious activity")
+                    auth_logger.alert(
+                        f"IP BLOCKED - Blocked for 1 hour due to suspicious activity",
+                        extra=extra
+                    )
                 
                 return HttpResponseForbidden("IP شما به دلیل تلاش‌های مشکوک برای ورود، موقتاً مسدود شده است.")
         

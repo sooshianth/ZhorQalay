@@ -9,6 +9,7 @@ from core.test_logging_setup import test_all_loggers
 test_all_loggers()
 """
 import logging
+from core.logging_levels import *  # Import custom log levels (ACTIVITY, ALERT, BREACH)
 
 
 def test_standard_levels():

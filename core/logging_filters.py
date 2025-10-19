@@ -6,15 +6,19 @@ from datetime import datetime
 # Thread-local storage for user context
 _thread_local = {}
 
-def set_log_context(user, ip, user_phone, up=0, down=0):
+def set_log_context(user, ip, user_phone, up=0, down=0, method='', endpoint='', user_agent='', action=''):
     """
-    Set logging context for current thread
+    Set logging context for current thread with extended fields
     """
     _thread_local['user'] = user
     _thread_local['ip'] = ip
     _thread_local['up'] = up
     _thread_local['down'] = down
     _thread_local['user_phone'] = user_phone
+    _thread_local['method'] = method
+    _thread_local['endpoint'] = endpoint
+    _thread_local['user_agent'] = user_agent
+    _thread_local['action'] = action
 
 def get_log_context():
     """
@@ -25,29 +29,51 @@ def get_log_context():
         _thread_local.get('ip'),
         _thread_local.get('up', 0),
         _thread_local.get('down', 0),
-        _thread_local.get('user_phone')
+        _thread_local.get('user_phone'),
+        _thread_local.get('method', ''),
+        _thread_local.get('endpoint', ''),
+        _thread_local.get('user_agent', ''),
+        _thread_local.get('action', '')
     )
 
 class LogUserInfoFilter(logging.Filter):
     """
-    Filter that adds user information to log records
+    Filter that adds user information to log records with extended fields
     """
     def filter(self, record):
-        user, ip, upload_size, download_size, user_phone = get_log_context()
+        user, ip, upload_size, download_size, user_phone, method, endpoint, user_agent, action = get_log_context()
+        
+        # User info
         if user and user.is_authenticated:
             first_name = getattr(user, 'first_name', '')
             last_name = getattr(user, 'last_name', '')
             fn = first_name if first_name else '()'
             ln = last_name if last_name else '()'
             record.username = f"{fn} {ln} - {user.username}"
+            record.user_id = getattr(user, 'id', 'Unknown')
             record.user_phone = user_phone or '-'
         else:
-            record.username = '-'
+            record.username = 'Anonymous'
+            record.user_id = 'Anonymous'
             record.user_phone = '-'
 
+        # Request info
         record.log_ip = ip or '-'
+        record.ip_address = ip or '-'
         record.upload_size = upload_size
         record.download_size = download_size
+        record.method = method or '-'
+        record.endpoint = endpoint or '-'
+        record.user_agent = user_agent[:200] if user_agent else '-'  # Limit to 200 chars
+        record.action = action or '-'
+        
+        # Add placeholders for fields that will be set by middleware/loggers
+        if not hasattr(record, 'status_code'):
+            record.status_code = '-'
+        if not hasattr(record, 'duration_ms'):
+            record.duration_ms = '-'
+        if not hasattr(record, 'payload_summary'):
+            record.payload_summary = '-'
         
         return True
 
