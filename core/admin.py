@@ -16,6 +16,7 @@ from .NotificationModel import Notification
 from .SupportAgentModel import SupportAgent
 from .SupportAgentTask import SupportAgentTask
 from .AccountNumber import AccountNumber
+from .LogViewerModel import LogViewer
 from sms_api.models import SmsQueue
 from sms_api.apis import queue_sms
 from django.urls import path
@@ -657,5 +658,85 @@ class AccountNumberAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('customer')
+
+
+from core.logging_filters import CircularBufferHandler
+
+@admin.register(LogViewer)
+class LogViewerAdmin(admin.ModelAdmin):
+    """
+    پنل ادمین برای نمایش لاگ‌های ذخیره شده در حافظه
+    """
+    
+    class Media:
+        css = {
+            'all': ('admin/css/log_viewer.css',)
+        }
+    
+    def has_add_permission(self, request):
+        # غیرفعال کردن دکمه افزودن
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        # غیرفعال کردن دکمه حذف
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        # غیرفعال کردن دکمه ویرایش
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """
+        نمایش سفارشی برای لیست لاگ‌ها
+        """
+        # دریافت handler
+        handler = CircularBufferHandler()
+        
+        # دریافت پارامترهای فیلتر از URL
+        level_filter = request.GET.get('level', '')
+        logger_filter = request.GET.get('logger', '')
+        limit = request.GET.get('limit', '100')
+        
+        # تبدیل limit به عدد صحیح
+        try:
+            limit = int(limit) if limit else 100
+        except ValueError:
+            limit = 100
+        
+        # دریافت لاگ‌ها
+        logs = handler.get_logs(
+            level=level_filter if level_filter else None,
+            logger_name=logger_filter if logger_filter else None,
+            limit=limit
+        )
+        
+        # دریافت آمار
+        stats = handler.get_stats()
+        
+        # دریافت لیست logger های منحصر به فرد
+        unique_loggers = sorted(stats.get('loggers', {}).keys())
+        
+        # اگر درخواست پاک کردن لاگ‌ها بود
+        if request.GET.get('action') == 'clear' and request.user.is_superuser:
+            handler.clear()
+            logger.warning(f"لاگ‌ها توسط {request.user.username} پاک شدند. IP: {get_client_ip(request)}")
+            return HttpResponseRedirect(request.path)
+        
+        # ایجاد context برای template
+        context = {
+            'title': 'نمایشگر لاگ‌های حافظه',
+            'logs': logs,
+            'stats': stats,
+            'unique_loggers': unique_loggers,
+            'level_filter': level_filter,
+            'logger_filter': logger_filter,
+            'limit': limit,
+            'has_clear_permission': request.user.is_superuser,
+        }
+        
+        if extra_context:
+            context.update(extra_context)
+        
+        return TemplateResponse(request, 'admin/log_viewer.html', context)
 
 

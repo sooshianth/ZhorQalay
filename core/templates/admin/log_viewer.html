@@ -1,0 +1,306 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .log-viewer-container {
+        padding: 20px;
+    }
+    
+    .log-stats {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .log-stats h3 {
+        margin-top: 0;
+        color: #333;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 10px;
+    }
+    
+    .stat-box {
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .stat-label {
+        font-weight: bold;
+        color: #666;
+        font-size: 0.9em;
+    }
+    
+    .stat-value {
+        font-size: 1.5em;
+        color: #333;
+        margin-top: 5px;
+    }
+    
+    .log-filters {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        align-items: end;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-group label {
+        margin-bottom: 5px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .filter-group select,
+    .filter-group input {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .log-table {
+        width: 100%;
+        background: white;
+        border-collapse: collapse;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+    
+    .log-table th {
+        background: #417690;
+        color: white;
+        padding: 12px;
+        text-align: right;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .log-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid #dee2e6;
+        vertical-align: top;
+    }
+    
+    .log-table tr:hover {
+        background: #f8f9fa;
+    }
+    
+    .log-level {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 3px;
+        font-weight: bold;
+        font-size: 0.85em;
+    }
+    
+    .log-level-DEBUG { background: #d1ecf1; color: #0c5460; }
+    .log-level-INFO { background: #d4edda; color: #155724; }
+    .log-level-WARNING { background: #fff3cd; color: #856404; }
+    .log-level-ERROR { background: #f8d7da; color: #721c24; }
+    .log-level-CRITICAL { background: #721c24; color: white; }
+    
+    .log-message {
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+        white-space: pre-wrap;
+        word-break: break-word;
+    }
+    
+    .log-timestamp {
+        color: #666;
+        font-size: 0.9em;
+    }
+    
+    .log-logger {
+        color: #007bff;
+        font-size: 0.85em;
+        font-family: monospace;
+    }
+    
+    .log-location {
+        color: #666;
+        font-size: 0.8em;
+        font-style: italic;
+    }
+    
+    .btn {
+        padding: 8px 15px;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-primary {
+        background: #417690;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: #356070;
+        color: white;
+    }
+    
+    .btn-danger {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: #c82333;
+        color: white;
+    }
+    
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background: #545b62;
+        color: white;
+    }
+    
+    .no-logs {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 1.1em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="log-viewer-container">
+    <h1>{{ title }}</h1>
+    
+    <div class="log-stats">
+        <h3>آمار لاگ‌ها</h3>
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">تعداد کل</div>
+                <div class="stat-value">{{ stats.total }}</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">ظرفیت</div>
+                <div class="stat-value">{{ stats.capacity }}</div>
+            </div>
+            {% for level, count in stats.levels.items %}
+            <div class="stat-box">
+                <div class="stat-label">{{ level }}</div>
+                <div class="stat-value">{{ count }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+    <div class="log-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label for="level">سطح لاگ:</label>
+                <select name="level" id="level">
+                    <option value="">همه</option>
+                    <option value="DEBUG" {% if level_filter == 'DEBUG' %}selected{% endif %}>DEBUG</option>
+                    <option value="INFO" {% if level_filter == 'INFO' %}selected{% endif %}>INFO</option>
+                    <option value="WARNING" {% if level_filter == 'WARNING' %}selected{% endif %}>WARNING</option>
+                    <option value="ERROR" {% if level_filter == 'ERROR' %}selected{% endif %}>ERROR</option>
+                    <option value="CRITICAL" {% if level_filter == 'CRITICAL' %}selected{% endif %}>CRITICAL</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="logger">نام Logger:</label>
+                <select name="logger" id="logger">
+                    <option value="">همه</option>
+                    {% for logger_name in unique_loggers %}
+                    <option value="{{ logger_name }}" {% if logger_filter == logger_name %}selected{% endif %}>
+                        {{ logger_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label for="limit">تعداد نمایش:</label>
+                <input type="number" name="limit" id="limit" value="{{ limit }}" min="1" max="5000">
+            </div>
+            
+            <div class="filter-group filter-buttons">
+                <button type="submit" class="btn btn-primary">اعمال فیلتر</button>
+                <a href="?" class="btn btn-secondary">پاک کردن فیلتر</a>
+                {% if has_clear_permission %}
+                <a href="?action=clear" class="btn btn-danger" onclick="return confirm('آیا مطمئن هستید که می‌خواهید تمام لاگ‌ها را پاک کنید؟')">پاک کردن همه لاگ‌ها</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    
+    {% if logs %}
+    <table class="log-table">
+        <thead>
+            <tr>
+                <th style="width: 150px;">زمان</th>
+                <th style="width: 80px;">سطح</th>
+                <th style="width: 200px;">Logger</th>
+                <th>پیام</th>
+                <th style="width: 250px;">محل</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for log in logs %}
+            <tr>
+                <td class="log-timestamp">
+                    {{ log.timestamp|date:"Y-m-d H:i:s" }}
+                </td>
+                <td>
+                    <span class="log-level log-level-{{ log.level }}">{{ log.level }}</span>
+                </td>
+                <td class="log-logger">{{ log.logger }}</td>
+                <td class="log-message">{{ log.message }}</td>
+                <td class="log-location">
+                    {{ log.funcName }}<br>
+                    {{ log.pathname|slice:":50" }}{% if log.pathname|length > 50 %}...{% endif %}:{{ log.lineno }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="no-logs">
+        هیچ لاگی با فیلترهای انتخاب شده یافت نشد.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
