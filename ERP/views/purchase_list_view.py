@@ -25,7 +25,7 @@ import jdatetime
 
 from core.logging_levels import *
 
-logger = logging.getLogger("erp_purchase_list_view")
+logger = logging.getLogger("bugs")
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی"""

@@ -189,7 +189,8 @@ LOGGING = {
     'disable_existing_loggers': True,
     'formatters': {
         'verbose': {
-            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
+            '()': 'core.logging_formatters.FilenameFormatter',
+            'format': '{levelname} !@# {asctime} !@# {filename} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
             'style': '{',
         },
         'simple': {
@@ -205,11 +206,16 @@ LOGGING = {
             'style': '{',
         },
         'bugs': {
-            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {message}',
+            '()': 'core.logging_formatters.FilenameFormatter',
+            'format': '{levelname} !@# {asctime} !@# {filename} !@# {funcName} !@# {lineno} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {message}',
             'style': '{',
         },
         'django_errors': {
             'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {pathname} !@# {lineno} !@# {message}',
+            'style': '{',
+        },
+        'audit': {
+            'format': '{levelname} !@# {asctime} !@# {user_id} !@# {username} !@# {action} !@# {resource} !@# {ip_address} !@# {user_agent} !@# {changes} !@# {result} !@# {message} !@# {user_phone}',
             'style': '{',
         },
     },
@@ -259,6 +265,14 @@ LOGGING = {
             'encoding': 'utf-8',
             'filters': ['userinfo'],
         },
+        'audit_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'audit.log'),
+            'formatter': 'audit',
+            'encoding': 'utf-8',
+            'filters': ['userinfo'],
+        },
         'circular_buffer': {
             'level': 'DEBUG',
             'class': 'core.logging_filters.CircularBufferHandler',
@@ -295,231 +309,22 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        
         'authentication': {
             'handlers': ['console', 'auth_file', 'circular_buffer'],
             'level': 'INFO',
             'propagate': False,
         },
-        'core.middleware': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
+        'audit': {
+            'handlers': ['console', 'audit_file', 'circular_buffer'],
             'level': 'INFO',
             'propagate': False,
         },
-        'auth_form': {
+        'bugs': {
             'handlers': ['console', 'bugs_file', 'circular_buffer'],
             'level': 'DEBUG',
             'propagate': False,
         },
-        'migrate_phone_numbers': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_client': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_data_processing': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_helpers': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_location': {   
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_cargos_barbary_view': {   
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_kharid_list_by_date': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_views': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_models': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_edit_barnameh_api': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_api_estelame_barnameh': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_edit_barnameh_api': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_insert_barnameh': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_upload_excel': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_models': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_views': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_signals': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_barnameh_excel_management': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_cargos_cargo_product_CRUD_panel': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_cargos_cargo_product_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_cargos_vared_konandeh_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'bki_cargos_barbary_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'chat_chatBot_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_copy_preferences_to_json': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_migrate_customer_preferences': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_purge_unpaid_purchases': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_tasks': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_admin': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_customer': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_sales_agent': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_purchase': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'core_zignals': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'data_exflow_utils': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'data_exflow_views': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'erp_purchase_list_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'erp_managers_profile_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'erp_purchase_crude_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'erp_purchase_filter_api': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'sms_api_views': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'general_customer_CRUD_view': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'sms_api_api': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'crm_api_api': {
-            'handlers': ['console', 'bugs_file', 'circular_buffer'],
-            'level': 'DEBUG',
-            'propagate': False,
-        }
     },
 }
 

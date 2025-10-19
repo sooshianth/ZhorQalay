@@ -25,7 +25,10 @@ def send_verify_code(number:str):
 
     # در حالت دیباگ، از ارسال واقعی پیامک صرف‌نظر می‌شود تا در محیط توسعه مشکلی پیش نیاید
     if settings.DEBUG:
-        logger.debug(f"DEBUG MODE: SMS not sent for {number}. The code is: {code}")
+        masked_code = '***' + code[-3:]
+        # mask phone number, show only last 4 digits
+        masked_phone = '*' * max(0, len(number) - 4) + number[-4:] if number else '****'
+        logger.debug(f"SMS not sent for {masked_phone}. The code is: {masked_code}")
         return code, True
 
     api_key = settings.SMS_API_KEY
@@ -36,11 +39,13 @@ def send_verify_code(number:str):
     try:
         # تبدیل شماره به صورت عدد صحیح برای API
         response = sms_account.send_sms(number, message)
-        logger.info(f"کد تایید برای شماره {number} با موفقیت ارسال شد")
+        masked_phone = '*' * max(0, len(number) - 4) + number[-4:] if number else '****'
+        auth_logger.info(f"Verification code successfully sent to {masked_phone}")
         return code, True
     except Exception as e:
-        logger.error(f"خطا در ارسال پیامک: {e}")
-        # کد را برگردان حتی اگر پیامک ارسال نشد
+        auth_logger.error("Error sending SMS")
+        logger.error(f"Error sending SMS: {e}")
+        # Return the code even if SMS sending failed
         return code, False
 
 
@@ -218,9 +223,11 @@ class OTPLoginForm(forms.Form):
             current_attempts = cache.get(login_attempts_key, 0)
             client_ip = self.get_client_ip(request)
             user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown') if request else 'Unknown'
-            
-            logger.warning(f"phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
-            
+
+            masked_phone = '*' * max(0, len(phone) - 4) + phone[-4:] if phone else '****'
+
+            auth_logger.activity(f"phone: {masked_phone} - current_attempts: {current_attempts}")
+
             # Extra fields for auth logging
             extra = {
                 'user_id': 'Anonymous',
@@ -229,7 +236,6 @@ class OTPLoginForm(forms.Form):
                 
             # If more than 10 attempts, always return false
             if current_attempts >= 10:
-                logger.warning(f"HACK ATTEMPT! phone: {phone} - current_attempts: {current_attempts} - ip: {client_ip}")
                 auth_logger.alert(
                     f"TOO MANY LOGIN ATTEMPTS - Phone: {phone} - Attempts: {current_attempts}",
                     extra=extra
@@ -264,8 +270,9 @@ class OTPLoginForm(forms.Form):
                     # Log successful login
                     extra['user_id'] = user.id
                     extra['action'] = 'login_success'
+                    masked_phone = '*' * max(0, len(phone) - 4) + phone[-4:] if phone else '****'
                     auth_logger.info(
-                        f"LOGIN SUCCESS - User: {user.username} - Phone: {phone}",
+                        f"LOGIN SUCCESS - User: {user.username} - Phone: {masked_phone}",
                         extra=extra
                     )
                     
@@ -279,10 +286,6 @@ class OTPLoginForm(forms.Form):
                 # Increment login attempts for failed verification
                 cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
                 
-                auth_logger.warning(
-                    f"LOGIN FAILED - Wrong OTP code for phone: {phone}",
-                    extra=extra
-                )
                 
                 return {'success': False, 'message': "کد تایید اشتباه است"}
         
