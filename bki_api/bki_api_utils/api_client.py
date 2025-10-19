@@ -17,7 +17,7 @@ import logging
 # Disable SSL warnings for compatibility with the API
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-logger = logging.getLogger("bki_api_client")
+logger = logging.getLogger("bugs")
 
 def get_bki_credentials():
     """

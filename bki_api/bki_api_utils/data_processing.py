@@ -16,7 +16,7 @@ import jdatetime
 from django.utils import timezone
 import logging
 
-logger = logging.getLogger("bki_api_data_processing")
+logger = logging.getLogger("bugs")
 
 def get_state_priority(state):
     """
