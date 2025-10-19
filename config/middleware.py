@@ -77,9 +77,35 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
     
     SENSITIVE_KEYS = {'password', 'token', 'secret', 'api_key', 'csrf', 'csrfmiddlewaretoken', 'verification_code', 'otp'}
     
+    # URL patterns to exclude from security logging (to reduce log noise)
+    # Add patterns here - supports wildcards: /chat/* will match /chat/anything
+    EXCLUDED_PATHS = [
+        '/chat/',           # Chat endpoints
+        '/static/',         # Static files
+        '/media/',          # Media files
+        '/favicon.ico',     # Favicon requests
+        '/__debug__/',      # Debug toolbar
+    ]
+    
     def __init__(self, get_response):
         self.get_response = get_response
         super().__init__(get_response)
+    
+    def should_skip_logging(self, path):
+        """
+        Check if this path should be excluded from security logging
+        """
+        for excluded_pattern in self.EXCLUDED_PATHS:
+            if excluded_pattern.endswith('*'):
+                # Wildcard pattern: /chat/* matches /chat/anything
+                prefix = excluded_pattern[:-1]
+                if path.startswith(prefix):
+                    return True
+            else:
+                # Exact or prefix match: /chat/ matches /chat/room1
+                if path.startswith(excluded_pattern):
+                    return True
+        return False
     
     def get_client_ip(self, request):
         """
@@ -220,6 +246,10 @@ class SecurityLoggingMiddleware(MiddlewareMixin):
         """
         پردازش پاسخ خروجی - LOG ALL REQUESTS HERE
         """
+        # Skip logging for excluded paths
+        if self.should_skip_logging(request.path):
+            return response
+        
         # محاسبه زمان پردازش درخواست
         if hasattr(request, '_start_time_ms'):
             duration_ms = int((time() * 1000) - request._start_time_ms)
