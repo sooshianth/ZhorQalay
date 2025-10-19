@@ -21,7 +21,8 @@ import json
 import traceback  # For detailed error logging
 import logging
 
-logger = logging.getLogger("bki_api_views")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def get_client_ip(request):
     """
@@ -99,6 +100,7 @@ def credentials_view(request):
     # دریافت اطلاعات اعتباری فعلی از متغیرهای محیطی
     current_username = os.environ.get('BKI_USERNAME', '')
     current_password = os.environ.get('BKI_PASSWORD', '')
+    audit_logger.info(f"Credentials view accessed.")
     
     context = {
         'current_username': current_username,
@@ -116,17 +118,17 @@ def credentials_view(request):
             
             # تلاش برای ارتباط با API بازارگاه
             is_successful, error_message = test_api_connection()
-            logger.warning(f"اتصال در حال تست: {is_successful}, خطا: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
-            
+
             # اضافه کردن نتیجه تست به context
             context['test_connection'] = True
             context['success'] = is_successful
             context['error_message'] = error_message
             
             if is_successful:
+                logger.info(f"اتصال با سرویس BKI با موفقیت برقرار شد.")
                 messages.success(request, 'اتصال با سرویس BKI با موفقیت برقرار شد.')
             else:
-                logger.error(f"خطا در اتصال به سرویس BKI: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
+                logger.error(f"خطا در اتصال به سرویس BKI: {error_message}")
                 messages.error(request, f'خطا در اتصال به سرویس BKI: {error_message}')
         else:
             # به‌روزرسانی اطلاعات اعتباری
@@ -142,11 +144,15 @@ def credentials_view(request):
             messages.success(request, 'تنظیمات BKI با موفقیت به‌روزرسانی شد.')
             return redirect('bki_api:credentials')
     
+    else:
+        audit_logger.alert(f"Attempt to access via GET")
+    
     return render(request, 'bki_api/credentials_form.html', context)
 
 @role_required('admin')
 def test_kharid_info(request):
     """نمایش برای تست API getKharidInfo"""
+    audit_logger.info(f"Test Kharid Info accessed.")
     if request.method != 'POST':
         return redirect('bki_api:credentials')
     
@@ -166,7 +172,7 @@ def test_kharid_info(request):
     
     # تست API
     is_successful, error_message = test_api_connection()
-    logger.warning(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {error_message}, ip: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.warning(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {error_message}")
     
     context = {
         'kharid_id': kharid_id,
@@ -183,6 +189,8 @@ def update_purchase_info(request):
     # دریافت اطلاعات اعتباری
     username = settings.BKI_USERNAME
     password = settings.BKI_PASSWORD
+
+    audit_logger.info(f"Testing API connection with credentials.")
     
     if not username or not password:
         logger.error('اطلاعات کاربری BKI تنظیم نشده است.')
@@ -208,7 +216,7 @@ def update_purchase_info(request):
     
     # تست اتصال به API
     is_successful, message = test_api_connection()
-    logger.warning(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {message}, ip: {get_client_ip(request)}, user: {request.user}")
+    logger.info(f"تست اتصال به سرویس BKI: {is_successful}, خطا: {message}")
     if not is_successful:
         logger.error(f"خطا در اتصال به سرویس BKI: {message}")
         return JsonResponse({'success': False, 'error': message}, status=400)
@@ -227,6 +235,8 @@ def bulk_update_purchases(request):
         'purchase_ids': '',
         'results': None
     }
+
+    audit_logger.info(f"Bulk update purchases view accessed.")
     
     if request.method == 'POST':
         purchase_ids = request.POST.get('purchase_ids', '').strip()
@@ -266,6 +276,9 @@ def bulk_update_purchases(request):
         context['results'] = results
         messages.info(request, 'این صفحه فقط برای تست است. برای عملکرد واقعی از بخش "دریافت همه خریدها" استفاده کنید.')
     
+    else:
+        audit_logger.alert(f"Bulk update purchases accessed with GET!!")
+
     return render(request, 'bki_api/bulk_update.html', context)
 
 @role_required('admin')
@@ -321,6 +334,7 @@ def update_all_purchases(request):
 @role_required('admin')
 def get_all_bazaargah_purchases_view(request):
     """تابع برای دریافت و ثبت تمام خریدهای موجود در بازارگاه"""
+    audit_logger.info(f"Get all bazaar purchases view accessed.")
     # بررسی اگر درخواست POST نیست، نمایش فرم تایید
     if request.method != 'POST':
         return render(request, 'bki_api/get_all_purchases_confirm.html')
@@ -337,7 +351,7 @@ def get_all_bazaargah_purchases_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
-    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
+    logger.info(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
@@ -395,7 +409,7 @@ def get_all_bazaargah_purchases_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
-        logger.error(f"خطا در اجرای تابع دریافت خریدها: {str(e)}\n{error_details}")
+        logger.error(f"خطا در اجرای تابع دریافت خریدها: {str(e)}")
         
         return redirect('bki_api:credentials')
 
@@ -411,7 +425,9 @@ def merge_purchases_view(request):
     ملاک تشخیص خرید دستی، نداشتن شماره خرید (purchase_number) است.
     ملاک تشخیص خرید API، داشتن شماره خرید (purchase_number) است.
     """
+    audit_logger.info(f"Merge purchases view accessed.")
     if request.method != 'POST':
+        audit_logger.alert(f"Merge purchases accessed with GET!")
         return JsonResponse({
             'success': False,
             'error': 'درخواست باید با متد POST ارسال شود'
@@ -570,9 +586,17 @@ def merge_purchases_view(request):
             })
             
     except Exception as e:
-        import traceback
         error_details = traceback.format_exc()
-        logger.error(f"خطا در ادغام خریدها: {str(e)}\n{error_details}")
+        
+        # ثبت خطا در لاگ
+        log_entry = BKILog(
+            request_type='mergePurchases',
+            is_successful=False,
+            error_message=f"خطا در ادغام خریدها: {str(e)}\n{error_details}"
+        )
+        log_entry.save()
+        logger.error(f"خطا در ادغام خریدها: {str(e)}")
+        
         return JsonResponse({
             'success': False,
             'error': f'خطا در ادغام خریدها: {str(e)}'
@@ -582,6 +606,7 @@ def merge_purchases_view(request):
 def get_purchases_last_day_view(request):
     """تابع برای دریافت و ثبت خریدهای 24 ساعت گذشته"""
     # بررسی اگر درخواست POST نیست، نمایش فرم تایید
+    audit_logger.info(f"Get purchases last day view accessed.")
     if request.method != 'POST':
         return render(request, 'bki_api/get_purchases_last_day_confirm.html')
     
@@ -595,7 +620,7 @@ def get_purchases_last_day_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
-    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
+    logger.info(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
@@ -649,13 +674,14 @@ def get_purchases_last_day_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
-        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}\n{error_details}")
+        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}")
         return redirect('bki_api:credentials')
 
 @role_required('admin')
 def get_purchases_last_week_view(request):
     """تابع برای دریافت و ثبت خریدهای یک هفته گذشته"""
     # بررسی اگر درخواست POST نیست، نمایش فرم تایید
+    audit_logger.info(f"Get purchases last week view accessed.")
     if request.method != 'POST':
         return render(request, 'bki_api/get_purchases_last_week_confirm.html')
     
@@ -669,7 +695,7 @@ def get_purchases_last_week_view(request):
     
     # تست اتصال به API بازارگاه
     is_connected, connection_message = test_api_connection()
-    logger.warning(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}, ip: {get_client_ip(request)}, user: {request.user}")
+    logger.info(f"تست اتصال به API بازارگاه: {is_connected}, خطا: {connection_message}")
     if not is_connected:
         messages.error(request, f'خطا در اتصال به API بازارگاه: {connection_message}')
         return redirect('bki_api:credentials')
@@ -723,7 +749,7 @@ def get_purchases_last_week_view(request):
             error_message=f"خطا در اجرای تابع: {str(e)}\n{error_details}"
         )
         log_entry.save()
-        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}\n{error_details}")
+        logger.error(f"خطا در اجرای تابع دریافت خریدهای یک هفته گذشته: {str(e)}")
         
         return redirect('bki_api:credentials')
 

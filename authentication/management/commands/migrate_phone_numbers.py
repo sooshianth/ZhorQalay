@@ -11,7 +11,7 @@ from django.db import transaction
 import time
 
 # ایجاد لاگر برای ثبت رویدادها
-logger = logging.getLogger("migrate_phone_numbers")
+logger = logging.getLogger("bugs")
 
 class Command(BaseCommand):
     help = 'انتقال شماره تلفن‌های کاربران از مدل‌های مختلف به مدل UserPhoneNumber'

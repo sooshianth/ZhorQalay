@@ -15,7 +15,7 @@ from datetime import timedelta
 from .bki_api_utils.data_processing import process_purchase_data, group_purchase_data_by_id, process_grouped_purchase_data
 import logging
 
-logger = logging.getLogger("bki_api_kharid_list_by_date")
+logger = logging.getLogger("bugs")
 
 def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05"):
     """
