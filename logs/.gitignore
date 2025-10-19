@@ -1,0 +1,14 @@
+# Logging System - .gitignore Additions
+
+# Add these lines to your .gitignore file to prevent log files from being committed to git
+
+# Log files
+logs/*.log
+logs/*.log.*
+
+# Keep the logs directory structure
+!logs/.gitkeep
+
+# Alternative: If you want to keep some sample logs
+# logs/*.log
+# !logs/sample.log

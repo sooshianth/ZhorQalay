@@ -23,6 +23,8 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from .managers_profile_view import get_client_ip
 import jdatetime
 
+from core.logging_levels import *
+
 logger = logging.getLogger("erp_purchase_list_view")
 
 def persian_digits_to_english(persian_text):

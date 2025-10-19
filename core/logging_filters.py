@@ -3,6 +3,54 @@ from collections import deque
 from threading import Lock
 from datetime import datetime
 
+# Thread-local storage for user context
+_thread_local = {}
+
+def set_log_context(user, ip, user_phone, up=0, down=0):
+    """
+    Set logging context for current thread
+    """
+    _thread_local['user'] = user
+    _thread_local['ip'] = ip
+    _thread_local['up'] = up
+    _thread_local['down'] = down
+    _thread_local['user_phone'] = user_phone
+
+def get_log_context():
+    """
+    Get logging context for current thread
+    """
+    return (
+        _thread_local.get('user'),
+        _thread_local.get('ip'),
+        _thread_local.get('up', 0),
+        _thread_local.get('down', 0),
+        _thread_local.get('user_phone')
+    )
+
+class LogUserInfoFilter(logging.Filter):
+    """
+    Filter that adds user information to log records
+    """
+    def filter(self, record):
+        user, ip, upload_size, download_size, user_phone = get_log_context()
+        if user and user.is_authenticated:
+            first_name = getattr(user, 'first_name', '')
+            last_name = getattr(user, 'last_name', '')
+            fn = first_name if first_name else '()'
+            ln = last_name if last_name else '()'
+            record.username = f"{fn} {ln} - {user.username}"
+            record.user_phone = user_phone or '-'
+        else:
+            record.username = '-'
+            record.user_phone = '-'
+
+        record.log_ip = ip or '-'
+        record.upload_size = upload_size
+        record.download_size = download_size
+        
+        return True
+
 class ExcludeRunserverAndHttpProtocol(logging.Filter):
     def filter(self, record):
         # Exclude logs from 'runserver', 'http_protocol', and 'django.server'

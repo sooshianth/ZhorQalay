@@ -4,6 +4,9 @@ from celery.schedules import crontab
 import dotenv
 from dotenv import load_dotenv
 
+# Import custom logging levels
+import core.logging_levels  # noqa: F401 - Registers custom log levels
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -183,11 +186,19 @@ LOGGING = {
     'disable_existing_loggers': True,
     'formatters': {
         'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
+            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
             'style': '{',
         },
         'simple': {
-            'format': '{levelname} {message}',
+            'format': '{levelname} {asctime} {message}',
+            'style': '{',
+        },
+        'security': {
+            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
+            'style': '{',
+        },
+        'auth': {
+            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
             'style': '{',
         },
     },
@@ -195,21 +206,40 @@ LOGGING = {
         'exclude_runserver_and_http_protocol': {
             '()': 'core.logging_filters.ExcludeRunserverAndHttpProtocol',
         },
+        'userinfo': {
+            '()': 'core.logging_filters.LogUserInfoFilter',
+        },
     },
     'handlers': {
         'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
-            'filters': ['exclude_runserver_and_http_protocol'],
+            'filters': ['exclude_runserver_and_http_protocol', 'userinfo'],
         },
         'file': {
-            'level': 'WARNING',
+            'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': os.path.join(BASE_DIR, 'debug.log'),
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
             'formatter': 'verbose',
-            'filters': ['exclude_runserver_and_http_protocol'],
-            'encoding' : 'utf-8',
+            'filters': ['exclude_runserver_and_http_protocol', 'userinfo'],
+            'encoding': 'utf-8',
+        },
+        'security_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'security.log'),
+            'formatter': 'security',
+            'encoding': 'utf-8',
+            'filters': ['userinfo'],
+        },
+        'auth_file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'auth.log'),
+            'formatter': 'auth',
+            'encoding': 'utf-8',
+            'filters': ['userinfo'],
         },
         'circular_buffer': {
             'level': 'DEBUG',
@@ -225,6 +255,21 @@ LOGGING = {
         'http_protocol': {
             'handlers': ['null'],
             'level': 'DEBUG',
+            'propagate': False,
+        },
+        'security': {
+            'handlers': ['console', 'security_file', 'circular_buffer'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'authentication': {
+            'handlers': ['console', 'auth_file', 'circular_buffer'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'core.middleware': {
+            'handlers': ['console', 'file', 'circular_buffer'],
+            'level': 'INFO',
             'propagate': False,
         },
         'auth_form': {
