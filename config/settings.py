@@ -76,6 +76,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'config.middleware.LogContextMiddleware',  # Must be early to capture user context
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -84,6 +85,8 @@ MIDDLEWARE = [
     'django.middleware.locale.LocaleMiddleware',
     'config.middleware.SessionTimeoutMiddleware',
     'config.middleware.RestrictAdminAccessMiddleware',
+    'config.middleware.LoginAttemptMiddleware',  # Monitor authentication attempts
+    'config.middleware.SecurityLoggingMiddleware',  # Log all requests to security.log
     'HR.middleware.DebugMiddleware',  # دیباگ میدلور
 
 ]
