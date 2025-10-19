@@ -189,7 +189,6 @@ LOGGING = {
     'disable_existing_loggers': True,
     'formatters': {
         'verbose': {
-            '()': 'core.logging_formatters.FilenameFormatter',
             'format': '{levelname} !@# {asctime} !@# {filename} !@# {funcName} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {download_size} !@# {upload_size} !@# {message} !@# {user_phone}',
             'style': '{',
         },
@@ -206,12 +205,11 @@ LOGGING = {
             'style': '{',
         },
         'bugs': {
-            '()': 'core.logging_formatters.FilenameFormatter',
             'format': '{levelname} !@# {asctime} !@# {filename} !@# {funcName} !@# {lineno} !@# {process:d} !@# {thread:d} !@# {username} !@# {log_ip} !@# {message}',
             'style': '{',
         },
         'django_errors': {
-            'format': '{levelname} !@# {asctime} !@# {name} !@# {funcName} !@# {pathname} !@# {lineno} !@# {message}',
+            'format': '{levelname} !@# {asctime} !@# {filename} !@# {funcName} !@# {pathname} !@# {lineno} !@# {message}',
             'style': '{',
         },
         'audit': {

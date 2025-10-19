@@ -67,6 +67,13 @@ class LogUserInfoFilter(logging.Filter):
         record.user_agent = user_agent[:200] if user_agent else '-'  # Limit to 200 chars
         record.action = action or '-'
         
+        # File info - extract filename from pathname
+        import os
+        if hasattr(record, 'pathname') and record.pathname:
+            record.filename = os.path.basename(record.pathname)
+        elif not hasattr(record, 'filename'):
+            record.filename = 'unknown'
+        
         # Add placeholders for fields that will be set by middleware/loggers
         if not hasattr(record, 'status_code'):
             record.status_code = '-'
