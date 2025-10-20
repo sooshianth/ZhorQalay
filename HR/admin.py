@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .forms.forms import WeeklyAttendanceForm
-from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary, AttendanceConfiguration
+from .EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, WorkCalendar, Salary, AttendanceConfiguration, MonthlyTarget, WeeklySchedule
 from .MorqkModel import MorqkTask, MonthlyMorqkSummary, TaskAssignment
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
@@ -131,3 +131,49 @@ class MonthlyMorqkSummaryAdmin(ListChartMixin, admin.ModelAdmin):
     search_fields = ('employee__username', 'month')
     readonly_fields = ('last_updated',)
     date_hierarchy = 'last_updated'
+
+
+@admin.register(MonthlyTarget)
+class MonthlyTargetAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('employee', 'month', 'target_hours', 'achieved_hours_display', 'achievement_percentage_display', 'status', 'is_achieved')
+    list_filter = ('month', 'employee', 'created_at')
+    search_fields = ('employee__username', 'month', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('اطلاعات اصلی', {
+            'fields': ('employee', 'month', 'target_hours', 'description')
+        }),
+        ('اطلاعات تاریخ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
+    
+    def achieved_hours_display(self, obj):
+        return f"{obj.achieved_hours} ساعت"
+    achieved_hours_display.short_description = 'ساعات انجام شده'
+    
+    def achievement_percentage_display(self, obj):
+        return f"{obj.achievement_percentage}%"
+    achievement_percentage_display.short_description = 'درصد پیشرفت'
+
+
+@admin.register(WeeklySchedule)
+class WeeklyScheduleAdmin(ListChartMixin, admin.ModelAdmin):
+    list_display = ('employee', 'get_day_of_week_display', 'start_time', 'end_time', 'duration_hours', 'is_active')
+    list_filter = ('day_of_week', 'is_active', 'employee', 'created_at')
+    search_fields = ('employee__username', 'description')
+    readonly_fields = ('created_at', 'updated_at')
+    date_hierarchy = 'created_at'
+    
+    fieldsets = (
+        ('اطلاعات اصلی', {
+            'fields': ('employee', 'day_of_week', 'start_time', 'end_time', 'is_active', 'description')
+        }),
+        ('اطلاعات تاریخ', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )

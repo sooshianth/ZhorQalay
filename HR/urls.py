@@ -1,5 +1,5 @@
 from django.urls import path
-from HR.views import weekly_attendance, employee_profile, test_delay_view, debug_view, morqk_views
+from HR.views import weekly_attendance, employee_profile, test_delay_view, debug_view, morqk_views, target_schedule_view
 
 urlpatterns = [
     path('attendance/', weekly_attendance.daily_attendance_view, name='weekly_attendance_view'),
@@ -23,4 +23,17 @@ urlpatterns = [
     path('morqk/task/<int:task_id>/delete/', morqk_views.delete_task, name='delete_task'),
     path('morqk/task/<int:task_id>/edit/', morqk_views.edit_task, name='edit_task'),
     path('morqk/report/', morqk_views.monthly_morqk_report, name='monthly_morqk_report'),
+    
+    # مسیرهای هدف ماهانه
+    path('target/', target_schedule_view.monthly_target_view, name='monthly_target_view'),
+    path('target/create/', target_schedule_view.create_monthly_target, name='create_monthly_target'),
+    path('target/edit/<int:target_id>/', target_schedule_view.edit_monthly_target, name='edit_monthly_target'),
+    path('target/delete/<int:target_id>/', target_schedule_view.delete_monthly_target, name='delete_monthly_target'),
+    
+    # مسیرهای برنامه هفتگی
+    path('schedule/', target_schedule_view.weekly_schedule_view, name='weekly_schedule_view'),
+    path('schedule/create/', target_schedule_view.create_weekly_schedule, name='create_weekly_schedule'),
+    path('schedule/edit/<int:schedule_id>/', target_schedule_view.edit_weekly_schedule, name='edit_weekly_schedule'),
+    path('schedule/delete/<int:schedule_id>/', target_schedule_view.delete_weekly_schedule, name='delete_weekly_schedule'),
+    path('schedule/toggle/<int:schedule_id>/', target_schedule_view.toggle_schedule_status, name='toggle_schedule_status'),
 ]

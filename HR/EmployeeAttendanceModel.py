@@ -514,3 +514,136 @@ class AttendanceConfiguration(models.Model):
             # غیرفعال کردن سایر تنظیمات
             AttendanceConfiguration.objects.filter(is_active=True).exclude(pk=self.pk).update(is_active=False)
         super().save(*args, **kwargs)
+
+
+class MonthlyTarget(models.Model):
+    """
+    هدف ساعت کاری ماهانه برای هر کارمند
+    """
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند", related_name='monthly_targets')
+    month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")
+    target_hours = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        verbose_name="هدف ساعات ماهانه",
+        help_text="تعداد ساعات هدف برای این ماه"
+    )
+    description = models.TextField(null=True, blank=True, verbose_name="توضیحات")
+    created_at = jmodels.jDateTimeField(default=timezone.now, verbose_name="تاریخ ایجاد")
+    updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ آخرین ویرایش")
+    
+    class Meta:
+        verbose_name = "هدف ماهانه"
+        verbose_name_plural = "اهداف ماهانه"
+        unique_together = ('employee', 'month')
+        ordering = ['-month']
+    
+    def __str__(self):
+        return f"{self.employee.username} - {self.month} - هدف: {self.target_hours} ساعت"
+    
+    @property
+    def achieved_hours(self):
+        """محاسبه ساعات انجام شده (فقط تأیید شده توسط ادمین)"""
+        try:
+            monthly_attendance = MonthlyAttendance.objects.get(employee=self.employee, month=self.month)
+            return monthly_attendance.total_hours
+        except MonthlyAttendance.DoesNotExist:
+            return 0
+    
+    @property
+    def achievement_percentage(self):
+        """درصد دستیابی به هدف"""
+        from decimal import Decimal
+        if self.target_hours == 0:
+            return 0
+        return round((float(self.achieved_hours) / float(self.target_hours)) * 100, 2)
+    
+    @property
+    def remaining_hours(self):
+        """ساعات باقی‌مانده"""
+        return max(0, self.target_hours - self.achieved_hours)
+    
+    @property
+    def is_achieved(self):
+        """آیا به هدف رسیده؟ (با در نظر گرفتن 10٪ تلرانس)"""
+        from decimal import Decimal
+        minimum_acceptable = self.target_hours * Decimal('0.9')  # 90٪ هدف
+        return self.achieved_hours >= minimum_acceptable
+    
+    @property
+    def status(self):
+        """وضعیت دستیابی به هدف"""
+        percentage = self.achievement_percentage
+        if percentage >= 100:
+            return "کامل"
+        elif percentage >= 90:
+            return "قابل قبول"
+        elif percentage >= 75:
+            return "نیاز به تلاش بیشتر"
+        else:
+            return "ضعیف"
+    
+    @property
+    def status_color(self):
+        """رنگ وضعیت برای نمایش"""
+        percentage = self.achievement_percentage
+        if percentage >= 100:
+            return "success"
+        elif percentage >= 90:
+            return "info"
+        elif percentage >= 75:
+            return "warning"
+        else:
+            return "danger"
+
+
+class WeeklySchedule(models.Model):
+    """
+    برنامه هفتگی حضور هر کارمند
+    """
+    DAY_CHOICES = [
+        ('Saturday', 'شنبه'),
+        ('Sunday', 'یکشنبه'),
+        ('Monday', 'دوشنبه'),
+        ('Tuesday', 'سه‌شنبه'),
+        ('Wednesday', 'چهارشنبه'),
+        ('Thursday', 'پنج‌شنبه'),
+        ('Friday', 'جمعه'),
+    ]
+    
+    employee = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="کارمند", related_name='weekly_schedules')
+    day_of_week = models.CharField(max_length=10, choices=DAY_CHOICES, verbose_name="روز هفته")
+    start_time = models.TimeField(verbose_name="زمان شروع", help_text="ساعت شروع حضور در دفتر")
+    end_time = models.TimeField(verbose_name="زمان پایان", help_text="ساعت پایان حضور در دفتر")
+    is_active = models.BooleanField(default=True, verbose_name="فعال")
+    description = models.TextField(null=True, blank=True, verbose_name="توضیحات")
+    created_at = jmodels.jDateTimeField(default=timezone.now, verbose_name="تاریخ ایجاد")
+    updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ آخرین ویرایش")
+    
+    class Meta:
+        verbose_name = "برنامه هفتگی"
+        verbose_name_plural = "برنامه‌های هفتگی"
+        ordering = ['employee', 'day_of_week']
+    
+    def __str__(self):
+        return f"{self.employee.username} - {self.get_day_of_week_display()} - {self.start_time.strftime('%H:%M')} تا {self.end_time.strftime('%H:%M')}"
+    
+    @property
+    def duration_hours(self):
+        """محاسبه مدت زمان به ساعت"""
+        start_seconds = self.start_time.hour * 3600 + self.start_time.minute * 60
+        end_seconds = self.end_time.hour * 3600 + self.end_time.minute * 60
+        if end_seconds > start_seconds:
+            duration_seconds = end_seconds - start_seconds
+            return round(duration_seconds / 3600, 2)
+        return 0
+    
+    def clean(self):
+        """اعتبارسنجی داده‌ها"""
+        from django.core.exceptions import ValidationError
+        if self.end_time <= self.start_time:
+            raise ValidationError("زمان پایان باید بعد از زمان شروع باشد")
+    
+    def save(self, *args, **kwargs):
+        self.clean()
+        super().save(*args, **kwargs)

@@ -1,0 +1,222 @@
+{% extends 'base.html' %}
+{% load hr_filters %}
+
+{% block title %}برنامه هفتگی{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .card { border: none !important; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important; border-radius: 0.5rem !important; }
+    .btn { border-radius: 0.35rem !important; font-weight: 500 !important; }
+    .table { margin-bottom: 0 !important; }
+    .badge { font-weight: 600 !important; padding: 0.35em 0.65em !important; }
+    .alert { border-radius: 0.35rem !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-4 fw-bold text-primary">
+                <i class="fas fa-calendar-week me-2"></i>برنامه هفتگی حضور
+            </h1>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <a href="{% url 'create_weekly_schedule' %}" class="btn btn-success">
+                        <i class="fas fa-plus me-2"></i>افزودن روز جدید
+                    </a>
+                </div>
+                <div>
+                    <a href="{% url 'weekly_attendance_view' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-right me-2"></i>بازگشت به ساعات کاری
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- برنامه هفتگی -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-clock me-2"></i>برنامه هفتگی شما
+                        <span class="badge bg-light text-dark ms-2">{{ schedules|length }} روز</span>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    {% if schedules %}
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th><i class="fas fa-calendar-day me-1"></i>روز هفته</th>
+                                    <th><i class="fas fa-play me-1"></i>ساعت شروع</th>
+                                    <th><i class="fas fa-stop me-1"></i>ساعت پایان</th>
+                                    <th><i class="fas fa-clock me-1"></i>مدت زمان (ساعت)</th>
+                                    <th><i class="fas fa-toggle-on me-1"></i>وضعیت</th>
+                                    <th><i class="fas fa-comment me-1"></i>توضیحات</th>
+                                    <th><i class="fas fa-cogs me-1"></i>عملیات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for schedule in schedules %}
+                                <tr class="{% if not schedule.is_active %}table-secondary opacity-50{% endif %}">
+                                    <td>
+                                        <strong class="{% if not schedule.is_active %}text-muted{% endif %}">
+                                            <i class="fas fa-calendar me-2"></i>{{ schedule.day_of_week }}
+                                        </strong>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-clock me-1"></i>{{ schedule.start_time }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger fs-6">
+                                            <i class="fas fa-clock me-1"></i>{{ schedule.end_time }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary fs-6">
+                                            <i class="fas fa-hourglass-half me-1"></i><strong>{{ schedule.duration_hours }}</strong> ساعت
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if schedule.is_active %}
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-check-circle me-1"></i>فعال
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-secondary fs-6">
+                                            <i class="fas fa-times-circle me-1"></i>غیرفعال
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if schedule.description %}
+                                            <small>{{ schedule.description|truncatewords:8 }}</small>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'edit_weekly_schedule' schedule.id %}" 
+                                               class="btn btn-sm btn-primary" title="ویرایش">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'toggle_schedule_status' schedule.id %}" 
+                                               class="btn btn-sm btn-{% if schedule.is_active %}warning{% else %}success{% endif %}" 
+                                               title="{% if schedule.is_active %}غیرفعال کردن{% else %}فعال کردن{% endif %}">
+                                                <i class="fas fa-{% if schedule.is_active %}pause{% else %}play{% endif %}"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal{{ schedule.id }}"
+                                                    title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+
+                                <!-- Modal حذف -->
+                                <div class="modal fade" id="deleteModal{{ schedule.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-danger text-white">
+                                                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>تأیید حذف</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body text-center">
+                                                <i class="fas fa-trash fa-3x text-danger mb-3"></i>
+                                                <p class="fs-5">آیا از حذف برنامه روز <strong>{{ schedule.day_of_week }}</strong> مطمئن هستید؟</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                    <i class="fas fa-times me-1"></i>انصراف
+                                                </button>
+                                                <form method="post" action="{% url 'delete_weekly_schedule' schedule.id %}" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-danger">
+                                                        <i class="fas fa-trash me-1"></i>حذف
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- خلاصه هفتگی -->
+                    <div class="mt-4 p-4 bg-light border-start border-info border-5 rounded">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-chart-pie me-2"></i>خلاصه هفتگی:
+                        </h6>
+                        <div class="row text-center">
+                            <div class="col-md-6">
+                                <h4 class="text-success">{{ schedules|length }}</h4>
+                                <p class="text-muted mb-0">روز برنامه‌ریزی شده</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h4 class="text-primary">
+                                    {% widthratio schedules|length 7 100 %}%
+                                </h4>
+                                <p class="text-muted mb-0">پوشش هفتگی</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info text-center py-5">
+                        <i class="fas fa-info-circle fa-3x mb-3 d-block"></i>
+                        <h5>هنوز برنامه‌ای ایجاد نشده است</h5>
+                        <p class="text-muted">برای شروع روی دکمه "افزودن روز جدید" کلیک کنید.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- راهنما -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow border-0 border-start border-info border-5">
+                <div class="card-body">
+                    <h6 class="text-primary mb-3"><i class="fas fa-lightbulb me-2"></i>راهنما:</h6>
+                    <ul class="mb-0">
+                        <li>برنامه هفتگی مشخص می‌کند که هر روز از چه ساعتی تا چه ساعتی می‌توانید در دفتر حضور داشته باشید</li>
+                        <li>می‌توانید برای هر روز هفته یک برنامه مجزا تعریف کنید</li>
+                        <li>برنامه‌های غیرفعال در محاسبات لحاظ نمی‌شوند</li>
+                        <li>می‌توانید برنامه‌ها را در هر زمان ویرایش یا حذف کنید</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

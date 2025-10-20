@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load hr_filters %}
+
+{% block title %}ایجاد هدف ماهانه{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    .card { border: none !important; box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important; border-radius: 0.5rem !important; }
+    .btn { border-radius: 0.35rem !important; font-weight: 500 !important; }
+    .form-control, .form-select, textarea { border-radius: 0.35rem !important; }
+    .alert { border-radius: 0.35rem !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-center mb-4 fw-bold text-primary">
+                <i class="fas fa-plus-circle me-2"></i>ایجاد هدف ماهانه جدید
+            </h1>
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show">
+                        <i class="fas fa-info-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow border-0">
+                <div class="card-header bg-gradient-primary text-white py-3">
+                    <h4 class="card-title m-0 fw-bold">
+                        <i class="fas fa-edit me-2"></i>فرم ایجاد هدف
+                    </h4>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'create_monthly_target' %}">
+                        {% csrf_token %}
+                        
+                        <div class="mb-4">
+                            <label for="month" class="form-label fw-bold">
+                                <i class="fas fa-calendar me-2 text-primary"></i>ماه (فرمت: YYYY/MM):
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="month" name="month" 
+                                   value="{{ current_month }}" required
+                                   placeholder="مثال: 1403/07">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>فرمت ماه باید به صورت سال/ماه شمسی باشد (مثلاً 1403/07)
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="target_hours" class="form-label fw-bold">
+                                <i class="fas fa-flag me-2 text-success"></i>هدف ساعات ماهانه:
+                            </label>
+                            <input type="number" class="form-control form-control-lg" id="target_hours" name="target_hours" 
+                                   step="0.01" min="0" max="744" required
+                                   placeholder="مثال: 100">
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>تعداد ساعات کاری که می‌خواهید در این ماه انجام دهید
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="description" class="form-label fw-bold">
+                                <i class="fas fa-comment me-2 text-info"></i>توضیحات (اختیاری):
+                            </label>
+                            <textarea class="form-control" id="description" name="description" rows="4"
+                                      placeholder="توضیحات اضافی در مورد این هدف..."></textarea>
+                        </div>
+
+                        <div class="alert alert-info border-start border-info border-5">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-lightbulb fa-2x text-info me-3"></i>
+                                <div>
+                                    <strong>نکته مهم:</strong> تا 10٪ کمتر از هدف (90٪ به بالا) قابل قبول محسوب می‌شود.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'monthly_target_view' %}" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-arrow-right me-2"></i>انصراف
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg">
+                                <i class="fas fa-save me-2"></i>ذخیره هدف
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

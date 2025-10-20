@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
-from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, AttendanceDocument, AttendanceHistory
+from ..EmployeeAttendanceModel import WeeklyAttendance, MonthlyAttendance, AttendanceDocument, AttendanceHistory, MonthlyTarget, WeeklySchedule
 from ..forms.forms import DailyAttendanceForm, ApprovalForm
 import csv
 import json
@@ -389,6 +389,36 @@ def daily_attendance_view(request):
             'total_hours': round(month_data.total_hours, 2)
         })
 
+    # دریافت هدف ماه جاری
+    current_jalali = jdatetime.date.today()
+    current_month = f"{current_jalali.year}-{current_jalali.month:02d}"
+    current_month_target = None
+    try:
+        current_month_target = MonthlyTarget.objects.get(employee=request.user, month=current_month)
+    except MonthlyTarget.DoesNotExist:
+        pass
+    
+    # دریافت برنامه امروز
+    today_weekday = current_jalali.weekday()  # 0=شنبه، 1=یکشنبه، ..., 6=جمعه
+    weekday_map = {
+        0: 'Saturday',
+        1: 'Sunday',
+        2: 'Monday',
+        3: 'Tuesday',
+        4: 'Wednesday',
+        5: 'Thursday',
+        6: 'Friday'
+    }
+    today_schedule = None
+    try:
+        today_schedule = WeeklySchedule.objects.get(
+            employee=request.user, 
+            day_of_week=weekday_map[today_weekday],
+            is_active=True
+        )
+    except WeeklySchedule.DoesNotExist:
+        pass
+    
     return render(request, 'weekly_attendance.html', {
         'form': form,
         'attendances': formatted_attendances,
@@ -398,7 +428,9 @@ def daily_attendance_view(request):
         'pending_approvals_count': pending_approvals_count,
         'edit_mode': bool(edit_id),
         'editing_attendance_id': edit_id,
-        'existing_time_ranges': attendance_instance.time_ranges.all().order_by('start_time') if attendance_instance else []
+        'existing_time_ranges': attendance_instance.time_ranges.all().order_by('start_time') if attendance_instance else [],
+        'current_month_target': current_month_target,
+        'today_schedule': today_schedule,
     })
 
 @role_required('employee', 'admin')
