@@ -26,7 +26,6 @@ import logging
 from datetime import timedelta
 from persiantools.jdatetime import JalaliDateTime
 
-logger = logging.getLogger("bki_barnameh_views")
 from openpyxl import Workbook
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.http import HttpResponse
@@ -43,11 +42,13 @@ import os
 import io
 import arabic_reshaper
 from bidi.algorithm import get_display
+from core.logging_levels import *
 
 # توابع اکسل به فولدر excel_management منتقل شده‌اند
 from .excel_management.views import upload_excel_view, download_excel_template, export_excel_view
 
-logger = logging.getLogger('bki_barnameh_views')
+logger = logging.getLogger('bugs')
+audit_logger = logging.getLogger('audit')
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی"""
@@ -99,10 +100,10 @@ def jalali_to_gregorian_date(jalali_date_str):
         return gregorian_date
         
     except ValueError as e:
-        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        logger.error(f"Error parsing Jalali date {jalali_date_str}: {str(e)}")
         raise ValueError(f"فرمت تاریخ نامعتبر: {jalali_date_str}. {str(e)}")
     except Exception as e:
-        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        logger.error(f"Error parsing Jalali date {jalali_date_str}: {str(e)}")
         raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
 def parse_jalali_date(date_string):
@@ -214,6 +215,7 @@ def get_model_from_table_name(table_name):
 @require_http_methods(["POST"])
 def update_barnameh_columns(request):
     """API برای بروزرسانی ستون‌های انتخاب شده"""
+    audit_logger.info(f"User updated barnameh columns")
     try:
         data = json.loads(request.body)
         selected_columns = data.get('columns', [])
@@ -244,7 +246,7 @@ def update_barnameh_columns(request):
         return response
         
     except Exception as e:
-        logger.error(f"خطا در بروزرسانی ستون‌های بارنامه: {str(e)}")
+        logger.error(f"Error updating barnameh columns: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در بروزرسانی ستون‌ها: {str(e)}'
@@ -255,6 +257,7 @@ def update_barnameh_columns(request):
 @require_http_methods(["POST"])
 def reset_barnameh_columns(request):
     """API برای بازگشت ستون‌ها به حالت پیش‌فرض"""
+    audit_logger.info(f"User reset barnameh columns")
     try:
         response = JsonResponse({
             'status': 'success',
@@ -268,7 +271,7 @@ def reset_barnameh_columns(request):
         return response
         
     except Exception as e:
-        logger.error(f"خطا در بازگشت ستون‌های بارنامه به حالت پیش‌فرض: {str(e)}")
+        logger.error(f"Error resetting barnameh columns: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در بازگشت ستون‌ها: {str(e)}'
@@ -278,6 +281,7 @@ def reset_barnameh_columns(request):
 @require_http_methods(["GET"])
 def get_barnameh_columns_config(request):
     """API برای دریافت تنظیمات ستون‌های بارنامه"""
+    audit_logger.info(f"User requested barnameh columns config")
     try:
         selected_columns = get_barnameh_columns_from_cookie(request)
         
@@ -289,7 +293,7 @@ def get_barnameh_columns_config(request):
         })
         
     except Exception as e:
-        logger.error(f"خطا در دریافت تنظیمات ستون‌های بارنامه: {str(e)}")
+        logger.error(f"Error getting barnameh columns config: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت تنظیمات: {str(e)}'
@@ -302,7 +306,7 @@ def apply_barnameh_filter(request):
     """
     API برای اعمال فیلتر سمت سرور به بارنامه‌ها
     """
-    logger.warning(f"درخواست فیلتر بارنامه توسط {request.user.username} انجام شده. {get_client_ip(request)}")
+    audit_logger.info(f"User applied barnameh filter")
     try:
         # دریافت پارامترهای فیلتر
         filters = json.loads(request.POST.get('filters', '{}'))
@@ -317,7 +321,8 @@ def apply_barnameh_filter(request):
             page = int(page_param)
             per_page = int(per_page_param)
         except (ValueError, TypeError):
-            logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
+            audit_logger.activity(f"User passed invalid pagination")
+            logger.warning(f"Invalid pagination values: page={page_param}, per_page={per_page_param}")
             page = 1
             per_page = 50
         
@@ -417,7 +422,7 @@ def apply_barnameh_filter(request):
                                 if date_obj:
                                     date_values.append(date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {v}: {str(e)}")
+                            logger.warning(f"Error parsing date {v}: {str(e)}")
                             continue
                     
                     if date_values:
@@ -531,7 +536,7 @@ def apply_barnameh_filter(request):
                                 if date_obj:
                                     date_conditions |= Q(purchase__successful_send_date=date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            logger.warning(f"Error parsing date {date_str}: {str(e)}")
                             continue
                     
                     if date_conditions:
@@ -558,7 +563,7 @@ def apply_barnameh_filter(request):
                                 if date_obj:
                                     date_values.append(date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {v}: {str(e)}")
+                            logger.warning(f"Error parsing date {v}: {str(e)}")
                             continue
                     
                     if date_values:
@@ -663,9 +668,9 @@ def apply_barnameh_filter(request):
                 
             try:
                 base_queryset = base_queryset.order_by(sort_field)
-                logger.info(f"مرتب‌سازی اعمال شد: {sort_field}")
+                logger.debug(f"Sorting applied: {sort_field}")
             except Exception as e:
-                logger.warning(f"خطا در مرتب‌سازی: {e}")
+                logger.warning(f"Error sorting: {e}")
                 base_queryset = base_queryset.order_by('-barnameh_created_at')
         else:
             # مرتب‌سازی پیش‌فرض
@@ -778,7 +783,7 @@ def apply_barnameh_filter(request):
         })
         
     except Exception as e:
-        logger.error(f"خطا در اعمال فیلتر به بارنامه‌ها: {str(e)}")
+        logger.error(f"Error applying filter to barnamehs: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در اعمال فیلتر: {str(e)}'
@@ -790,7 +795,7 @@ def get_barnameh_column_values(request):
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """
-    logger.warning(f"API برای دریافت مقادیر منحصر به فرد ستون بارنامه توسط {request.user.username}. {get_client_ip(request)}")
+    audit_logger.info("get_barnameh_column_values accessed")
     try:
         column_id = request.POST.get('column_id')
         search_term = request.POST.get('search', '')
@@ -920,7 +925,7 @@ def get_barnameh_column_values(request):
                                 if date_obj:
                                     date_conditions |= Q(barnameh_date=date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            logger.warning(f"Error parsing date {date_str}: {str(e)}")
                             continue
                     
                     if date_conditions:
@@ -1054,7 +1059,7 @@ def get_barnameh_column_values(request):
                                 if date_obj:
                                     date_conditions |= Q(purchase__successful_send_date=date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            logger.warning(f"Error parsing date {date_str}: {str(e)}")
                             continue
                     
                     if date_conditions:
@@ -1082,7 +1087,7 @@ def get_barnameh_column_values(request):
                                 if date_obj:
                                     date_conditions |= Q(factor_date=date_obj)
                         except (ValueError, TypeError) as e:
-                            logger.warning(f"خطا در پارس تاریخ {date_str}: {str(e)}")
+                            logger.warning(f"Error parsing date {date_str}: {str(e)}")
                             continue
                     
                     if date_conditions:
@@ -1275,7 +1280,7 @@ def get_barnameh_column_values(request):
         
     except Exception as e:
         import traceback
-        logger.error(f"Error in get_barnameh_column_values: {str(e)} , {traceback.format_exc()}")
+        logger.error(f"Error in get_barnameh_column_values: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': "خطا در دریافت مقادیر ستون"
@@ -1285,6 +1290,7 @@ def get_barnameh_column_values(request):
 @require_http_methods(["GET"])
 def barnameh_column_values(request, column_id):
     """Get unique values for a specific column in barnameh table using table_filter system"""
+    audit_logger.info("Barnameh column values accessed")
     try:
         # Check if column_id is 'dummy', which is used as a placeholder in the URL pattern
         if column_id == 'dummy':
@@ -1296,8 +1302,7 @@ def barnameh_column_values(request, column_id):
                     'message': 'No column_id provided'
                 }, status=400)
                 
-        logger.warning(f"درخواست مقادیر ستون {column_id} توسط {request.user.username}. {get_client_ip(request)}")
-        
+
         # Get current filters to respect them when showing values
         current_filters = request.GET.get('current_filters')
         if current_filters:
@@ -1330,9 +1335,8 @@ def barnameh_column_values(request, column_id):
         })
         
     except Exception as e:
-        logger.error(f"خطا در دریافت مقادیر ستون {column_id}: {str(e)}")
+        logger.error(f"Error in get_barnameh_column_values: {str(e)}")
         import traceback
-        logger.error(traceback.format_exc())
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت مقادیر ستون: {str(e)}'
@@ -1393,7 +1397,7 @@ def update_barnameh(barnameh_id, data):
                 else:
                     barnameh.barnameh_date = data['barnameh_date']
             except Exception as e:
-                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
+                logger.error(f"Error parsing date: {str(e)}")
                 return {
                     'success': False,
                     'message': f'خطا در تبدیل تاریخ: {str(e)}'
@@ -1414,7 +1418,7 @@ def update_barnameh(barnameh_id, data):
                 else:
                     barnameh.factor_date = data['factor_date']
             except Exception as e:
-                logger.error(f"خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}")
+                logger.error(f"Error parsing factor date: {str(e)}")
                 return {
                     'success': False,
                     'message': f'خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}'
@@ -1436,13 +1440,13 @@ def update_barnameh(barnameh_id, data):
         }
         
     except Barnameh.DoesNotExist:
-        logger.error(f"بارنامه مورد نظر یافت نشد.")
+        logger.error(f"Barnameh {barnameh_id} not found.")
         return {
             'success': False,
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
-        logger.error(f"خطا در بروزرسانی بارنامه: {str(e)}")
+        logger.error(f"Error updating barnameh: {str(e)}")
         return {
             'success': False,
             'message': f'خطا در بروزرسانی بارنامه: {str(e)}'
@@ -1463,7 +1467,7 @@ def delete_barnameh(barnameh_id):
         
         # Check if barnameh is already sent to BKI
         if barnameh.is_sent_to_bki:
-            logger.error(f"بارنامه {barnameh_id} قبلاً به بازارگاه ارسال شده است و قابل حذف نیست.")
+            logger.error(f"Barnameh {barnameh_id} is already sent to BKI and cannot be deleted.")
             return {
                 'success': False,
                 'message': 'این بارنامه قبلاً به بازارگاه ارسال شده است و قابل حذف نیست.'
@@ -1477,13 +1481,13 @@ def delete_barnameh(barnameh_id):
         }
         
     except Barnameh.DoesNotExist:
-        logger.error(f"بارنامه {barnameh_id} یافت نشد.")
+        logger.error(f"Barnameh {barnameh_id} not found.")
         return {
             'success': False,
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
-        logger.error(f"خطا در حذف بارنامه: {str(e)}")
+        logger.error(f"Error deleting barnameh: {str(e)}")
         return {
             'success': False,
             'message': f'خطا در حذف بارنامه: {str(e)}'
@@ -1494,8 +1498,7 @@ def barnameh_list(request):
     """
     نمایش لیست بارنامه ها با فیلتر server-side
     """
-    logger.warning(f"لیست بارنامه ها: {get_client_ip(request)}, user: {request.user}")
-    
+
     # دریافت ستون‌های انتخاب شده
     selected_columns = get_barnameh_columns_from_cookie(request)
     all_columns = get_all_barnameh_columns()
@@ -1613,7 +1616,6 @@ def barnameh_detail(request, barnameh_id):
     """
     نمایش جزئیات بارنامه
     """
-    logger.warning(f"جزئیات بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     barnameh = get_object_or_404(Barnameh, id=barnameh_id)
     return render(request, 'bki_barnameh/barnameh_detail.html', {'barnameh': barnameh})
 
@@ -1622,7 +1624,6 @@ def barnameh_create(request):
     """
     ایجاد بارنامه جدید
     """
-    logger.warning(f"ایجاد بارنامه جدید: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         data = {
             'number': request.POST.get('number'),
@@ -1644,7 +1645,7 @@ def barnameh_create(request):
             try:
                 barnameh_date = parse_jalali_date(data['barnameh_date'])
             except Exception as e:
-                logger.error(f"خطا در تبدیل تاریخ بارنامه: {str(e)}")
+                logger.error(f"Error parsing barnameh date: {str(e)}")
                 messages.error(request, f'خطا در تبدیل تاریخ: {str(e)}')
                 return render(request, 'bki_barnameh/barnameh_create.html')
         
@@ -1666,6 +1667,9 @@ def barnameh_create(request):
         messages.success(request, 'بارنامه با موفقیت ایجاد شد.')
         return redirect('barnameh_detail', barnameh_id=barnameh.id)
     
+    else:
+        audit_logger.alert("ACCESSED BARNAMEH CREATE VIA GET!")
+    
     return render(request, 'bki_barnameh/barnameh_create.html')
 
 @role_required('logistics_manager', 'admin')
@@ -1673,7 +1677,6 @@ def barnameh_edit(request, barnameh_id):
     """
     ویرایش بارنامه
     """
-    logger.warning(f"ویرایش بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     barnameh = get_object_or_404(Barnameh, id=barnameh_id)
     
     if request.method == 'POST':
@@ -1707,7 +1710,6 @@ def barnameh_delete(request, barnameh_id):
     """
     حذف بارنامه
     """
-    logger.warning(f"حذف بارنامه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = delete_barnameh(barnameh_id)
         
@@ -1726,7 +1728,6 @@ def upload_excel(request):
     """
     آپلود فایل اکسل بارنامه - ریدایرکت به ویو جدید
     """
-    logger.warning(f"آپلود فایل اکسل بارنامه: {get_client_ip(request)}, user: {request.user}")
     return upload_excel_view(request)
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
@@ -1734,7 +1735,6 @@ def export_excel(request):
     """
     خروجی اکسل از بارنامه‌ها
     """
-    logger.warning(f"خروجی اکسل از بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     return export_excel_view(request)
 
 @role_required('logistics_manager', 'admin')
@@ -1742,7 +1742,6 @@ def send_to_bki(request, barnameh_id):
     """
     ارسال بارنامه به بازارگاه
     """
-    logger.warning(f"ارسال بارنامه به بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = send_barnameh_to_bki(barnameh_id)
         
@@ -1761,7 +1760,6 @@ def bulk_send_to_bki(request):
     """
     ارسال گروهی بارنامه‌ها به بازارگاه
     """
-    logger.warning(f"ارسال گروهی بارنامه‌ها به بازارگاه: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         
@@ -1789,7 +1787,6 @@ def barnameh_api(request):
     """
     API برای مدیریت بارنامه‌ها
     """
-    logger.warning(f"API برای مدیریت بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'GET':
         barnameh_id = request.GET.get('id')
         
@@ -1814,7 +1811,7 @@ def barnameh_api(request):
                 }
                 return JsonResponse({'success': True, 'data': data})
             except Barnameh.DoesNotExist:
-                logger.error(f"بارنامه {barnameh_id} یافت نشد.")
+                logger.error(f"Barnameh with ID {barnameh_id} not found.")
                 return JsonResponse({'success': False, 'message': 'بارنامه مورد نظر یافت نشد.'})
         else:
             barnamehs = Barnameh.objects.all().order_by('-barnameh_created_at')
@@ -1870,13 +1867,13 @@ def barnameh_api(request):
             barnameh_id = data.get('id')
             
             if not barnameh_id:
-                logger.error('شناسه بارنامه مشخص نشده است.')
+                logger.error('Barnameh ID not specified.')
                 return JsonResponse({'success': False, 'message': 'شناسه بارنامه مشخص نشده است.'})
             
             result = delete_barnameh(barnameh_id)
             return JsonResponse(result)
         except Exception as e:
-            logger.error(f'خطا در حذف بارنامه: {str(e)}')
+            logger.error(f'Error deleting barnameh: {str(e)}')
             return JsonResponse({'success': False, 'message': f'خطا: {str(e)}'})
     
     return JsonResponse({'success': False, 'message': 'درخواست نامعتبر است.'})
@@ -1886,7 +1883,6 @@ def edit_barnameh_in_bki(request, barnameh_id):
     """
     ویرایش بارنامه در بازارگاه
     """
-    logger.warning(f"ویرایش بارنامه در بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         result = edit_barnameh_api(barnameh_id)
         
@@ -1905,7 +1901,6 @@ def bulk_edit(request):
     """
     ویرایش گروهی بارنامه‌ها
     """
-    logger.warning(f"ویرایش گروهی بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         
@@ -1960,7 +1955,7 @@ def bulk_edit(request):
                                     'serial': barnameh.serial,
                                     'error': error_message
                                 })
-                                logger.error(f"مقدار وارد شده برای وزن معتبر نیست: {new_value}")
+                                logger.error(f"Invalid weight value: {new_value}")
                                 continue
                         
                         elif field_to_update == 'barnameh_date':
@@ -1980,7 +1975,7 @@ def bulk_edit(request):
                                         'serial': barnameh.serial,
                                         'error': error_message
                                     })
-                                    logger.error(f"فرمت تاریخ معتبر نیست: {new_value}. از فرمت 1402/01/01 استفاده کنید.")
+                                    logger.error(f"Invalid date format: {new_value}. Use format 1402/01/01.")
                                     continue
                             except Exception as e:
                                 error_count += 1
@@ -1992,7 +1987,7 @@ def bulk_edit(request):
                                     'serial': barnameh.serial,
                                     'error': error_message
                                 })
-                                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
+                                logger.error(f"Error converting date: {str(e)}")
                                 continue
                         
                         elif field_to_update == 'factor_date':
@@ -2012,7 +2007,7 @@ def bulk_edit(request):
                                         'serial': barnameh.serial,
                                         'error': error_message
                                     })
-                                    logger.error(f"فرمت تاریخ ثبت فاکتور معتبر نیست: {new_value}. از فرمت 1404/02/04 استفاده کنید.")
+                                    logger.error(f"Invalid factor date format: {new_value}. Use format 1404/02/04.")
                                     continue
                             except Exception as e:
                                 error_count += 1
@@ -2024,7 +2019,7 @@ def bulk_edit(request):
                                     'serial': barnameh.serial,
                                     'error': error_message
                                 })
-                                logger.error(f"خطا در تبدیل تاریخ ثبت فاکتور: {str(e)}")
+                                logger.error(f"Error converting factor date: {str(e)}")
                                 continue
                         
                         # بروزرسانی فیلد مورد نظر
@@ -2055,7 +2050,7 @@ def bulk_edit(request):
                             'serial': barnameh.serial,
                             'error': error_message
                         })
-                        logger.error(f"خطا در بروزرسانی بارنامه {barnameh.number}/{barnameh.serial}: {str(e)}")
+                        logger.error(f"Error updating barnameh {barnameh.number}/{barnameh.serial}: {str(e)}")
                 else:
                     error_count += 1
                     error_message = f'بارنامه {barnameh.number}/{barnameh.serial} قبلاً به بازارگاه ارسال شده است و قابل ویرایش نیست.'
@@ -2066,7 +2061,7 @@ def bulk_edit(request):
                         'serial': barnameh.serial,
                         'error': error_message
                     })
-                    logger.error(f"بارنامه {barnameh.number}/{barnameh.serial} قبلاً به بازارگاه ارسال شده است و قابل ویرایش نیست.")
+                    logger.error(f"Barnameh {barnameh.number}/{barnameh.serial} has already been sent to BKI and cannot be edited.")
             # ذخیره نتایج در سشن برای نمایش در صفحه نتایج
             request.session['bulk_edit_results'] = {
                 'field': field_to_update,
@@ -2099,7 +2094,6 @@ def estelame_barnameh_view(request, barnameh_id):
     """
     استعلام بارنامه از بازارگاه
     """
-    logger.warning(f"استعلام بارنامه از بازارگاه: {barnameh_id}, ip: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         # Get date parameters from request
         from_date = request.POST.get('from_date', None)
@@ -2127,7 +2121,6 @@ def bulk_delete(request):
     """
     حذف گروهی بارنامه‌ها
     """
-    logger.warning(f"حذف گروهی بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         
@@ -2165,7 +2158,6 @@ def export_barnameh_excel(request):
     """
     خروجی اکسل از بارنامه‌های انتخاب شده
     """
-    logger.warning(f"خروجی اکسل بارنامه‌ها توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
     
     # پشتیبانی از درخواست‌های GET و POST
     if request.method == 'POST':
@@ -2175,7 +2167,6 @@ def export_barnameh_excel(request):
         barnameh_ids = request.GET.get('ids', '').split(',')
         selected_columns = request.GET.get('columns', '')
     
-    logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
     
     if selected_columns:
         # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
@@ -2199,7 +2190,7 @@ def export_barnameh_excel(request):
     
     # بررسی تعداد بارنامه‌ها
     total_count = len(barnameh_ids)
-    logger.warning(f"Total barnamehs to export: {total_count}")
+    logger.debug(f"Total barnamehs to export: {total_count}")
     
     try:
         return _export_barnameh_excel(barnameh_ids, selected_columns)
@@ -2207,7 +2198,7 @@ def export_barnameh_excel(request):
     except Exception as e:
         # لاگ خطا
         import traceback
-        logger.warning(f"Error in export_barnameh_excel: {str(e)}, {traceback.format_exc()}")
+        logger.warning(f"Error in export_barnameh_excel: {str(e)}")
         return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل'}, status=500)
 
 def _export_barnameh_excel(barnameh_ids, selected_columns):
@@ -2218,12 +2209,9 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
         'purchase__cargo'
     ).filter(id__in=barnameh_ids).order_by('-barnameh_created_at')
     
-    logger.warning(f"Found {barnamehs.count()} barnamehs")
+    logger.debug(f"Found {barnamehs.count()} barnamehs")
     
-    # لاگ کردن اطلاعات اضافی برای دیباگ
-    for barnameh in barnamehs[:5]:  # فقط 5 مورد اول
-        logger.warning(f"Barnameh {barnameh.id}: purchase={barnameh.purchase}, cargo={barnameh.purchase.cargo if barnameh.purchase else None}")
-    
+
     if barnamehs.count() == 0:
         logger.warning("ERROR: No barnamehs found!")
         return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای با شناسه‌های داده شده یافت نشد'}, status=400)
@@ -2299,7 +2287,7 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
                     value = column_mapping[col][1](barnameh)
                     row.append(value)
                 except Exception as e:
-                    logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    logger.warning(f"Error extracting value '{col}' for barnameh id={barnameh.id}: {e}")
                     # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
                     if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage']:
                         row.append("0")
@@ -2325,7 +2313,7 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     filename = f"barnameh_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
-    logger.warning(f"Excel file created: {filename}")
+    logger.debug(f"Excel file created: {filename}")
     return response
 
 
@@ -2365,7 +2353,7 @@ def get_barnameh_logs(request, barnameh_id):
             'message': 'بارنامه یافت نشد'
         }, status=404)
     except Exception as e:
-        logger.error(f"خطا در دریافت لاگ‌های بارنامه {barnameh_id}: {str(e)}")
+        logger.error(f"Error fetching logs for barnameh {barnameh_id}: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت لاگ‌ها: {str(e)}'
@@ -2405,7 +2393,7 @@ def fast_barnameh_report_pdf(request):
                     # اگر فقط کاراکترهای انگلیسی/عددی بود، بدون تغییر برگردان
                     return text
             except Exception as e:
-                logger.warning(f"خطا در پردازش متن فارسی '{text}': {str(e)}")
+                logger.error(f"Error processing Persian text '{text}': {str(e)}")
                 return text
         
         # تابع کمکی برای تبدیل مقادیر به متن امن
@@ -2434,17 +2422,17 @@ def fast_barnameh_report_pdf(request):
             else:
                 # اگر فونت وزیر موجود نبود، از فونت پیش‌فرض استفاده کن
                 BIDI_ENABLED = False
-                logger.warning("فونت وزیر یافت نشد، از فونت پیش‌فرض استفاده می‌شود")
+                logger.warning("Font Vazir not found, using default font")
         except Exception as e:
             BIDI_ENABLED = False
-            logger.warning(f"خطا در بارگذاری فونت فارسی: {str(e)}")
-        
+            logger.warning(f"Error loading Persian font: {str(e)}")
+
         # محاسبه تاریخ‌های مورد نیاز
         now = timezone.now()
         four_days_ago = now - timedelta(days=7)
-        
-        logger.info(f"گزارش بارنامه‌های سریع از {four_days_ago} تا {now}")
-        
+
+        logger.info(f"Fast barnameh report from {four_days_ago} to {now}")
+
         # یافتن خریدهای 4 روز اخیر که دارای بارنامه هستند
         purchases_with_barnamehs = Purchase.objects.filter(
             created_at__gte=four_days_ago
@@ -2734,12 +2722,12 @@ def fast_barnameh_report_pdf(request):
         pdf = buffer.getvalue()
         buffer.close()
         response.write(pdf)
-        
-        logger.info(f"گزارش PDF با پشتیبانی فارسی ایجاد شد: {filename}")
+
+        logger.debug(f"PDF report with Persian support created: {filename}")
         return response
         
     except Exception as e:
-        logger.error(f"خطا در ایجاد گزارش PDF: {str(e)}")
+        logger.error(f"Error creating PDF report: {str(e)}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در ایجاد گزارش: {str(e)}'
@@ -2751,7 +2739,6 @@ def export_full_barnameh_excel(request):
     """
     خروجی اکسل کامل از همه بارنامه‌ها با تمام ستون‌ها و امکان انتخاب بازه تاریخ
     """
-    logger.warning(f"خروجی اکسل کامل توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
     
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
@@ -2760,24 +2747,24 @@ def export_full_barnameh_excel(request):
         # دریافت پارامترهای تاریخ
         from_date = request.POST.get('from_date')
         to_date = request.POST.get('to_date')
-        
-        logger.warning(f"بازه تاریخی درخواستی: از {from_date} تا {to_date}")
-        
+
+        logger.info(f"Full barnameh Excel export request from {from_date} to {to_date}")
+
         # تست تبدیل تاریخ برای دیباگ
         if from_date:
             try:
                 test_from = jalali_to_gregorian_date(from_date)
-                logger.warning(f"تست تبدیل از تاریخ: {from_date} -> {test_from}")
+                logger.debug(f"Test conversion from date: {from_date} -> {test_from}")
             except Exception as e:
-                logger.error(f"خطا در تست تبدیل از تاریخ: {e}")
-        
+                logger.error(f"Error in test conversion from date: {e}")
+
         if to_date:
             try:
                 test_to = jalali_to_gregorian_date(to_date)
-                logger.warning(f"تست تبدیل تا تاریخ: {to_date} -> {test_to}")
+                logger.debug(f"Test conversion to date: {to_date} -> {test_to}")
             except Exception as e:
-                logger.error(f"خطا در تست تبدیل تا تاریخ: {e}")
-        
+                logger.error(f"Error in test conversion to date: {e}")
+
         # ایجاد QuerySet پایه با select_related برای بهینه‌سازی
         base_queryset = Barnameh.objects.select_related(
             'purchase', 
@@ -2796,9 +2783,9 @@ def export_full_barnameh_excel(request):
                     if from_date_obj:
                         # فیلتر روی barnameh_date (تاریخ بارنامه) نه barnameh_created_at
                         base_queryset = base_queryset.filter(barnameh_date__gte=from_date_obj)
-                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
+                        logger.debug(f"Applied filter from Jalali date {from_date} (Gregorian: {from_date_obj})")
                 except ValueError as e:
-                    logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
+                    logger.error(f"Error converting from date {from_date}: {str(e)}")
                     return JsonResponse({
                         'status': 'error', 
                         'message': f'فرمت تاریخ شروع نامعتبر: {from_date}'
@@ -2811,9 +2798,9 @@ def export_full_barnameh_excel(request):
                     if to_date_obj:
                         # فیلتر روی barnameh_date (تاریخ بارنامه) نه barnameh_created_at
                         base_queryset = base_queryset.filter(barnameh_date__lte=to_date_obj)
-                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
+                        logger.debug(f"Applied filter up to Jalali date {to_date} (Gregorian: {to_date_obj})")
                 except ValueError as e:
-                    logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
+                    logger.error(f"Error converting to date {to_date}: {str(e)}")
                     return JsonResponse({
                         'status': 'error', 
                         'message': f'فرمت تاریخ پایان نامعتبر: {to_date}'
@@ -2821,7 +2808,7 @@ def export_full_barnameh_excel(request):
         
         # شمارش کل بارنامه‌ها
         total_count = base_queryset.count()
-        logger.warning(f"تعداد کل بارنامه‌های قابل خروجی: {total_count}")
+        logger.debug(f"Total count of exportable barnamehs: {total_count}")
         
         if total_count == 0:
             return JsonResponse({
@@ -2841,14 +2828,13 @@ def export_full_barnameh_excel(request):
         all_columns_data = get_all_barnameh_columns()
         all_column_ids = [col['id'] for col in all_columns_data if col['id'] != 'actions']
         
-        logger.warning(f"تمام ستون‌های قابل خروجی: {len(all_column_ids)} ستون")
-        
+
         # تولید فایل اکسل
         return _export_barnameh_excel_full(base_queryset, all_column_ids, from_date, to_date)
         
     except Exception as e:
         import traceback
-        logger.error(f"خطا در خروجی اکسل کامل: {str(e)}, {traceback.format_exc()}")
+        logger.error(f"Error exporting full Excel: {str(e)}")
         return JsonResponse({
             'status': 'error', 
             'message': f'خطا در تولید فایل اکسل: {str(e)}'
@@ -2857,7 +2843,7 @@ def export_full_barnameh_excel(request):
 def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_date=None):
     """پردازش و ایجاد فایل اکسل کامل برای همه بارنامه‌ها"""
     
-    logger.warning(f"شروع تولید فایل اکسل کامل برای {queryset.count()} بارنامه با {len(selected_columns)} ستون")
+    logger.debug(f"Starting full Excel export for {queryset.count()} barnameh records with {len(selected_columns)} columns")
     
     wb = Workbook()
     ws = wb.active
@@ -2962,7 +2948,7 @@ def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_d
                     value = column_mapping[col][1](barnameh)
                     row.append(value)
                 except Exception as e:
-                    logger.warning(f"خطا در استخراج مقدار {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    logger.warning(f"Error extracting value '{col}' for barnameh id={barnameh.id}: {str(e)}")
                     # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
                     if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage']:
                         row.append("0")
@@ -2974,15 +2960,15 @@ def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_d
         
         # نمایش پیشرفت هر 1000 رکورد
         if processed_count % batch_size == 0:
-            logger.info(f"پردازش شد: {processed_count:,} از {queryset.count():,} بارنامه")
-        
+            logger.debug(f"Processed: {processed_count:,} of {queryset.count():,} barnameh records")
+            
         # تنظیم استایل برای سطرهای داده
         current_row = ws.max_row
         for j, cell in enumerate(ws[current_row], 1):
             cell.alignment = alignment
-    
-    logger.warning(f"تمام {processed_count:,} بارنامه پردازش شد")
-    
+
+    logger.info("All barnamehs have been processed")
+
     # تنظیم عرض ستون‌ها - ساده
     for i in range(1, len(headers) + 1):
         column_letter = ws.cell(row=header_row, column=i).column_letter
@@ -3004,6 +2990,6 @@ def _export_barnameh_excel_full(queryset, selected_columns, from_date=None, to_d
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
     wb.save(response)
-    
-    logger.warning(f"فایل اکسل کامل با موفقیت تولید شد: {filename}")
+
+    logger.debug(f"Full Excel file created successfully: {filename}")
     return response

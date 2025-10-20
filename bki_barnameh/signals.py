@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_PANDAS = False
 
-logger = logging.getLogger('bki_barnameh_signals')
+logger = logging.getLogger('bugs')
 
 # دیکشنری برای ذخیره مقادیر قبلی is_sent_to_bki
 _old_is_sent_to_bki_values = {}
@@ -72,7 +72,8 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     2. بارنامه خارج بازارگاهی ایجاد یا بروزرسانی شود (type='Non_Bazargah')
     """
     # لاگ اولیه برای تایید اجرای سیگنال
-    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh {instance.id} post_save signal - created={created}, is_sent_to_bki={instance.is_sent_to_bki}, type={instance.type}, number={instance.number}")
+    logger.info(f"🚨 SIGNAL TRIGGERED: Barnameh")
+    logger.debug(f"Barnameh {instance.id} post_save signal - created={created}, is_sent_to_bki={instance.is_sent_to_bki}, type={instance.type}, number={instance.number}")
     
     # بررسی نوع بارنامه
     is_non_bazargah = instance.is_non_bazargah_barnameh()
@@ -81,7 +82,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     # برای بارنامه بازارگاهی: فقط زمانی پیامک ارسال شود که به بازارگاه ارسال شده باشد
     # برای بارنامه خارج بازارگاه: همیشه پیامک ارسال شود
     if not is_non_bazargah and not instance.is_sent_to_bki:
-        logger.info(f"⏭️ Skipping SMS for bazargah barnameh {instance.id} - not sent to BKI yet (is_sent_to_bki={instance.is_sent_to_bki})")
+        logger.debug(f"⏭️ Skipping SMS for bazargah barnameh {instance.id} - not sent to BKI yet (is_sent_to_bki={instance.is_sent_to_bki})")
         return
     
     # بررسی شرایط خاص برای هر نوع بارنامه
@@ -89,7 +90,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         # اگر این یک آپدیت است
         if is_non_bazargah:
             # برای بارنامه‌های خارج بازارگاه، فقط برای بارنامه‌های جدید پیامک ارسال می‌شود
-            logger.info(f"⏭️ Skipping SMS for non-bazargah barnameh {instance.id} - only new non-bazargah barnamehs trigger SMS (created={created})")
+            logger.debug(f"⏭️ Skipping SMS for non-bazargah barnameh {instance.id} - only new non-bazargah barnamehs trigger SMS (created={created})")
             # پاک کردن مقدار ذخیره شده در صورت وجود
             _old_is_sent_to_bki_values.pop(instance.pk, None)
             return
@@ -99,13 +100,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
             
             # اگر قبلاً is_sent_to_bki برابر True بوده، پیامک ارسال نکن
             if old_is_sent_to_bki:
-                logger.info(f"⏭️ Skipping SMS for bazargah barnameh {instance.id} - already was sent to BKI before this update (old_value={old_is_sent_to_bki}, new_value={instance.is_sent_to_bki})")
+                logger.debug(f"⏭️ Skipping SMS for bazargah barnameh {instance.id} - already was sent to BKI before this update (old_value={old_is_sent_to_bki}, new_value={instance.is_sent_to_bki})")
                 # پاک کردن مقدار ذخیره شده
                 _old_is_sent_to_bki_values.pop(instance.pk, None)
                 return
-            
-            logger.info(f"🔄 Bazargah barnameh {instance.id} is_sent_to_bki changed from {old_is_sent_to_bki} to {instance.is_sent_to_bki}")
-            
+
+            logger.info("Bazargah barnameh is_sent_to_bki changed")
+            logger.debug(f"🔄 Bazargah barnameh {instance.id} is_sent_to_bki changed from {old_is_sent_to_bki} to {instance.is_sent_to_bki}")
+
             # پاک کردن مقدار ذخیره شده
             _old_is_sent_to_bki_values.pop(instance.pk, None)
     else:
@@ -114,9 +116,11 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         _old_is_sent_to_bki_values.pop(instance.pk, None)
     
     if is_non_bazargah:
-        logger.info(f"✅ Non-bazargah barnameh {instance.id} eligible for SMS - type={instance.type}, number={instance.number}")
+        logger.info(f"✅ Non-bazargah barnameh eligible for SMS ")
+        logger.debug(f"✅ Non-bazargah barnameh {instance.id} eligible for SMS - type={instance.type}, number={instance.number}")
     else:
-        logger.info(f"✅ Bazargah barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
+        logger.info(f"✅ Bazargah barnameh eligible for SMS, sent to BKI")
+        logger.debug(f"✅ Bazargah barnameh {instance.id} eligible for SMS - successfully sent to BKI, number={instance.number}, sent_at={instance.is_sent_to_bki_at}")
     
     # بررسی تاریخ بارنامه 
     # شرط: اگر تاریخ بارنامه 5 روز یا بیشتر قبل از امروز باشد (قدیمی)، پیامک ارسال نشود
@@ -126,7 +130,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         # فقط اختلاف گذشته؛ تاریخ‌های آینده شامل نمی‌شود
         past_days = (today - instance.barnameh_date).days
         if past_days >= 5:
-            logger.info(
+            logger.debug(
                 f"Bazargah barnameh {instance.id} is older than or equal to 5 days (past_days={past_days}), skipping SMS"
             )
             return
@@ -135,28 +139,28 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         today = jdate.today()
         past_days = (today - instance.barnameh_date).days
         if past_days >= 5:
-            logger.info(
+            logger.debug(
                 f"Non-bazargah barnameh {instance.id} is older than or equal to 5 days (past_days={past_days}), skipping SMS"
             )
             return
     elif is_non_bazargah and not instance.barnameh_date:
         # برای بارنامه‌های خارج بازارگاه که تاریخ ندارند، باز هم پیامک ارسال می‌شود
-        logger.info(f"Non-bazargah barnameh {instance.id} has no date, but SMS will be sent anyway")
-    
+        logger.info(f"Non-bazargah barnameh has no date, but SMS will be sent anyway")
+        logger.debug(f"Non-bazargah barnameh {instance.id} has no date, but SMS will be sent anyway")
+
     # جمع‌آوری شماره‌های تلفن مشتری برای ارسال پیامک
     phone_numbers = []
     
     # اضافه کردن شماره‌های مشتری (از طریق Purchase بازارگاهی یا خارج بازارگاه)
-    logger.info(f"🔍 Checking purchase association for barnameh {instance.id}: purchase={instance.purchase}, non_bazargah_allocation={instance.non_bazargah_allocation}, non_bazargah_purchase={instance.non_bazargah_purchase}")
-    
     # دریافت مشتری از بارنامه (از طریق متد get_customer که هر دو نوع را پشتیبانی می‌کند)
     customer = instance.get_customer()
     
     if customer:
-        logger.info(f"✅ Found customer: {customer.name} (ID: {customer.id}) for barnameh {instance.id}")
+        logger.info(f"✅ Found customer for barnameh")
+        logger.debug(f"✅ Found customer: {customer.name} (ID: {customer.id}) for barnameh {instance.id}")
         
         # بررسی تنظیمات SMS مشتری
-        logger.info(f"📱 Customer SMS preference: {customer.sms_preference}")
+        logger.debug(f"📱 Customer SMS preference: {customer.sms_preference}")
         if customer.sms_preference:
             # استفاده از متد get_all_phone_numbers
             # برای بارنامه‌های بازارگاهی از instance.purchase استفاده می‌کنیم
@@ -179,7 +183,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
                     if phone and phone not in customer_phones:
                         customer_phones.append(phone)
             
-            logger.info(f"📞 Found {len(customer_phones)} unique phone numbers for customer: {customer_phones}")
+            logger.debug(f"📞 Found {len(customer_phones)} unique phone numbers for customer: {customer_phones}")
             phone_numbers.extend(customer_phones)
             
             # 🎯 اضافه کردن شماره تحویل از تخصیص بازارگاهی (اگر موجود باشد)
@@ -187,7 +191,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
                 allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
                 if allocation_phone and allocation_phone not in phone_numbers:
                     phone_numbers.append(allocation_phone)
-                    logger.info(f"📱 Added bazargah allocation delivery phone: {allocation_phone} for barnameh {instance.id}")
+                    logger.debug(f"📱 Added bazargah allocation delivery phone: {allocation_phone} for barnameh {instance.id}")
             
             # 🎯 اضافه کردن شماره تحویل از تخصیص خارج بازارگاهی (اگر موجود باشد)
             if instance.non_bazargah_allocation:
@@ -208,13 +212,13 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
     if not phone_numbers:
         # برای بارنامه‌های بازارگاهی: تلاش با purchase_number
         if instance.purchase_number and not is_non_bazargah:
-            logger.info(f"🔍 No phone numbers found, trying to find bazargah purchase by number: {instance.purchase_number}")
+            logger.debug(f"🔍 No phone numbers found, trying to find bazargah purchase by number: {instance.purchase_number}")
             try:
                 from core.PurchaseModel import Purchase
                 purchase = Purchase.objects.get(purchase_number=instance.purchase_number)
                 if purchase.customer and purchase.customer.sms_preference:
                     customer_phones = purchase.customer.get_all_phone_numbers(purchase, True)
-                    logger.info(f"📞 Found {len(customer_phones)} unique phone numbers from purchase_number lookup")
+                    logger.debug(f"📞 Found {len(customer_phones)} unique phone numbers from purchase_number lookup")
                     phone_numbers.extend(customer_phones)
                     
                     # 🎯 اضافه کردن شماره تحویل از تخصیص (اگر موجود باشد)
@@ -222,13 +226,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
                         allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
                         if allocation_phone and allocation_phone not in phone_numbers:
                             phone_numbers.append(allocation_phone)
-                            logger.info(f"📱 Added allocation delivery phone from purchase lookup: {allocation_phone} for barnameh {instance.id}")
+                            logger.debug(f"📱 Added allocation delivery phone from purchase lookup: {allocation_phone} for barnameh {instance.id}")
                     
                     # بروزرسانی ارتباط بارنامه با خرید
                     if not instance.purchase:
                         instance.purchase = purchase
                         instance.save()
-                        logger.info(f"✅ Updated barnameh {instance.id} with purchase {purchase.id}")
+                        logger.info(f"✅ Updated barnameh with purchase")
+                        logger.debug(f"✅ Updated barnameh {instance.id} with purchase {purchase.id}")
             except Purchase.DoesNotExist:
                 logger.warning(f"❌ Purchase with number {instance.purchase_number} not found")
             except Exception as e:
@@ -239,14 +244,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         allocation_phone = instance.shenase_takhsis.tahvil_phone_number.strip()
         if allocation_phone:
             phone_numbers.append(allocation_phone)
-            logger.info(f"📱 Using only bazargah allocation delivery phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
+            logger.debug(f"📱 Using only bazargah allocation delivery phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
     
     # 🎯 اگر هنوز شماره‌ای پیدا نشد اما تخصیص خارج بازارگاهی موجود است، از شماره هماهنگی آن استفاده کن
     if not phone_numbers and instance.non_bazargah_allocation and instance.non_bazargah_allocation.coordination_phone:
         allocation_phone = instance.non_bazargah_allocation.coordination_phone.strip()
         if allocation_phone:
             phone_numbers.append(allocation_phone)
-            logger.info(f"📱 Using only non-bazargah allocation coordination phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
+            logger.debug(f"📱 Using only non-bazargah allocation coordination phone: {allocation_phone} for barnameh {instance.id} (no customer phones found)")
     
     if not phone_numbers:
         logger.warning(f"❌ No phone numbers found for barnameh {instance.id}, will not send SMS")
@@ -295,14 +300,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
         message += "تأمین نهاده سیمرغ\n"
         message += "☎ 021-66562216"
         
-        logger.info(f"📝 Hardcoded SMS message created for barnameh {instance.id}")
-        logger.debug(f"📄 SMS content: {message}")
+        logger.info(f"📝 Hardcoded SMS message created for barnameh")
+        logger.debug(f"📄 Barnameh: {instance.id}, SMS content: {message}")
         
         # ارسال پیامک به همه شماره‌ها
         success_count = 0
         for phone in phone_numbers:
             try:
-                logger.info(f"🔄 Attempting to queue SMS for barnameh {instance.id} to {phone}")
+                logger.debug(f"🔄 Attempting to queue SMS for barnameh {instance.id} to {phone}")
                 queue_sms(
                     number=phone,
                     message=message,
@@ -310,12 +315,14 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
                     purchase=instance.purchase  # در صورت وجود
                 )
                 success_count += 1
-                logger.info(f"✅ Successfully queued SMS for barnameh {instance.id} to {phone}")
+                logger.info(f"✅ Successfully queued SMS for barnameh")
+                logger.debug(f"✅ Successfully queued SMS for barnameh {instance.id} to {phone}")
             except Exception as e:
                 logger.error(f"❌ Error queuing SMS for {phone} (Barnameh ID: {instance.id}): {str(e)}")
         
         if success_count > 0:
-            logger.info(f"🎉 Successfully queued SMS for barnameh {instance.id} sent to BKI to {success_count} numbers")
+            logger.info(f"🎉 Successfully queued SMS for barnameh {success_count} numbers")
+            logger.debug(f"🎉 Successfully queued SMS for barnameh {instance.id} sent to BKI to {success_count} numbers")
         else:
             logger.warning(f"⚠️ Failed to queue SMS for any numbers for barnameh {instance.id}")
     

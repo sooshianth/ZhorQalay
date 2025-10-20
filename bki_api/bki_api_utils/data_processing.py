@@ -137,9 +137,9 @@ def log_state_change_attempt(purchase_number, current_state, suggested_state, al
     suggested_display = get_state_display_name(suggested_state)
     
     if allowed:
-        logger.info(f"✅ خرید {purchase_number}: وضعیت از '{current_display}' به '{suggested_display}' تغییر کرد")
+        logger.info(f"✅ Purchase {purchase_number}: state changed from '{current_display}' to '{suggested_display}'")
     else:
-        logger.warning(f"⚠️ خرید {purchase_number}: تغییر وضعیت از '{current_display}' به '{suggested_display}' مجاز نیست {reason}")
+        logger.warning(f"⚠️ Purchase {purchase_number}: state change from '{current_display}' to '{suggested_display}' is not allowed {reason}")
 
 
 def get_state_display_name(state):
@@ -185,7 +185,7 @@ def create_state_change_record(purchase, previous_state, new_state, notes="تغ�
     try:
         # اگر وضعیت قبلی و جدید یکسان هستند، رکورد ایجاد نکن
         if previous_state == new_state:
-            logger.debug(f"🔄 وضعیت خرید {purchase.purchase_number} تغییری نداشته: {new_state}")
+            logger.debug(f"🔄 Purchase {purchase.purchase_number}: state unchanged ({new_state})")
             return
         
         # Check if a state change record already exists for this exact transition in the last hour
@@ -208,14 +208,12 @@ def create_state_change_record(purchase, previous_state, new_state, notes="تغ�
                 sms_sent=False,  # سیگنال خودش این رو True می‌کنه
                 notes=notes
             )
-            logger.info(f"✅ رکورد تغییر وضعیت برای خرید {purchase.purchase_number} ایجاد شد: {previous_state} → {new_state} (ID: {state_change.id})")
+            logger.info(f"✅ State change record created for purchase {purchase.purchase_number}: {previous_state} → {new_state} (ID: {state_change.id})")
         else:
-            logger.info(f"ℹ️ رکورد تغییر وضعیت مشابه برای خرید {purchase.purchase_number} در ساعت گذشته موجود است: {previous_state} → {new_state}")
+            logger.info(f"ℹ️ A similar state change record for purchase {purchase.purchase_number} exists in the past hour: {previous_state} → {new_state}")
             
     except Exception as e:
-        logger.error(f"❌ خطا در ایجاد رکورد تغییر وضعیت برای خرید {purchase.purchase_number}: {str(e)}")
-        import traceback
-        logger.error(f"جزئیات خطا: {traceback.format_exc()}")
+        logger.error(f"❌ Error creating state change record for purchase {purchase.purchase_number}: {str(e)}")
 
 
 def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code, 
@@ -241,7 +239,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
     # Clean the phone number
     clean_phone, error = clean_phone_number(buyer_phone)
     if error:
-        logger.warning(f"توجه: {error}")
+        logger.warning(f"Warning in creating or getting customer: {error}")
     
     # Search for the customer by phone number
     customer = None
@@ -254,8 +252,9 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             customer = phone.customer
             customer = Customer.objects.filter(name=buyer_name).first()
     except Exception as e:
-        return None, False, f"خطا در جستجوی مشتری با شماره تلفن: {str(e)}"
-    
+        logger.error(f"Error searching for customer by phone number: {str(e)}")
+        return None, False, f"Error searching for customer by phone number: {str(e)}"
+
     # If no customer was found, create a new one
     if not customer:
         try:
@@ -301,11 +300,18 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             assign_default_sales_agent(customer)
             
             created = True
-            
-            logger.info(f"✅ مشتری جدید '{buyer_name}' با شناسه ملی {buyer_national_id} و وضعیت {haqiqi_hoquqi} ایجاد شد")
-            
+
+            # mask national id (show only last 4 digits)
+            if buyer_national_id:
+                code = ''.join(c for c in str(buyer_national_id) if c.isdigit())
+                masked_code = '*' * max(0, len(code) - 4) + code[-4:] if code else '****'
+            else:
+                masked_code = '****'
+
+            logger.debug(f"✅ New customer '{buyer_name}' created (national id: {masked_code}, type: {haqiqi_hoquqi})")
             return customer, created, None
         except Exception as e:
+            logger.error(f"Error creating new customer: {str(e)}")
             return None, False, f"خطا در ایجاد مشتری جدید: {str(e)}"
     
     # اگر مشتری موجود بود، فیلدهای خالی را آپدیت کن
@@ -346,10 +352,10 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
         
         if updated:
             customer.save()
-            logger.info(f"✅ اطلاعات فاکتور مشتری '{buyer_name}' آپدیت شد")
+            logger.info(f"✅ Customer invoice information for '{buyer_name}' updated")
     
     except Exception as e:
-        logger.warning(f"⚠️ خطا در آپدیت اطلاعات مشتری: {str(e)}")
+        logger.warning(f"⚠️ Error updating customer invoice information: {str(e)}")
     
     return customer, created, None
 
@@ -379,10 +385,10 @@ def assign_default_sales_agent(customer):
             )
             # Add the sales agent to the customer
             customer.sales_agent.add(admin_agent)
-            logger.info(f"کارشناس فروش مدیریت به مشتری {customer.name} اضافه شد")
+            logger.debug(f"Admin sales agent assigned to customer {customer.name}")
             return True
     except Exception as e:
-        logger.error(f"خطا در اختصاص کارشناس فروش به مشتری: {str(e)}")
+        logger.error(f"Error assigning sales agent to customer: {str(e)}")
         return False
 
 
@@ -423,8 +429,9 @@ def create_or_get_product(product_name, goodtag, fee):
                     country='unknown'  # Default to Australia
                 )
                 created = True
-                logger.info(f"محصول جدید با کوتاژ {goodtag} و نوع {product_type} ایجاد شد")
+                logger.info(f"✅ New product created with cottage (goodtag) {goodtag} and type {product_type}")
         except Exception as e:
+            logger.error(f"Error creating product with cottage (goodtag) {goodtag}: {str(e)}")
             return None, False, f"خطا در ایجاد محصول با کوتاژ {goodtag}: {str(e)}"
     
     # If no product was found based on goodtag, use the previous method
@@ -447,6 +454,7 @@ def create_or_get_product(product_name, goodtag, fee):
                 )
                 created = True
         except Exception as e:
+            logger.error(f"Error finding or creating product: {str(e)}")
             return None, False, f"خطا در یافتن یا ایجاد محصول: {str(e)}"
     
     return cargo, created, None
@@ -539,10 +547,10 @@ def update_purchase(purchase, purchase_data):
                 
                 if updated:
                     customer.save()
-                    logger.info(f"✅ اطلاعات فاکتور مشتری '{customer.name}' از خرید {purchase.purchase_number} آپدیت شد")
+                    logger.info(f"✅ Customer invoice information for '{customer.name}' updated for purchase {purchase.purchase_number}")
             
             except Exception as e:
-                logger.warning(f"⚠️ خطا در آپدیت اطلاعات مشتری هنگام بروزرسانی خرید: {str(e)}")
+                logger.warning(f"⚠️ Error updating customer information while updating purchase: {str(e)}")
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -596,7 +604,7 @@ def update_purchase(purchase, purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
+                logger.error(f"Error converting date: {str(e)}")
         
         # اگر کارشناس فروش یکتا تنظیم نشده، آن را به مدیریت تنظیم کن
         if not purchase.unique_sales_agent:
@@ -615,7 +623,7 @@ def update_purchase(purchase, purchase_data):
                     purchase.unique_sales_agent = admin_sales_agent
                     purchase.unique_sales_agent_code = admin_sales_agent.factor_code
             except Exception as e:
-                logger.error(f"خطا در تنظیم کارشناس فروش مدیریت برای خرید موجود: {str(e)}")
+                logger.error(f"Error assigning admin sales agent for existing purchase: {str(e)}")
 
         # Save changes
         purchase.save()
@@ -649,6 +657,7 @@ def update_purchase(purchase, purchase_data):
         return purchase, None
     
     except Exception as e:
+        logger.error(f"Error updating purchase: {str(e)}")
         return purchase, f"خطا در به‌روزرسانی خرید: {str(e)}"
 
 
@@ -747,7 +756,7 @@ def create_purchase(purchase_data):
                 purchase_state = 'INITIATED'  # حالت اولیه
             else:
                 purchase_state = 'PAYMENT_VERIFIED'  # حالت پیش‌فرض امن
-            logger.info(f"⚠️ API وضعیت اپراتور-محور {api_determined_state} پیشنهاد داد، به جای آن {purchase_state} تنظیم شد")
+            logger.info(f"⚠️ API suggested operator-only state {api_determined_state}; set {purchase_state} instead")
         else:
             purchase_state = api_determined_state
         
@@ -792,7 +801,7 @@ def create_purchase(purchase_data):
                 )
                 admin_sales_agent_name = admin_sales_agent.name
         except Exception as e:
-            logger.error(f"خطا در پیدا کردن کارشناس فروش مدیریت: {str(e)}")
+            logger.error(f"Error finding admin sales agent: {str(e)}")
 
         # تنظیم پارامترهای پایه برای ایجاد خرید
         # اگر تخصیص وجود دارد (qty > 0) از qty استفاده کن، وگرنه از totalweight
@@ -850,7 +859,7 @@ def create_purchase(purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                logger.error(f"خطا در تبدیل تاریخ: {str(e)}")
+                logger.error(f"Error converting date: {str(e)}")
         
         # Create a new purchase
         purchase = Purchase.objects.create(**purchase_params)
@@ -871,6 +880,7 @@ def create_purchase(purchase_data):
         return purchase, None
     
     except Exception as e:
+        logger.error(f"Error creating purchase: {str(e)}")
         return None, f"خطا در ایجاد خرید: {str(e)}"
 
 
@@ -938,7 +948,7 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
     if isinstance(purchase_data, dict):
         updated_count, error_count = update_incorrect_phone_numbers(purchase_data)
         if updated_count > 0:
-            logger.info(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+            logger.info(f"{updated_count} incorrect phone numbers were updated")
     
     # If purchase_data is a list, process it as a group
     if isinstance(purchase_data, list):
@@ -946,13 +956,14 @@ def process_purchase_data(purchase_data, create_if_not_exists=True):
         for item in purchase_data:
             updated_count, error_count = update_incorrect_phone_numbers(item)
             if updated_count > 0:
-                logger.info(f"تعداد {updated_count} شماره تلفن نادرست به‌روزرسانی شد")
+                logger.info(f"{updated_count} incorrect phone numbers were updated")
         
         return process_grouped_purchase_data(purchase_data, create_if_not_exists)
     
     # Extract purchase ID
     purchase_number = purchase_data.get('idkharid')
     if not purchase_number:
+        logger.debug(f"Purchase ID not found")
         return None, False, "شناسه خرید در داده‌ها یافت نشد"
     
     # Process as a single entry by passing a list with one item to process_grouped_purchase_data
@@ -980,12 +991,14 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         - Otherwise, the state is determined based on standard rules for allocation and barnameh status
     """
     if not purchase_data_list or len(purchase_data_list) == 0:
+        logger.debug(f"Purchase data list is empty")
         return None, False, "لیست داده‌های خرید خالی است"
     
     # Extract purchase ID from the first entry (all entries should have the same ID)
     first_entry = purchase_data_list[0]
     purchase_number = first_entry.get('idkharid')
     if not purchase_number:
+        logger.debug(f"Purchase ID not found")
         return None, False, "شناسه خرید در داده‌ها یافت نشد"
     
     # Calculate total order weight (sum of 'qty' for all allocation entries)
@@ -1083,7 +1096,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                     reason = "(تغییر پیشرفت محسوب نمی‌شود)"
                 log_state_change_attempt(purchase_number, purchase.state, suggested_state, False, reason)
         else:
-            logger.info(f"ℹ️ هیچ تغییر وضعیت برای خرید {purchase_number} پیشنهاد نشد")
+            logger.debug(f"ℹ️ No state change suggested for purchase {purchase_number}")
         
         # Save changes
         purchase.save()
@@ -1132,6 +1145,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         
     except Purchase.DoesNotExist:
         if not create_if_not_exists:
+            logger.warning(f"Purchase with ID {purchase_number} not found")
             return None, False, f"خرید با شماره {purchase_number} یافت نشد"
         
         # Create a new purchase using the data from the first entry
@@ -1225,6 +1239,7 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
         return purchase, True, None
     
     except Exception as e:
+        logger.error(f"Error processing purchase: {str(e)}")
         return None, False, f"خطا در پردازش خرید: {str(e)}"
 
 

@@ -9,7 +9,7 @@ import os
 import xml.etree.ElementTree as ET
 import logging
 
-logger = logging.getLogger("bki_api_location")
+logger = logging.getLogger("bugs")
 
 
 # Cache for province mappings to avoid repeated file reads
@@ -67,7 +67,7 @@ def load_province_mapping():
         _PROVINCE_MAPPING = province_mapping
         return province_mapping
     except Exception as e:
-        print(f"خطا در بارگذاری فایل استان‌ها: {str(e)}")
+        logger.error(f"Error loading province file: {str(e)}")
         return {}
 
 

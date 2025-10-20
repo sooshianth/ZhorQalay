@@ -10,7 +10,7 @@ from django.utils import timezone
 from django_jalali.db import models as jmodels
 import logging
 
-logger = logging.getLogger("bki_api_helpers")
+logger = logging.getLogger("bugs")
 
 
 def clean_phone_number(phone):
@@ -123,12 +123,14 @@ def update_incorrect_phone_numbers(purchase_data):
                 phone.number = clean_phone
                 phone.save()
                 updated_count += 1
-                logger.info(f"شماره تلفن مشتری {buyer_name} از 9000000000 به {clean_phone} به‌روزرسانی شد")
-        
+                # Log only last 4 digits, mask the rest with ***
+                last4 = clean_phone[-4:] if len(clean_phone) >= 4 else clean_phone
+                masked = f"***{last4}"
+                logger.info(f"Customer phone number for {buyer_name} updated from 9000000000 to {masked}")
         return updated_count, error_count
     
     except Exception as e:
-        logger.error(f"خطا در به‌روزرسانی شماره‌های تلفن نادرست: {str(e)}")
+        logger.error(f"Error updating incorrect phone numbers: {str(e)}")
         return updated_count, error_count + 1
 
 
@@ -170,7 +172,7 @@ def convert_persian_date_to_gregorian(persian_date_str):
         
         return gregorian_date
     except Exception as e:
-        logger.error(f"خطا در تبدیل تاریخ شمسی به میلادی: {str(e)}")
+        logger.error(f"Error converting Persian date to Gregorian: {str(e)}")
         return None
 
 

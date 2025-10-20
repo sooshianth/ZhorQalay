@@ -43,8 +43,8 @@ def send_verify_code(number:str):
         auth_logger.info(f"Verification code successfully sent to {masked_phone}")
         return code, True
     except Exception as e:
-        auth_logger.error("Error sending SMS")
-        logger.error(f"Error sending SMS: {e}")
+        auth_logger.warning("Error sending SMS")
+        logger.warning(f"Error sending SMS: {e}")
         # Return the code even if SMS sending failed
         return code, False
 
@@ -226,7 +226,7 @@ class OTPLoginForm(forms.Form):
 
             masked_phone = '*' * max(0, len(phone) - 4) + phone[-4:] if phone else '****'
 
-            auth_logger.activity(f"phone: {masked_phone} - current_attempts: {current_attempts}")
+            auth_logger.info(f"phone: {masked_phone} - current_attempts: {current_attempts}")
 
             # Extra fields for auth logging
             extra = {
@@ -253,7 +253,7 @@ class OTPLoginForm(forms.Form):
                     # Increment login attempts
                     cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
                     
-                    auth_logger.warning(
+                    auth_logger.activity(
                         f"LOGIN FAILED - Phone not found: {phone}",
                         extra=extra
                     )
@@ -271,7 +271,7 @@ class OTPLoginForm(forms.Form):
                     extra['user_id'] = user.id
                     extra['action'] = 'login_success'
                     masked_phone = '*' * max(0, len(phone) - 4) + phone[-4:] if phone else '****'
-                    auth_logger.info(
+                    auth_logger.activity(
                         f"LOGIN SUCCESS - User: {user.username} - Phone: {masked_phone}",
                         extra=extra
                     )
@@ -285,8 +285,11 @@ class OTPLoginForm(forms.Form):
             else:
                 # Increment login attempts for failed verification
                 cache.set(login_attempts_key, current_attempts + 1, timeout=300)  # Same timeout as OTP
-                
-                
+                auth_logger.activity(
+                    f"LOGIN FAILED - Phone: {phone} - Attempts: {current_attempts + 1}",
+                    extra=extra
+                )
+
                 return {'success': False, 'message': "کد تایید اشتباه است"}
         
         return {'success': False, 'message': "شماره موبایل یا کد تایید وارد نشده است"}

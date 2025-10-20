@@ -96,7 +96,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.ERROR(
                         f'خطا در پردازش {instance}: {str(e)}'
                     ))
-                    logger.error(f'خطا در مهاجرت شماره تلفن: {str(e)}')
+                    logger.error(f'Error migrating phone number: {str(e)}')
                 
                 total_processed += 1
         

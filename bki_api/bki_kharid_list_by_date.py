@@ -94,23 +94,22 @@ def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05
             log_entry.is_successful = False
             log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
-            logger.error(f"خطای HTTP: {response.status_code} {response.text}")
+            logger.error(f"HTTP Error: {response.status_code} {response.text}")
             return None, log_entry, f"خطای HTTP: {response.status_code}"
         
         # تجزیه پاسخ XML با استفاده از تابع analyze_api_response
         try:
-            logger.info("پاسخ XML دریافت شد. در حال تجزیه...")
+            logger.info("XML response received. Parsing...")
             from .bki_api_utils.api_client   import analyze_api_response
             
             # تحلیل ساختار پاسخ
             analysis = analyze_api_response(response.text)
-            logger.info(f"نتیجه تحلیل پاسخ API: {analysis}")
             
             if not analysis['is_valid']:
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تحلیل پاسخ: {analysis['error']}"
                 log_entry.save()
-                logger.error(f"خطا در تحلیل پاسخ: {analysis['error']}")
+                logger.error(f"Error analyzing API response: {analysis['error']}")
                 return None, log_entry, f"خطا در تحلیل پاسخ: {analysis['error']}"
             
             # تجزیه پاسخ XML
@@ -125,12 +124,12 @@ def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05
                     
                     # Table1 ممکن است یک لیست یا یک دیکشنری باشد
                     if isinstance(table1, list):
-                        logger.info(f"Table1 یک لیست با {len(table1)} آیتم است")
+                        logger.debug(f"Table1 is a list with {len(table1)} items")
                         log_entry.is_successful = True
                         log_entry.save()
                         return table1, log_entry, None
                     else:
-                        logger.info(f"Table1 یک دیکشنری با کلیدهای: {', '.join(table1.keys())}")
+                        logger.debug(f"Table1 is a dict with keys: {', '.join(table1.keys())}")
                         log_entry.is_successful = True
                         log_entry.save()
                         return [table1], log_entry, None
@@ -139,20 +138,19 @@ def send_kharid_list_by_date_request(from_date="1403/11/05", to_date="1403/11/05
             log_entry.is_successful = False
             log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
             log_entry.save()
-            logger.error("هیچ داده خرید در پاسخ یافت نشد")
+            logger.warning("No purchase data found in the response")
             return None, log_entry, "هیچ داده خرید در پاسخ یافت نشد"
         
         except Exception as e:
-            logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
+            logger.error(f"Error parsing response: {str(e)}")
             import traceback
-            logger.error(traceback.format_exc())
             log_entry.is_successful = False
-            log_entry.error_message = f"خطا در تجزیه پاسخ:"
+            log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}\n{traceback.format_exc()}"
             log_entry.save()
             return None, log_entry, f"خطا در تجزیه پاسخ: "
     
     except Exception as e:
-        logger.error(f"خطا در ارسال درخواست: {str(e)}")
+        logger.error(f"Error sending request: {str(e)}")
         log_entry.is_successful = False
         log_entry.error_message = f"خطا در ارسال درخواست: "
         log_entry.save()
@@ -173,21 +171,21 @@ def get_all_purchases_by_date_range(start_date, end_date):
     purchases_data, log_entry, error = send_kharid_list_by_date_request(start_date, end_date)
     
     if error:
-        logger.error(f"خطا در ارسال درخواست SOAP: {error}")
+        logger.error(f"Error sending SOAP request: {error}")
         return 0, 0, 0, 0, 0, [f"خطا در ارسال درخواست SOAP: {error}"]
     
     # بررسی اگر هیچ داده خریدی یافت نشد
     if not purchases_data:
-        logger.error("هیچ داده خرید در پاسخ یافت نشد")
+        logger.warning("No purchase data found in the response")
         return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
     
     # چاپ تعداد خریدهای یافت شده
-    logger.info(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
+    logger.debug(f"Number of purchases found: {len(purchases_data)}")
     
     # گروه‌بندی داده‌ها بر اساس شناسه خرید
     grouped_data = group_purchase_data_by_id(purchases_data)
-    logger.info(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
-    
+    logger.debug(f"Purchases divided into {len(grouped_data)} groups")
+
     # پردازش گروه‌های خرید
     total_count = len(grouped_data)
     success_count = 0
@@ -213,25 +211,24 @@ def get_all_purchases_by_date_range(start_date, end_date):
             purchase, created, error = process_grouped_purchase_data(entries)
             
             if error:
-                logger.error(f"خطا در پردازش خرید {purchase_id}: {error}")
+                logger.error(f"Error processing purchase {purchase_id}: {error}")
                 failed_count += 1
-                errors.append(f"خرید {purchase_id}: {error}")
+                errors.append(f"Purchase {purchase_id}: {error}")
             else:
                 success_count += 1
                 if created:
                     created_count += 1
-                    logger.info(f"خرید جدید ایجاد شد: {purchase_id}")
+                    logger.debug(f"New purchase created: {purchase_id}")
                 else:
                     updated_count += 1
-                    logger.info(f"خرید به‌روزرسانی شد: {purchase_id}")
-        
+                    logger.debug(f"Purchase updated: {purchase_id}")
+
         except Exception as e:
-            logger.error(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
+            logger.error(f"Error processing purchase {purchase_id}: {str(e)}")
             failed_count += 1
             errors.append(f"خرید {purchase_id}: {str(e)}")
     
-    logger.info("-" * 100)
-    logger.info(f"نتیجه: کل={total_count}, موفق={success_count}, جدید={created_count}, به‌روزرسانی={updated_count}, خطا={failed_count}")
+    logger.debug(f"Result: total={total_count}, successful={success_count}, created={created_count}, updated={updated_count}, failed={failed_count}")
     
     return total_count, success_count, created_count, updated_count, failed_count, errors
 
@@ -290,6 +287,7 @@ def main():
     """
     تابع اصلی برای اجرای مستقیم اسکریپت
     """
+    logger.critical("RUNNING SOAP REQUEST DIRECTLY")
     logger.info("Sending request to Bank Keshavarzi API (getKharidListByDate SOAP 1.1 over HTTPS)...")
     
     # تاریخ‌های پیش‌فرض
@@ -302,7 +300,7 @@ def main():
         logger.error(f"Error: {error}")
         return False
     
-    logger.info(f"Successfully retrieved {len(purchases_data)} purchases.")
+    logger.debug(f"Successfully retrieved {len(purchases_data)} purchases.")
     
     # ذخیره پاسخ XML به صورت زیبا
     try:

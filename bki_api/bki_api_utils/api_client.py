@@ -31,11 +31,11 @@ def get_bki_credentials():
     
     # Validate username and password
     if not username or username.strip() == '':
-        logger.warning("خطا: نام کاربری API بازارگاه تنظیم نشده است")
+        logger.warning("Error: Bazaargah API username is not set")
         return None, None
         
     if not password or password.strip() == '':
-        logger.warning("خطا: رمز عبور API بازارگاه تنظیم نشده است")
+        logger.warning("Error: Bazaargah API password is not set")
         return None, None
     
     return username, password
@@ -108,7 +108,7 @@ def send_soap_request(kharid_id):
             log_entry.is_successful = False
             log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
-            logger.error(f"خطای HTTP: {response.status_code} - {response.text}")
+            logger.error(f"HTTP error: {response.status_code} - {response.text}")
             return None, log_entry, f"خطای HTTP: {response.status_code}"
         
         # Parse the XML response
@@ -120,8 +120,8 @@ def send_soap_request(kharid_id):
             
             if not result or not isinstance(result, dict):
                 log_entry.is_successful = False
-                log_entry.error_message = "فرمت پاسخ نامعتبر است"
-                logger.error(f"فرمت پاسخ نامعتبر است: {response.text}")
+                log_entry.error_message = "فرمت پاسخ نا معتبر است"
+                logger.error(f"Invalid response format: {response.text}")
                 log_entry.save()
                 return None, log_entry, "فرمت پاسخ نامعتبر است"
             
@@ -144,21 +144,21 @@ def send_soap_request(kharid_id):
             # If we got here, the expected data was not found
             log_entry.is_successful = False
             log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
-            logger.error(f"هیچ داده خرید در پاسخ یافت نشد: {response.text}")
+            logger.warning(f"No purchase data found in response: {response.text}")
             log_entry.save()
             return None, log_entry, "هیچ داده خرید در پاسخ یافت نشد"
         
         except Exception as e:
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
-            logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
+            logger.error(f"Error parsing response: {str(e)}")
             log_entry.save()
             return None, log_entry, f"خطا در تجزیه پاسخ: {str(e)}"
     
     except Exception as e:
         log_entry.is_successful = False
         log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
-        logger.error(f"خطا در ارسال درخواست: {str(e)}")
+        logger.error(f"Error sending request: {str(e)}")
         log_entry.save()
         return None, log_entry, f"خطا در ارسال درخواست: {str(e)}"
 
@@ -391,7 +391,7 @@ def get_all_bazaargah_purchases():
             log_entry.is_successful = False
             log_entry.error_message = error_message
             log_entry.save()
-            logger.error(f"خطا در ارسال درخواست GetKharidList: {error_message}, {response.text}")
+            logger.error(f"Error sending GetKharidList request: {error_message}, {response.text}")
             return 0, 0, 0, 0, 0, [error_message]
         
         # Parse the XML response
@@ -402,7 +402,7 @@ def get_all_bazaargah_purchases():
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تحلیل پاسخ: {analysis['error']}"
                 log_entry.save()
-                logger.error(f"خطا در تحلیل پاسخ: {analysis['error']}, {response.text}")
+                logger.error(f"Error analyzing response: {analysis['error']}, {response.text}")
                 return 0, 0, 0, 0, 0, [f"خطا در تحلیل پاسخ: {analysis['error']}"]
             
             # Parse the XML response
@@ -434,27 +434,24 @@ def get_all_bazaargah_purchases():
             log_entry.is_successful = False
             log_entry.error_message = error_message
             log_entry.save()
-            logger.error(f"خطا در تجزیه پاسخ: {error_message}, {str(e)}")
+            logger.error(f"Error parsing response: {error_message}, {str(e)}")
             return 0, 0, 0, 0, 0, [error_message]
     
     except Exception as e:
         # Log the exception type for debugging but don't expose sensitive data
         safe_error_message = "خطا در ارسال درخواست به API بازارگاه"
-        logger.error(f"خطا در ارسال درخواست GetKharidList: {type(e).__name__}")
+        logger.error(f"Error sending GetKharidList request: {type(e).__name__}")
         return 0, 0, 0, 0, 0, [safe_error_message]
     
     # Check if no purchase data was found
     if not purchases_data:
         return 0, 0, 0, 0, 0, ["هیچ داده خرید در پاسخ یافت نشد"]
     
-    #logger.info(f"تعداد خریدهای یافت شده: {len(purchases_data)}")
-    
     # Group purchases by purchase ID
     from .data_processing import group_purchase_data_by_id, process_grouped_purchase_data
     
     grouped_data = group_purchase_data_by_id(purchases_data)
-    #logger.info(f"خریدها به {len(grouped_data)} گروه تقسیم شدند")
-    
+
     # Process grouped purchase data
     total_count = len(grouped_data)
     success_count = 0
@@ -483,5 +480,5 @@ def get_all_bazaargah_purchases():
             failed_count += 1
             errors.append(f"خطا در پردازش خرید {purchase_id}: {str(e)}")
     
-    logger.info(f"نتیجه نهایی: کل={total_count}, موفق={success_count}, جدید={created_count}, بروزرسانی={updated_count}, خطا={failed_count}")
+    logger.debug(f"Final result: total={total_count}, success={success_count}, created={created_count}, updated={updated_count}, errors={failed_count}")
     return total_count, success_count, created_count, updated_count, failed_count, errors 
