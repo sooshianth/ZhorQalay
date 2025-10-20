@@ -1,0 +1,232 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش تسک - {{ task.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .edit-task-container {
+        padding: 20px;
+        direction: rtl;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .back-button {
+        display: inline-block;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background: #e0e0e0;
+        color: #333;
+        text-decoration: none;
+        border-radius: 5px;
+        transition: background 0.3s ease;
+    }
+    
+    .back-button:hover {
+        background: #d0d0d0;
+        color: #333;
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0 0 20px 0;
+        color: #667eea;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .form-group textarea {
+        resize: vertical;
+        min-height: 120px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .form-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 30px;
+    }
+    
+    .btn-submit {
+        flex: 1;
+        padding: 12px;
+        background: #667eea;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease;
+    }
+    
+    .btn-submit:hover {
+        background: #764ba2;
+    }
+    
+    .btn-cancel {
+        flex: 1;
+        padding: 12px;
+        background: #e0e0e0;
+        color: #333;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background 0.3s ease;
+        text-decoration: none;
+        text-align: center;
+        display: block;
+    }
+    
+    .btn-cancel:hover {
+        background: #d0d0d0;
+        color: #333;
+    }
+    
+    .info-box {
+        background: #e3f2fd;
+        border-right: 4px solid #1976d2;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .info-box strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #1976d2;
+    }
+    
+    .warning-box {
+        background: #fff3e0;
+        border-right: 4px solid #f57c00;
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+    
+    .warning-box strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #f57c00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-task-container">
+    <a href="{% url 'manager_task_detail' task.id %}" class="back-button">
+        <i class="fas fa-arrow-right"></i> بازگشت به جزئیات تسک
+    </a>
+    
+    <div class="form-container">
+        <h1 class="form-title">ویرایش تسک</h1>
+        
+        {% if task.is_multi_assigned %}
+        <div class="warning-box">
+            <strong>توجه:</strong>
+            این تسک به صورت چندنفره است. فقط اطلاعات اصلی تسک قابل ویرایش است و تخصیص کارمندان تغییر نمی‌کند.
+        </div>
+        {% endif %}
+        
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label for="title">عنوان تسک: *</label>
+                <input type="text" name="title" id="title" value="{{ task.title }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">توضیحات:</label>
+                <textarea name="description" id="description">{{ task.description }}</textarea>
+            </div>
+            
+            {% if not task.is_multi_assigned %}
+            <div class="form-group">
+                <label for="assigned_to">واگذار شده به: *</label>
+                <select name="assigned_to" id="assigned_to" required>
+                    <option value="">انتخاب کنید...</option>
+                    {% for employee in employees %}
+                    <option value="{{ employee.id }}" {% if task.assigned_to.id == employee.id %}selected{% endif %}>
+                        {{ employee.first_name }} {{ employee.last_name }} (@{{ employee.username }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+            
+            <div class="form-group">
+                <label for="morqk_value">مقدار مرغک: *</label>
+                <select name="morqk_value" id="morqk_value" required>
+                    {% for value in morqk_choices %}
+                    <option value="{{ value }}" {% if task.morqk_value == value %}selected{% endif %}>{{ value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="due_date">مهلت انجام:</label>
+                <input type="text" name="due_date" id="due_date" value="{% if task.due_date %}{{ task.due_date }}{% endif %}" placeholder="YYYY-MM-DD">
+                <small style="color: #666; display: block; margin-top: 5px;">
+                    فرمت: سال-ماه-روز (مثلاً 1403-09-15)
+                </small>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i> ذخیره تغییرات
+                </button>
+                <a href="{% url 'manager_task_detail' task.id %}" class="btn-cancel">
+                    <i class="fas fa-times"></i> انصراف
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // می‌توانید datepicker را اضافه کنید اگر نیاز باشد
+});
+</script>
+{% endblock %}
+

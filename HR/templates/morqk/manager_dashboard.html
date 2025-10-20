@@ -1,0 +1,494 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد مدیریتی مرغک{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        padding: 20px;
+        direction: rtl;
+    }
+    
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 20px;
+        border-radius: 10px;
+        color: white;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    .stat-card.todo {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .stat-card.in-progress {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.pending {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .stat-card.approved {
+        background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+    }
+    
+    .stat-card.rejected {
+        background: linear-gradient(135deg, #ff512f 0%, #dd2476 100%);
+    }
+    
+    .stat-card h3 {
+        font-size: 14px;
+        margin: 0 0 10px 0;
+        opacity: 0.9;
+    }
+    
+    .stat-card .count {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 0;
+    }
+    
+    .section-title {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 30px 0 15px 0;
+        color: #333;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+    }
+    
+    .filter-buttons {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+    
+    .filter-btn {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        background: #e0e0e0;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 14px;
+    }
+    
+    .filter-btn.active {
+        background: #667eea;
+        color: white;
+    }
+    
+    .filter-btn:hover {
+        background: #764ba2;
+        color: white;
+    }
+    
+    .tasks-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .tasks-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .tasks-table th {
+        background: #667eea;
+        color: white;
+        padding: 15px;
+        text-align: right;
+        font-weight: bold;
+    }
+    
+    .tasks-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: right;
+    }
+    
+    .tasks-table tr:hover {
+        background: #f5f5f5;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .status-badge.todo {
+        background: #e3f2fd;
+        color: #1976d2;
+    }
+    
+    .status-badge.in-progress {
+        background: #fff3e0;
+        color: #f57c00;
+    }
+    
+    .status-badge.pending {
+        background: #fff9c4;
+        color: #f57f17;
+    }
+    
+    .status-badge.approved {
+        background: #e8f5e9;
+        color: #388e3c;
+    }
+    
+    .status-badge.rejected {
+        background: #ffebee;
+        color: #d32f2f;
+    }
+    
+    .btn-primary {
+        background: #667eea;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: #764ba2;
+        color: white;
+    }
+    
+    .monthly-summary-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .monthly-summary-table table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .monthly-summary-table th {
+        background: #30cfd0;
+        color: white;
+        padding: 15px;
+        text-align: right;
+        font-weight: bold;
+    }
+    
+    .monthly-summary-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #e0e0e0;
+        text-align: right;
+    }
+    
+    .monthly-summary-table tr:hover {
+        background: #f5f5f5;
+    }
+    
+    .schedules-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+    
+    .schedule-card {
+        background: white;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .schedule-card h3 {
+        margin: 0 0 15px 0;
+        color: #667eea;
+        font-size: 18px;
+        border-bottom: 2px solid #e0e0e0;
+        padding-bottom: 10px;
+    }
+    
+    .schedule-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .schedule-item:last-child {
+        border-bottom: none;
+    }
+    
+    .schedule-day {
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .schedule-time {
+        color: #666;
+    }
+    
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #999;
+        font-size: 16px;
+    }
+    
+    .search-box {
+        margin-bottom: 20px;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+    
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1>داشبورد مدیریتی مرغک</h1>
+    <p>{% if is_superuser %}مدیر کل سیستم{% else %}مدیر{% endif %} - مدیریت و نظارت بر تسک‌ها</p>
+    
+    <!-- کارت‌های آماری -->
+    <div class="stats-cards">
+        <div class="stat-card todo">
+            <h3>انجام نشده</h3>
+            <p class="count">{{ todo_count }}</p>
+        </div>
+        <div class="stat-card in-progress">
+            <h3>در حال انجام</h3>
+            <p class="count">{{ in_progress_count }}</p>
+        </div>
+        <div class="stat-card pending">
+            <h3>در انتظار تایید</h3>
+            <p class="count">{{ pending_count }}</p>
+        </div>
+        <div class="stat-card approved">
+            <h3>تایید شده</h3>
+            <p class="count">{{ approved_count }}</p>
+        </div>
+        <div class="stat-card rejected">
+            <h3>رد شده</h3>
+            <p class="count">{{ rejected_count }}</p>
+        </div>
+    </div>
+    
+    <!-- لیست تسک‌ها -->
+    <h2 class="section-title">لیست تسک‌ها</h2>
+    
+    <!-- جستجو -->
+    <div class="search-box">
+        <input type="text" id="searchInput" placeholder="جستجو بر اساس عنوان، کارمند یا توضیحات...">
+    </div>
+    
+    <!-- فیلترها -->
+    <div class="filter-buttons">
+        <button class="filter-btn active" data-status="all">همه ({{ all_tasks.count }})</button>
+        <button class="filter-btn" data-status="TODO">انجام نشده ({{ todo_count }})</button>
+        <button class="filter-btn" data-status="IN_PROGRESS">در حال انجام ({{ in_progress_count }})</button>
+        <button class="filter-btn" data-status="PENDING_APPROVAL">در انتظار تایید ({{ pending_count }})</button>
+        <button class="filter-btn" data-status="APPROVED">تایید شده ({{ approved_count }})</button>
+        <button class="filter-btn" data-status="REJECTED">رد شده ({{ rejected_count }})</button>
+    </div>
+    
+    <!-- جدول تسک‌ها -->
+    <div class="tasks-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>عنوان</th>
+                    <th>واگذار شده به</th>
+                    <th>مقدار مرغک</th>
+                    <th>وضعیت</th>
+                    <th>مهلت</th>
+                    <th>تاریخ ایجاد</th>
+                    <th>عملیات</th>
+                </tr>
+            </thead>
+            <tbody id="tasksTableBody">
+                {% for task in all_tasks %}
+                <tr class="task-row" data-status="{{ task.status }}" data-search="{{ task.title|lower }} {{ task.description|lower }} {% if task.assigned_to %}{{ task.assigned_to.username|lower }} {{ task.assigned_to.first_name|lower }} {{ task.assigned_to.last_name|lower }}{% endif %}">
+                    <td>
+                        <strong>{{ task.title }}</strong>
+                        {% if task.description %}
+                        <br><small style="color: #666;">{{ task.description|truncatewords:15 }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if task.is_multi_assigned %}
+                            <span style="color: #f57c00;">چندنفره ({{ task.assignments.count }} نفر)</span>
+                        {% else %}
+                            {% if task.assigned_to %}
+                                {{ task.assigned_to.first_name }} {{ task.assigned_to.last_name }}
+                                <br><small style="color: #666;">@{{ task.assigned_to.username }}</small>
+                            {% else %}
+                                -
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <strong>{{ task.morqk_value }}</strong> مرغک
+                    </td>
+                    <td>
+                        <span class="status-badge {{ task.status|lower|cut:' '|cut:'_' }}">{{ task.get_status_display }}</span>
+                    </td>
+                    <td>
+                        {% if task.due_date %}
+                            {{ task.due_date }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ task.created_at|date:"Y/m/d" }}
+                    </td>
+                    <td>
+                        <a href="{% url 'manager_task_detail' task.id %}" class="btn-primary">جزئیات</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="no-data">هیچ تسکی یافت نشد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- مجموع مرغک‌های ماه جاری -->
+    <h2 class="section-title">مجموع مرغک‌های ماه جاری ({{ current_month_display }})</h2>
+    
+    <div class="monthly-summary-table">
+        <table>
+            <thead>
+                <tr>
+                    <th>کارمند</th>
+                    <th>مجموع مرغک تایید شده</th>
+                    <th>تعداد کل تسک‌ها</th>
+                    <th>تعداد تکمیل شده</th>
+                    <th>تعداد تایید شده</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for summary in monthly_summaries %}
+                <tr>
+                    <td>
+                        <strong>{{ summary.employee.first_name }} {{ summary.employee.last_name }}</strong>
+                        <br><small style="color: #666;">@{{ summary.employee.username }}</small>
+                    </td>
+                    <td>
+                        <strong style="color: #30cfd0; font-size: 18px;">{{ summary.total_approved_morqk }}</strong> مرغک
+                    </td>
+                    <td>{{ summary.total_tasks }}</td>
+                    <td>{{ summary.completed_tasks }}</td>
+                    <td>{{ summary.approved_tasks }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="no-data">هیچ داده‌ای برای ماه جاری یافت نشد.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- برنامه‌های هفتگی -->
+    <h2 class="section-title">برنامه‌های هفتگی کاربران</h2>
+    
+    {% if schedules_by_employee %}
+    <div class="schedules-container">
+        {% for employee_name, schedules in schedules_by_employee.items %}
+        <div class="schedule-card">
+            <h3>{{ employee_name }}</h3>
+            {% for schedule in schedules %}
+            <div class="schedule-item">
+                <span class="schedule-day">{{ schedule.get_day_of_week_display }}</span>
+                <span class="schedule-time">{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="no-data">هیچ برنامه هفتگی فعالی یافت نشد.</div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // فیلتر بر اساس وضعیت
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const taskRows = document.querySelectorAll('.task-row');
+    const searchInput = document.getElementById('searchInput');
+    
+    let currentFilter = 'all';
+    
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // حذف کلاس active از همه دکمه‌ها
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            // اضافه کردن کلاس active به دکمه کلیک شده
+            this.classList.add('active');
+            
+            currentFilter = this.dataset.status;
+            applyFilters();
+        });
+    });
+    
+    // جستجو
+    searchInput.addEventListener('input', function() {
+        applyFilters();
+    });
+    
+    function applyFilters() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        
+        taskRows.forEach(row => {
+            const status = row.dataset.status;
+            const searchText = row.dataset.search;
+            
+            let showByStatus = currentFilter === 'all' || status === currentFilter;
+            let showBySearch = searchTerm === '' || searchText.includes(searchTerm);
+            
+            if (showByStatus && showBySearch) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

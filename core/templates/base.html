@@ -317,6 +317,11 @@
                         {% if request.user.is_superuser %}
                         <li><a href="{% url 'attendance_summary' %}"><i class="fas fa-chart-line"></i> گزارش کارکرد</a></li>
                         <li><a href="{% url 'pending_approvals' %}"><i class="fas fa-check-circle"></i> تاییدها در انتظار</a></li>
+                        <li><a href="{% url 'manager_dashboard' %}"><i class="fas fa-tasks"></i> داشبورد مدیریتی مرغک</a></li>
+                        {% else %}
+                            {% if request.user.employee and request.user.employee.is_manager %}
+                            <li><a href="{% url 'manager_dashboard' %}"><i class="fas fa-tasks"></i> داشبورد مدیریتی مرغک</a></li>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>
