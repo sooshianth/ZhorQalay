@@ -3,7 +3,7 @@ from bki_barnameh.models.BarnamehModel import Barnameh
 from django.db import transaction
 import logging
 
-logger = logging.getLogger('bki_barnameh_commands')
+logger = logging.getLogger('bugs')
 
 class Command(BaseCommand):
     help = 'همه بارنامه‌ها را یک بار save می‌کند تا متدهای مربوطه اجرا شوند'
@@ -48,7 +48,7 @@ class Command(BaseCommand):
                     
                 except Exception as e:
                     error_count += 1
-                    logger.error(f'خطا در save کردن بارنامه {barnameh.id}: {str(e)}')
+                    logger.error(f'Error saving barnameh {barnameh.id}: {str(e)}')
                     self.stdout.write(
                         self.style.ERROR(f'خطا در بارنامه {barnameh.id}: {str(e)}')
                     )

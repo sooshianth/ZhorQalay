@@ -130,7 +130,7 @@ def update_incorrect_phone_numbers(purchase_data):
         return updated_count, error_count
     
     except Exception as e:
-        logger.error(f"Error updating incorrect phone numbers: {str(e)}")
+        logger.error(f"Error updating incorrect phone numbers for {purchase_data.get('takhsisid')}: {str(e)}")
         return updated_count, error_count + 1
 
 

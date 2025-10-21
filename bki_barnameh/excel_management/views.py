@@ -5,8 +5,10 @@ from core.decorators.decorators import role_required
 from .upload_excel import handle_uploaded_file, process_excel_file
 from .export_excel import export_to_excel
 import logging
+from core.logging_levels import *
 
-logger = logging.getLogger("bki_barnameh_excel_management")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def get_client_ip(request):
     """
@@ -43,8 +45,8 @@ def upload_excel_view(request):
     """
     آپلود فایل اکسل بارنامه
     """
+    audit_logger.info(f"Uploading Excel file for barnameh")
     if request.method == 'POST' and request.FILES.get('excel_file'):
-        logger.warning(f"آپلود فایل اکسل بارنامه: {get_client_ip(request)}, user: {request.user}")
         excel_file = request.FILES['excel_file']
         
         # Check if file is Excel
@@ -75,7 +77,7 @@ def download_excel_template(request):
     import pandas as pd
     import os
     from django.conf import settings
-
+    audit_logger.info(f"Downloading Excel template for barnameh")
     # Create template DataFrame
     template_data = {
         'شماره بارنامه': [''],
@@ -113,7 +115,7 @@ def export_excel_view(request):
     """
     خروجی اکسل از بارنامه‌ها
     """
-    logger.warning(f"خروجی اکسل از بارنامه‌ها: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"Exporting Excel file for barnameh")
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
         return export_to_excel(barnameh_ids)

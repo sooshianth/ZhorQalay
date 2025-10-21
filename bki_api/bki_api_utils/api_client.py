@@ -108,7 +108,7 @@ def send_soap_request(kharid_id):
             log_entry.is_successful = False
             log_entry.error_message = f"خطای HTTP: {response.status_code}"
             log_entry.save()
-            logger.error(f"HTTP error: {response.status_code} - {response.text}")
+            logger.error(f"HTTP error for kharid_id {kharid_id}: {response.status_code} - {response.text}")
             return None, log_entry, f"خطای HTTP: {response.status_code}"
         
         # Parse the XML response
@@ -121,7 +121,7 @@ def send_soap_request(kharid_id):
             if not result or not isinstance(result, dict):
                 log_entry.is_successful = False
                 log_entry.error_message = "فرمت پاسخ نا معتبر است"
-                logger.error(f"Invalid response format: {response.text}")
+                logger.error(f"Invalid response format for kharid_id {kharid_id}: {response.text}")
                 log_entry.save()
                 return None, log_entry, "فرمت پاسخ نامعتبر است"
             
@@ -144,21 +144,21 @@ def send_soap_request(kharid_id):
             # If we got here, the expected data was not found
             log_entry.is_successful = False
             log_entry.error_message = "هیچ داده خرید در پاسخ یافت نشد"
-            logger.warning(f"No purchase data found in response: {response.text}")
+            logger.warning(f"No purchase data found in response for kharid_id {kharid_id}: {response.text}")
             log_entry.save()
             return None, log_entry, "هیچ داده خرید در پاسخ یافت نشد"
         
         except Exception as e:
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
-            logger.error(f"Error parsing response: {str(e)}")
+            logger.error(f"Error parsing response for kharid_id {kharid_id}: {str(e)}")
             log_entry.save()
             return None, log_entry, f"خطا در تجزیه پاسخ: {str(e)}"
     
     except Exception as e:
         log_entry.is_successful = False
         log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
-        logger.error(f"Error sending request: {str(e)}")
+        logger.error(f"Error sending request for kharid_id {kharid_id}: {str(e)}")
         log_entry.save()
         return None, log_entry, f"خطا در ارسال درخواست: {str(e)}"
 

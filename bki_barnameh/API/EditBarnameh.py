@@ -6,7 +6,7 @@ from django.conf import settings
 from ..models.ApiLogModel import BKIApiLog
 import logging
 
-logger = logging.getLogger("bki_barnameh_edit_barnameh_api")
+logger = logging.getLogger("bugs")
 
 def edit_barnameh_api(barnameh_id):
     """
@@ -118,7 +118,7 @@ def edit_barnameh_api(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطای HTTP: {response.status_code}"
                 log_entry.save()
-                logger.error(f"خطای HTTP: {response.status_code}, {response.text}")
+                logger.error(f"HTTP Error: {response.status_code}, {response.text}")
                 return {
                     'success': False,
                     'message': f"خطای HTTP: {response.status_code}"
@@ -143,7 +143,7 @@ def edit_barnameh_api(barnameh_id):
                     log_entry.is_successful = False
                     log_entry.error_message = f"خطا در ویرایش بارنامه: {result}"
                     log_entry.save()
-                    logger.error(f"خطا در ویرایش بارنامه: {result}")
+                    logger.error(f"Error editing barnameh {barnameh.id}: {result}")
                     
                     return {
                         'success': False,
@@ -154,7 +154,7 @@ def edit_barnameh_api(barnameh_id):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
                 log_entry.save()
-                logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
+                logger.error(f"Error parsing response for barnameh {barnameh.id}: {str(e)}")
                 return {
                     'success': False,
                     'message': f"خطا در تجزیه پاسخ: {str(e)}"
@@ -164,7 +164,7 @@ def edit_barnameh_api(barnameh_id):
             log_entry.is_successful = False
             log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
             log_entry.save()
-            logger.error(f"خطا در ارسال درخواست: {str(e)}")
+            logger.error(f"Error sending request for barnameh {barnameh.id}: {str(e)}")
             
             return {
                 'success': False,
@@ -177,7 +177,7 @@ def edit_barnameh_api(barnameh_id):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
-        logger.error(f"خطا: {str(e)}")
+        logger.error(f"Error in editing barnameh {barnameh.id}: {str(e)}")
         return {
             'success': False,
             'message': f"خطا: {str(e)}"

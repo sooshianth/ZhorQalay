@@ -1498,6 +1498,7 @@ def barnameh_list(request):
     """
     نمایش لیست بارنامه ها با فیلتر server-side
     """
+    audit_logger.info("User accessed barnameh list page")
 
     # دریافت ستون‌های انتخاب شده
     selected_columns = get_barnameh_columns_from_cookie(request)
@@ -1616,6 +1617,7 @@ def barnameh_detail(request, barnameh_id):
     """
     نمایش جزئیات بارنامه
     """
+    audit_logger.info(f"User accessed barnameh detail page for barnameh_id={barnameh_id}")
     barnameh = get_object_or_404(Barnameh, id=barnameh_id)
     return render(request, 'bki_barnameh/barnameh_detail.html', {'barnameh': barnameh})
 
@@ -1624,6 +1626,7 @@ def barnameh_create(request):
     """
     ایجاد بارنامه جدید
     """
+
     if request.method == 'POST':
         data = {
             'number': request.POST.get('number'),
@@ -1638,6 +1641,8 @@ def barnameh_create(request):
             'purchase_number': request.POST.get('purchase_number'),
             'shenase_takhsis_code': request.POST.get('shenase_takhsis_code'),
         }
+
+        audit_logger.info(f"User accessed barnameh create page with number={data['number']} and serial={data['serial']}")
         
         # پردازش تاریخ بارنامه
         barnameh_date = None
@@ -1666,9 +1671,7 @@ def barnameh_create(request):
         
         messages.success(request, 'بارنامه با موفقیت ایجاد شد.')
         return redirect('barnameh_detail', barnameh_id=barnameh.id)
-    
-    else:
-        audit_logger.alert("ACCESSED BARNAMEH CREATE VIA GET!")
+
     
     return render(request, 'bki_barnameh/barnameh_create.html')
 
@@ -1693,7 +1696,9 @@ def barnameh_edit(request, barnameh_id):
             'purchase_number': request.POST.get('purchase_number'),
             'shenase_takhsis_code': request.POST.get('shenase_takhsis_code'),
         }
-        
+
+        audit_logger.info(f"User accessed barnameh edit page with id={barnameh.id}")
+
         result = update_barnameh(barnameh_id, data)
         barnameh.log_barnameh_edit(request)
         
@@ -1702,7 +1707,7 @@ def barnameh_edit(request, barnameh_id):
             return redirect('barnameh_detail', barnameh_id=barnameh.id)
         else:
             messages.error(request, result['message'])
-    
+
     return render(request, 'bki_barnameh/barnameh_edit.html', {'barnameh': barnameh})
 
 @role_required('logistics_manager', 'admin')
@@ -1710,6 +1715,7 @@ def barnameh_delete(request, barnameh_id):
     """
     حذف بارنامه
     """
+    audit_logger.info(f"User accessed barnameh delete page for barnameh_id={barnameh_id}")
     if request.method == 'POST':
         result = delete_barnameh(barnameh_id)
         
@@ -1728,6 +1734,7 @@ def upload_excel(request):
     """
     آپلود فایل اکسل بارنامه - ریدایرکت به ویو جدید
     """
+    audit_logger.info("User accessed upload excel page")
     return upload_excel_view(request)
 
 @role_required('logistics_manager', 'admin', 'financial_manager')
@@ -1735,6 +1742,7 @@ def export_excel(request):
     """
     خروجی اکسل از بارنامه‌ها
     """
+    audit_logger.info("User accessed export excel page")
     return export_excel_view(request)
 
 @role_required('logistics_manager', 'admin')
@@ -1742,6 +1750,7 @@ def send_to_bki(request, barnameh_id):
     """
     ارسال بارنامه به بازارگاه
     """
+    audit_logger.info(f"User accessed send to bki page for barnameh_id={barnameh_id}")
     if request.method == 'POST':
         result = send_barnameh_to_bki(barnameh_id)
         
@@ -1760,8 +1769,10 @@ def bulk_send_to_bki(request):
     """
     ارسال گروهی بارنامه‌ها به بازارگاه
     """
+
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
+        audit_logger.info("User accessed bulk send to bki page with barnameh_ids={barnameh_ids}")
         
         if not barnameh_ids:
             messages.error(request, 'هیچ بارنامه‌ای انتخاب نشده است.')
@@ -1787,12 +1798,14 @@ def barnameh_api(request):
     """
     API برای مدیریت بارنامه‌ها
     """
+    audit_logger.info("User accessed barnameh API")
     if request.method == 'GET':
         barnameh_id = request.GET.get('id')
         
         if barnameh_id:
             try:
                 barnameh = Barnameh.objects.get(id=barnameh_id)
+                audit_logger.info(f"User accessed barnameh API for barnameh_id={barnameh_id}")
                 data = {
                     'id': barnameh.id,
                     'number': barnameh.number,
@@ -1816,6 +1829,7 @@ def barnameh_api(request):
         else:
             barnamehs = Barnameh.objects.all().order_by('-barnameh_created_at')
             data = []
+            audit_logger.info("User accessed barnameh API for all barnamehs")
             for barnameh in barnamehs:
                 data.append({
                     'id': barnameh.id,
@@ -1835,7 +1849,9 @@ def barnameh_api(request):
             if barnameh_id:
                 # Update existing barnameh
                 result = update_barnameh(barnameh_id, data)
+                audit_logger.info(f"User updated barnameh with ID={barnameh_id}")
             else:
+                
                 # Create new barnameh
                 barnameh = Barnameh.objects.create(
                     number=data.get('number'),
@@ -1851,6 +1867,7 @@ def barnameh_api(request):
                     shenase_takhsis_code=data.get('shenase_takhsis_code'),
                     status='SENT_TO_BKI' if all([data.get('number'), data.get('serial'), data.get('tonnage')]) else 'NOT_SENT_TO_BKI'
                 )
+                audit_logger.info(f"User created new barnameh with number={barnameh.number} and serial={barnameh.serial}")
                 result = {
                     'success': True,
                     'message': 'بارنامه با موفقیت ایجاد شد.',
@@ -1865,7 +1882,7 @@ def barnameh_api(request):
         try:
             data = json.loads(request.body)
             barnameh_id = data.get('id')
-            
+            audit_logger.info(f"User accessed delete barnameh page for barnameh_id={barnameh_id}")
             if not barnameh_id:
                 logger.error('Barnameh ID not specified.')
                 return JsonResponse({'success': False, 'message': 'شناسه بارنامه مشخص نشده است.'})
@@ -1883,6 +1900,7 @@ def edit_barnameh_in_bki(request, barnameh_id):
     """
     ویرایش بارنامه در بازارگاه
     """
+    audit_logger.info(f"User accessed edit barnameh in bki page for barnameh_id={barnameh_id}")
     if request.method == 'POST':
         result = edit_barnameh_api(barnameh_id)
         
@@ -1903,6 +1921,7 @@ def bulk_edit(request):
     """
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
+        audit_logger.info(f"User accessed bulk edit page with barnameh_ids={barnameh_ids}")
         
         if not barnameh_ids:
             messages.error(request, 'هیچ بارنامه‌ای انتخاب نشده است.')
@@ -2094,6 +2113,7 @@ def estelame_barnameh_view(request, barnameh_id):
     """
     استعلام بارنامه از بازارگاه
     """
+    audit_logger.info(f"User accessed estelame barnameh page for barnameh_id={barnameh_id}")
     if request.method == 'POST':
         # Get date parameters from request
         from_date = request.POST.get('from_date', None)
@@ -2121,8 +2141,10 @@ def bulk_delete(request):
     """
     حذف گروهی بارنامه‌ها
     """
+
     if request.method == 'POST':
         barnameh_ids = request.POST.getlist('barnameh_ids')
+        audit_logger.info(f"User accessed bulk delete page with barnameh_ids={barnameh_ids}")
         
         if not barnameh_ids:
             messages.error(request, 'هیچ بارنامه‌ای انتخاب نشده است.')
@@ -2167,7 +2189,11 @@ def export_barnameh_excel(request):
         barnameh_ids = request.GET.get('ids', '').split(',')
         selected_columns = request.GET.get('columns', '')
     
-    
+    try:
+        audit_logger.info(f"User accessed export barnameh excel page with barnameh_ids={barnameh_ids}")
+    except Exception as e:
+        audit_logger.error(f"Error logging export barnameh excel access: {e}")
+
     if selected_columns:
         # حذف کوتیشن‌های اضافی و decode کردن کاراکترهای escape شده
         selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
@@ -2321,6 +2347,7 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
 @require_http_methods(["GET"])
 def get_barnameh_logs(request, barnameh_id):
     """API برای دریافت لاگ‌های بارنامه"""
+    audit_logger.info(f"User accessed barnameh logs API for barnameh_id={barnameh_id}")
     try:
         # دریافت بارنامه
         barnameh = get_object_or_404(Barnameh, id=barnameh_id)
@@ -2367,6 +2394,7 @@ def fast_barnameh_report_pdf(request):
     گزارش PDF از خریدهای 4 روز اخیر که بارنامه سریع (کمتر از 3 روز) دارند
     به تفکیک کارشناس فروش - با پشتیبانی کامل از فارسی
     """
+    audit_logger.info("User requested fast barnameh PDF report for purchases with fast barnamehs (last 7 days)")
     try:
         from core.PurchaseModel import Purchase
         from core.SalesAgentModel import SalesAgent
@@ -2739,7 +2767,7 @@ def export_full_barnameh_excel(request):
     """
     خروجی اکسل کامل از همه بارنامه‌ها با تمام ستون‌ها و امکان انتخاب بازه تاریخ
     """
-    
+    audit_logger.info("User requested full barnameh Excel export")
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
     

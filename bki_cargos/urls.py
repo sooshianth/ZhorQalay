@@ -11,6 +11,7 @@ urlpatterns = [
     path('cargo-products/list/', cargo_product_CRUD_panel.list_cargo_products, name='list_cargo_products'),
     path('bulk-edit-cargo/', cargo_product_CRUD_panel.bulk_edit_purchase_cargo, name='bulk_edit_purchase_cargo'),
     
+    
     # باربری‌ها
     path('barbaries/', barbary_view.barbary_list, name='barbary_list'),
     path('barbary/add/', barbary_view.barbary_add, name='barbary_add'),

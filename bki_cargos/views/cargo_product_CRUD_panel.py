@@ -9,8 +9,10 @@ from django.db.models import Q
 from django.db import connection
 from core.decorators.det_user_role import determine_user_role
 import logging
+from core.logging_levels import *
 
-logger = logging.getLogger("bki_cargos_cargo_product_CRUD_panel")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def get_client_ip(request):
     """
@@ -47,8 +49,10 @@ def get_client_ip(request):
 def cargo_product_crud_panel(request, product_id=None):
     # اجازه ویرایش تکی محصولات داده نمی‌شود
     if product_id:
+        audit_logger.activity(f"WARNING! SOMEHOW USER MEDDLED WITH PRODUCT ID: {product_id}, user: {request.user}")
         return redirect('cargo_product_list')
-    
+
+    audit_logger.info(f"Cargo product CRUD panel adding new cargo accessed")
     product = None
     if request.method == 'POST':
         data = request.POST
@@ -110,7 +114,7 @@ def cargo_product_crud_panel(request, product_id=None):
 @role_required('admin', 'logistics_manager')
 @login_required
 def bulk_edit_cargo_products(request):
-    logger.warning(f"ویرایش گروهی محصولات: {get_client_ip(request)}, user: {request.user}")
+    
     if request.method == 'POST':
         # اگر از صفحه ویرایش گروهی آمده است
         if 'product_ids_str' in request.POST:
@@ -127,10 +131,12 @@ def bulk_edit_cargo_products(request):
                 return redirect('cargo_product_list')
         
         if not product_ids:
+            audit_logger.activity(f"User tried editting with no id: {product_ids_str}")
             # اگر هیچ آیدی معتبری نباشد، به صفحه لیست برگرد
             return redirect('cargo_product_list')
             
         products = CargoProduct.objects.filter(id__in=product_ids)
+        audit_logger.info(f"Bulk edit of cargo products accessed: {product_ids}")
         
         if not products.exists():
             # اگر هیچ محصولی یافت نشد، به صفحه لیست برگرد
@@ -226,15 +232,16 @@ def bulk_edit_purchase_cargo(request):
     """
     ویرایش گروهی کوتاژ برای خریدهای انتخاب شده
     """
-    logger.warning(f"ویرایش گروهی کوتاژ برای خریدهای انتخاب شده: {get_client_ip(request)}, user: {request.user}")
-    
+
     if request.method != 'POST':
+        audit_logger.alert(f"Invalid request method for bulk edit purchase cargo")
         return JsonResponse({'status': 'error', 'message': 'روش درخواست نامعتبر است'}, status=405)
     
     try:
         # دریافت شناسه‌های خریدها
         purchase_ids_str = request.POST.get('purchase_ids', '')
         if not purchase_ids_str:
+            audit_logger.activity(f"Purchase IDs not provided in bulk edit purchase cargo")
             return JsonResponse({'status': 'error', 'message': 'شناسه‌های خرید ارسال نشده است'}, status=400)
         
         purchase_ids = [pid for pid in purchase_ids_str.split(',') if pid]
@@ -253,6 +260,13 @@ def bulk_edit_purchase_cargo(request):
         
         # اگر حالت ایجاد کوتاژ جدید است
         cottage = request.POST.get('cottage')
+        # Audit inputs safely (use "-" when missing)
+        cottage_val = cottage if cottage else "-"
+        cargo_id_val = cargo_id if cargo_id else "-"
+        purchase_ids_val = ",".join(purchase_ids) if purchase_ids else "-"
+
+        audit_logger.activity(f"Bulk edit purchase cargo requested - cottage: {cottage_val}, cargo_id: {cargo_id_val}, purchase_ids: {purchase_ids_val}")
+        
         if not cargo_id and cottage:
             # بررسی اینکه آیا کوتاژی با این شماره قبلاً وجود دارد
             existing_cargo = CargoProduct.objects.filter(cottage=cottage).first()
@@ -355,10 +369,10 @@ def bulk_edit_purchase_cargo(request):
         })
     
     except ValueError as e:
-        logger.error(f"خطای مقدار: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"Value error {str(e)}")
         return JsonResponse({'status': 'error', 'message': f'خطای مقدار: {str(e)}'}, status=400)
     except Exception as e:
-        logger.error(f"خطای عمومی: {str(e)}, ip: {get_client_ip(request)}, user: {request.user}")
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
 
 @login_required

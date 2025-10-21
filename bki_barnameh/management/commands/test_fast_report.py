@@ -3,9 +3,7 @@ from django.utils import timezone
 from datetime import timedelta
 from core.PurchaseModel import Purchase
 from bki_barnameh.models.BarnamehModel import Barnameh
-import logging
 
-logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):

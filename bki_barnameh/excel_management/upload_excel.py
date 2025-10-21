@@ -8,7 +8,7 @@ from django_jalali.db import models as jmodels
 import jdatetime
 import logging
 
-logger = logging.getLogger('bki_barnameh_upload_excel')
+logger = logging.getLogger('bugs')
 
 def handle_uploaded_file(file, file_name):
     """
@@ -100,7 +100,7 @@ def process_excel_file(excel_file_id):
                     try:
                         from core.PurchaseModel import Purchase
                         purchase_obj = Purchase.objects.get(purchase_number=purchase_number)
-                        logger.info(f"✅ Found purchase {purchase_obj.id} for barnameh {barnameh_number}")
+                        logger.debug(f"✅ Found purchase {purchase_obj.id} for barnameh {barnameh_number}")
                     except Purchase.DoesNotExist:
                         logger.warning(f"❌ Purchase with number {purchase_number} not found for barnameh {barnameh_number}")
                     except Exception as e:
@@ -111,12 +111,12 @@ def process_excel_file(excel_file_id):
                     try:
                         from core.PurchaseModel import ShenaseTakhsis
                         shenase_takhsis_obj = ShenaseTakhsis.objects.get(code=shenase_takhsis_code)
-                        logger.info(f"✅ Found shenase_takhsis {shenase_takhsis_obj.id} for barnameh {barnameh_number}")
+                        logger.debug(f"✅ Found shenase_takhsis {shenase_takhsis_obj.id} for barnameh {barnameh_number}")
                         
                         # اگر Purchase پیدا نشد، از طریق ShenaseTakhsis پیدا کن
                         if not purchase_obj and shenase_takhsis_obj.purchase:
                             purchase_obj = shenase_takhsis_obj.purchase
-                            logger.info(f"✅ Found purchase {purchase_obj.id} through shenase_takhsis for barnameh {barnameh_number}")
+                            logger.debug(f"✅ Found purchase {purchase_obj.id} through shenase_takhsis for barnameh {barnameh_number}")
                             
                     except Exception as e:
                         logger.warning(f"❌ Error finding shenase_takhsis {shenase_takhsis_code}: {str(e)}")
@@ -138,7 +138,7 @@ def process_excel_file(excel_file_id):
                                 day = int(parts[2])
                                 barnameh_date = jdatetime.date(year, month, day)
                     except Exception as e:
-                        logger.error(f"Error parsing date in excel file: {e}")
+                        logger.error(f"Error parsing date in excel file of excel file {excel_file_id}: {e}")
                 
                 # Check if barnameh with this number already exists
                 existing_barnameh = None
@@ -171,7 +171,7 @@ def process_excel_file(excel_file_id):
                 
                 if existing_barnameh:
                     # Update existing barnameh with new data
-                    logger.info(f"📝 Updating existing barnameh {barnameh_number} from Excel - will NOT trigger SMS signal (duplicate)")
+                    logger.debug(f"📝 Updating existing barnameh {barnameh_number} from Excel - will NOT trigger SMS signal (duplicate)")
                     for key, value in barnameh_data.items():
                         # برای بارنامه‌های تکراری، is_created_by_excel را False می‌گذاریم تا پیامک ارسال نشود
                         if key == 'is_created_by_excel':
@@ -183,15 +183,15 @@ def process_excel_file(excel_file_id):
                     existing_barnameh.is_created_by_excel = False
                     existing_barnameh.save()
                     barnameh = existing_barnameh
-                    logger.info(f"✅ Updated barnameh {barnameh.id} with is_created_by_excel=False (no SMS for duplicate)")
+                    logger.debug(f"✅ Updated barnameh {barnameh.id} with is_created_by_excel=False (no SMS for duplicate)")
                 else:
                     # Create new barnameh
-                    logger.info(f"🆕 Creating new barnameh {barnameh_number} from Excel - will trigger SMS signal")
+                    logger.debug(f"🆕 Creating new barnameh {barnameh_number} from Excel - will trigger SMS signal")
                     barnameh = Barnameh.objects.create(
                         number=barnameh_number,
                         **barnameh_data
                     )
-                    logger.info(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number} and is_created_by_excel=True")
+                    logger.debug(f"✅ Successfully created barnameh {barnameh.id} with number {barnameh.number} and is_created_by_excel=True")
                 
                 # اگر Purchase پیدا شد، ارتباط دوطرفه را برقرار کن
                 # نکته: مکانیزم بروزرسانی وضعیت خرید در متد save بارنامه انجام شده
@@ -201,7 +201,7 @@ def process_excel_file(excel_file_id):
                     # حذف barnameh_object چون دیگر استفاده نمی‌شود
                     # purchase_obj.barnameh_object = barnameh
                     purchase_obj.save()
-                    logger.info(f"✅ Successfully linked barnameh {barnameh_number} to purchase {purchase_number}")
+                    logger.debug(f"✅ Successfully linked barnameh {barnameh_number} to purchase {purchase_number}")
 
                 # گزارش وضعیت ارتباط با Purchase
                 if not purchase_obj:
@@ -220,7 +220,7 @@ def process_excel_file(excel_file_id):
         excel_file.processed_rows = processed_rows
         excel_file.processed = True
         excel_file.debug_info = f"تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}"
-        logger.info(f"Excel file {excel_file.name} processed successfully. تعداد بارنامه‌های بروزرسانی شده: {updated_rows}\nشماره بارنامه‌های بروزرسانی شده: {', '.join(duplicate_numbers)}")
+        logger.debug(f"Excel file {excel_file.name} processed successfully. Number of updated barnamehs: {updated_rows}Updated barnameh numbers: {', '.join(duplicate_numbers)}")
         excel_file.save()
         
         return {

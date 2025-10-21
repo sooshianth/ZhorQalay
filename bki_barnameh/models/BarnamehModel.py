@@ -8,7 +8,7 @@ from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 import logging
 
-logger = logging.getLogger('bki_barnameh_models')
+logger = logging.getLogger('bugs')
 
 class Barnameh(models.Model):
     STATUS_CHOICES = [
@@ -110,7 +110,7 @@ class Barnameh(models.Model):
             elif self.non_bazargah_purchase and not self.purchase:
                 return self.non_bazargah_purchase.customer
         except Exception as e:
-            logger.error(f"خطا در دریافت مشتری برای بارنامه {self.id}: {str(e)}")
+            logger.error(f"Error retrieving customer for Barnameh {self.id}: {str(e)}")
         return None
 
     def get_company_price(self):
@@ -126,7 +126,7 @@ class Barnameh(models.Model):
                 return None
             
         except Exception as e:
-            logger.error(f"خطا در دریافت فی خرید برای بارنامه {self.id}: {str(e)}")
+            logger.error(f"Error in get_company_price for Barnameh {self.id}: {str(e)}")
             return None
     
     def get_customer_price(self):
@@ -142,7 +142,7 @@ class Barnameh(models.Model):
                 return None
             
         except Exception as e:
-            logger.error(f"خطا در دریافت فی فروش برای بارنامه {self.id}: {str(e)}")
+            logger.error(f"Error in get_customer_price for Barnameh {self.id}: {str(e)}")
             return None
     
     def get_total_sales_amount(self):
@@ -352,7 +352,7 @@ class Barnameh(models.Model):
         # محاسبه اختلاف
         weight_difference = abs(order_weight - total_barnameh_weight)
         
-        logger.info(f"🔍 محاسبه وضعیت خرید {purchase.id}: وزن سفارش={order_weight}, مجموع وزن بارنامه‌ها={total_barnameh_weight}, اختلاف={weight_difference}")
+        logger.debug(f"🔍 Calculating state for Purchase {purchase.id}: order_weight={order_weight}, total_barnameh_weight={total_barnameh_weight}, difference={weight_difference}")
         
         # تعیین وضعیت جدید بر اساس اختلاف وزن
         if weight_difference < 5000:  # کمتر از 5000 کیلوگرم = بارنامه کامل
@@ -382,7 +382,7 @@ class Barnameh(models.Model):
             new_state = self.calculate_purchase_state_based_on_barnameh_weight(purchase)
             
             if new_state and new_state != current_state:
-                logger.info(f"✅ تغییر وضعیت خرید {purchase.id} از {current_state} به {new_state}")
+                logger.debug(f"✅ Purchase {purchase.id} state changed from {current_state} to {new_state}")
                 
                 # بروزرسانی وضعیت خرید
                 old_state = purchase.state
@@ -399,12 +399,12 @@ class Barnameh(models.Model):
                     notes=f"تغییر خودکار وضعیت بر اساس وزن بارنامه‌ها (اختلاف: {abs((purchase.order_weight or 0) - purchase.get_total_barnameh_weight())} کیلوگرم)"
                 )
                 
-                logger.info(f"📝 رکورد تغییر وضعیت برای خرید {purchase.id} ایجاد شد")
+                logger.debug(f"📝 State change record created for purchase {purchase.id}")
                 return True
             else:
-                logger.info(f"⏭️ وضعیت خرید {purchase.id} تغییری نکرده ({current_state})")
+                logger.debug(f"⏭️ Purchase {purchase.id} state unchanged ({current_state})")
         else:
-            logger.info(f"⏭️ خرید {purchase.id} در وضعیت {current_state} است و نیاز به بروزرسانی ندارد")
+            logger.debug(f"⏭️ Purchase {purchase.id} is in state {current_state} and does not require update")
             
         return False
 
@@ -504,9 +504,9 @@ class Barnameh(models.Model):
                 from core.PurchaseModel import ShenaseTakhsis
                 shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
                 purchase_to_update = shenase_takhsis.purchase
-                logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص {self.shenase_takhsis_code} پیدا شد")
+                logger.debug(f"🔍 Purchase {purchase_to_update.id if purchase_to_update else 'None'} found via allocation identifier {self.shenase_takhsis_code}")
             except Exception as e:
-                logger.warning(f"❌ خطا در پیدا کردن خرید از طریق شناسه تخصیص {self.shenase_takhsis_code}: {str(e)}")
+                logger.warning(f"❌ Error finding purchase via allocation identifier {self.shenase_takhsis_code}: {str(e)}")
                 
         # 🔄 بروزرسانی وضعیت خرید بر اساس وزن بارنامه‌ها
         # این کار را در انتهای save انجام می‌دهیم تا مطمئن باشیم بارنامه کامل ذخیره شده
@@ -515,20 +515,20 @@ class Barnameh(models.Model):
             try:
                 shenase_takhsis = ShenaseTakhsis.objects.get(code=self.shenase_takhsis_code)
                 purchase_to_update = shenase_takhsis.purchase
-                logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص {self.shenase_takhsis_code} پیدا شد")
+                logger.debug(f"🔍 Purchase {purchase_to_update.id if purchase_to_update else 'None'} found via allocation identifier {self.shenase_takhsis_code}")
             except Exception as e:
-                logger.warning(f"❌ خطا در پیدا کردن خرید از طریق شناسه تخصیص {self.shenase_takhsis_code}: {str(e)}")
+                logger.warning(f"❌ Error finding purchase via allocation identifier {self.shenase_takhsis_code}: {str(e)}")
         
         # اگر هنوز خرید پیدا نشد و shenase_takhsis موجود است
         if not purchase_to_update and self.shenase_takhsis:
             purchase_to_update = self.shenase_takhsis.purchase
-            logger.info(f"🔍 خرید {purchase_to_update.id if purchase_to_update else 'None'} از طریق شناسه تخصیص object پیدا شد")
+            logger.debug(f"🔍 Purchase {purchase_to_update.id if purchase_to_update else 'None'} found via allocation identifier object")
                 
         # بروزرسانی وضعیت خرید
         if purchase_to_update:
             self.update_purchase_state_if_needed(purchase_to_update, is_new_barnameh=is_new)
         else:
-            logger.warning(f"⚠️ خرید مرتبط با بارنامه {self.id} پیدا نشد")
+            logger.warning(f"⚠️ Related purchase for Barnameh {self.id} was not found")
 
 
 class BarnamehLog(models.Model):

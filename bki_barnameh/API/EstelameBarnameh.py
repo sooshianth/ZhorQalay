@@ -6,7 +6,7 @@ from ..models.ApiLogModel import BKIApiLog
 import jdatetime
 import logging
 
-logger = logging.getLogger('bki_api_estelame_barnameh')
+logger = logging.getLogger('bugs')
 
 def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
     """
@@ -127,9 +127,9 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
             
             if response.status_code != 200:
                 log_entry.is_successful = False
-                log_entry.error_message = f"خطای HTTP: {response.status_code}"
+                log_entry.error_message = f"خطای HTTP: {response.status_code}, {response.text}"
                 log_entry.save()
-                logger.error(f"خطای HTTP: {response.status_code}, {response.text}")
+                logger.error(f"HTTP error for barnameh {barnameh.id}: {response.status_code}, {response.text}")
                 return {
                     'success': False,
                     'message': f"خطای HTTP: {response.status_code}"
@@ -167,7 +167,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 log_entry.is_successful = False
                 log_entry.error_message = "داده‌ای در پاسخ یافت نشد."
                 log_entry.save()
-                logger.error(f"داده‌ای در پاسخ یافت نشد.")
+                logger.error(f"Error: No data found in response for barnameh {barnameh.id}")
                 
                 return {
                     'success': False,
@@ -178,7 +178,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 log_entry.is_successful = False
                 log_entry.error_message = f"خطا در تجزیه پاسخ: {str(e)}"
                 log_entry.save()
-                logger.error(f"خطا در تجزیه پاسخ: {str(e)}")
+                logger.error(f"Error parsing response for barnameh {barnameh.id}: {str(e)}")
                 return {
                     'success': False,
                     'message': f"خطا در تجزیه پاسخ: {str(e)}"
@@ -186,9 +186,9 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
                 
         except Exception as e:
             log_entry.is_successful = False
-            log_entry.error_message = f"خطا در ارسال درخواست: "
+            log_entry.error_message = f"خطا در ارسال درخواست: {str(e)}"
             log_entry.save()
-            logger.error(f"خطا در ارسال درخواست: {str(e)}")
+            logger.error(f"Error sending request for barnameh {barnameh.id}: {str(e)}")
 
             return {
                 'success': False,
@@ -201,7 +201,7 @@ def estelame_barnameh(barnameh_id, from_date=None, to_date=None):
             'message': 'بارنامه مورد نظر یافت نشد.'
         }
     except Exception as e:
-        logger.error(f"خطا: {str(e)}")
+        logger.error(f"Error in estelame barnameh {barnameh.id}: {str(e)}")
         return {
             'success': False,
             'message': f"خطا: ",

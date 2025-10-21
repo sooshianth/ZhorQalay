@@ -252,7 +252,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             customer = phone.customer
             customer = Customer.objects.filter(name=buyer_name).first()
     except Exception as e:
-        logger.error(f"Error searching for customer by phone number: {str(e)}")
+        logger.error(f"Error searching for customer by phone number {clean_phone}: {str(e)}")
         return None, False, f"Error searching for customer by phone number: {str(e)}"
 
     # If no customer was found, create a new one
@@ -311,7 +311,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             logger.debug(f"✅ New customer '{buyer_name}' created (national id: {masked_code}, type: {haqiqi_hoquqi})")
             return customer, created, None
         except Exception as e:
-            logger.error(f"Error creating new customer: {str(e)}")
+            logger.error(f"Error creating new customer with phone {clean_phone}: {str(e)}")
             return None, False, f"خطا در ایجاد مشتری جدید: {str(e)}"
     
     # اگر مشتری موجود بود، فیلدهای خالی را آپدیت کن
@@ -355,7 +355,7 @@ def create_or_get_customer(buyer_name, buyer_phone, buyer_address, province_code
             logger.info(f"✅ Customer invoice information for '{buyer_name}' updated")
     
     except Exception as e:
-        logger.warning(f"⚠️ Error updating customer invoice information: {str(e)}")
+        logger.warning(f"⚠️ Error updating customer invoice information for phone {clean_phone}: {str(e)}")
     
     return customer, created, None
 
@@ -454,7 +454,7 @@ def create_or_get_product(product_name, goodtag, fee):
                 )
                 created = True
         except Exception as e:
-            logger.error(f"Error finding or creating product: {str(e)}")
+            logger.error(f"Error finding or creating product with cottage {goodtag}: {str(e)}")
             return None, False, f"خطا در یافتن یا ایجاد محصول: {str(e)}"
     
     return cargo, created, None
@@ -550,7 +550,7 @@ def update_purchase(purchase, purchase_data):
                     logger.info(f"✅ Customer invoice information for '{customer.name}' updated for purchase {purchase.purchase_number}")
             
             except Exception as e:
-                logger.warning(f"⚠️ Error updating customer information while updating purchase: {str(e)}")
+                logger.warning(f"⚠️ Error updating customer information while updating purchase {purchase.invoice_id}: {str(e)}")
         
         # Update purchase fields - بدون به‌روزرسانی وزن‌ها
         purchase.buyer_name = buyer_name
@@ -604,7 +604,7 @@ def update_purchase(purchase, purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                logger.error(f"Error converting date: {str(e)}")
+                logger.error(f"Error converting date for purchase {purchase.invoice_id}: {str(e)}")
         
         # اگر کارشناس فروش یکتا تنظیم نشده، آن را به مدیریت تنظیم کن
         if not purchase.unique_sales_agent:
@@ -623,7 +623,7 @@ def update_purchase(purchase, purchase_data):
                     purchase.unique_sales_agent = admin_sales_agent
                     purchase.unique_sales_agent_code = admin_sales_agent.factor_code
             except Exception as e:
-                logger.error(f"Error assigning admin sales agent for existing purchase: {str(e)}")
+                logger.error(f"Error assigning admin sales agent for existing purchase {purchase.invoice_id}: {str(e)}")
 
         # Save changes
         purchase.save()
@@ -657,7 +657,7 @@ def update_purchase(purchase, purchase_data):
         return purchase, None
     
     except Exception as e:
-        logger.error(f"Error updating purchase: {str(e)}")
+        logger.error(f"Error updating purchase {takhsisid}: {str(e)}")
         return purchase, f"خطا در به‌روزرسانی خرید: {str(e)}"
 
 
@@ -756,7 +756,7 @@ def create_purchase(purchase_data):
                 purchase_state = 'INITIATED'  # حالت اولیه
             else:
                 purchase_state = 'PAYMENT_VERIFIED'  # حالت پیش‌فرض امن
-            logger.info(f"⚠️ API suggested operator-only state {api_determined_state}; set {purchase_state} instead")
+            logger.info(f"⚠️ API suggested operator-only state for purchase {takhsisid} {api_determined_state}; set {purchase_state} instead")
         else:
             purchase_state = api_determined_state
         
@@ -801,7 +801,7 @@ def create_purchase(purchase_data):
                 )
                 admin_sales_agent_name = admin_sales_agent.name
         except Exception as e:
-            logger.error(f"Error finding admin sales agent: {str(e)}")
+            logger.error(f"Error finding admin sales agent for purchase {takhsisid}: {str(e)}")
 
         # تنظیم پارامترهای پایه برای ایجاد خرید
         # اگر تخصیص وجود دارد (qty > 0) از qty استفاده کن، وگرنه از totalweight
@@ -859,7 +859,7 @@ def create_purchase(purchase_data):
                         tzinfo=now.tzinfo
                     )
             except Exception as e:
-                logger.error(f"Error converting date: {str(e)}")
+                logger.error(f"Error converting date for purchase {takhsisid}: {str(e)}")
         
         # Create a new purchase
         purchase = Purchase.objects.create(**purchase_params)
@@ -880,7 +880,7 @@ def create_purchase(purchase_data):
         return purchase, None
     
     except Exception as e:
-        logger.error(f"Error creating purchase: {str(e)}")
+        logger.error(f"Error creating purchase for {takhsisid}: {str(e)}")
         return None, f"خطا در ایجاد خرید: {str(e)}"
 
 

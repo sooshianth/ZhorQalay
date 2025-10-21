@@ -237,7 +237,7 @@ def send_sms_on_barnameh_bki_success(sender, instance, created, **kwargs):
             except Purchase.DoesNotExist:
                 logger.warning(f"❌ Purchase with number {instance.purchase_number} not found")
             except Exception as e:
-                logger.error(f"❌ Error finding purchase by number: {str(e)}")
+                logger.error(f"❌ Error finding purchase by number {instance.purchase_number}: {str(e)}")
     
     # 🎯 اگر هنوز شماره‌ای پیدا نشد اما تخصیص بازارگاهی موجود است، از شماره تحویل آن استفاده کن
     if not phone_numbers and instance.shenase_takhsis and instance.shenase_takhsis.tahvil_phone_number:

@@ -7,7 +7,8 @@ from django.db.models import Q
 from .cargo_product_CRUD_panel import get_client_ip
 import logging
 
-logger = logging.getLogger("bki_cargos_barbary_view")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
@@ -15,7 +16,7 @@ def barbary_list(request):
     """
     لیست باربری‌ها
     """
-    logger.warning(f"لیست باربری‌ها: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"Barbary list accessed by user: {request.user}")
     user_role = determine_user_role(request.user)
     
     # جستجو
@@ -42,9 +43,12 @@ def barbary_add(request):
     """
     افزودن باربری جدید
     """
-    logger.warning(f"اضافه کردن باربری‌ها: {get_client_ip(request)}, user: {request.user}")
+    
     if request.method == 'POST':
         name = request.POST.get('name')
+
+        audit_logger.info(f"Barbary added of {name}")
+
         phone_number = request.POST.get('phone_number')
         email = request.POST.get('email')
         description = request.POST.get('description')
@@ -66,12 +70,14 @@ def bulk_edit_barbaries(request):
     """
     ویرایش گروهی باربری‌ها
     """
-    logger.warning(f"ویرایش گروهی باربری‌ها: {get_client_ip(request)}, user: {request.user}")
+    
     if request.method == 'POST':
         selected_barbary_ids = request.POST.getlist('selected_barbary_ids')
         
         if not selected_barbary_ids:
             return redirect('barbary_list')
+        
+        audit_logger.info(f"Bulk edit of barbaries accessed: {selected_barbary_ids}")
         
         # Get barbaries by IDs
         selected_barbaries = Barbary.objects.filter(id__in=selected_barbary_ids)

@@ -219,7 +219,7 @@ def update_purchase_info(request):
     is_successful, message = test_api_connection()
     logger.info(f"Testing connection to BKI service: {is_successful}, Error: {message}")
     if not is_successful:
-        logger.error(f"Error connecting to BKI service: {message}")
+        logger.error(f"Error connecting to BKI service with kharid_id {kharid_id}: {message}")
         return JsonResponse({'success': False, 'error': message}, status=400)
     
     # این تابع صرفاً برای تست است و عملیات واقعی انجام نمی‌دهد
