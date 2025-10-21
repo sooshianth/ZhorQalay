@@ -29,6 +29,7 @@ urlpatterns = [
     path('morqk/manager/task/<int:task_id>/', manager_dashboard_view.manager_task_detail, name='manager_task_detail'),
     path('morqk/manager/task/<int:task_id>/change-status/', manager_dashboard_view.manager_change_task_status, name='manager_change_task_status'),
     path('morqk/manager/task/<int:task_id>/edit/', manager_dashboard_view.manager_edit_task, name='manager_edit_task'),
+    path('admin/overview/', manager_dashboard_view.admin_overview_dashboard, name='admin_overview_dashboard'),
     
     # مسیرهای هدف ماهانه
     path('target/', target_schedule_view.monthly_target_view, name='monthly_target_view'),

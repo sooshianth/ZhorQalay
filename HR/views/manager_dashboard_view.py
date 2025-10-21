@@ -8,7 +8,6 @@ from django.db.models import Sum, Count, Q
 from django.http import JsonResponse
 from django.contrib.auth.models import User
 from HR.MorqkModel import MorqkTask, MonthlyMorqkSummary, TaskAssignment
-from HR.EmployeeAttendanceModel import WeeklySchedule
 from HR.EmployeeModel import Employee
 import jdatetime
 
@@ -59,27 +58,6 @@ def manager_dashboard(request):
         month=current_month
     ).select_related('employee').order_by('-total_approved_morqk')
     
-    # دریافت برنامه‌های هفتگی کاربران
-    if is_superuser:
-        # superuser همه برنامه‌ها را می‌بیند
-        weekly_schedules = WeeklySchedule.objects.filter(is_active=True).select_related('employee').order_by('employee', 'day_of_week')
-    else:
-        # مدیر فقط برنامه‌های کارمندانی که تسک به آن‌ها واگذار کرده را می‌بیند
-        assigned_employees = all_tasks.values_list('assigned_to', flat=True).distinct()
-        weekly_schedules = WeeklySchedule.objects.filter(
-            employee__in=assigned_employees,
-            is_active=True
-        ).select_related('employee').order_by('employee', 'day_of_week')
-    
-    # گروه‌بندی برنامه‌ها بر اساس کارمند
-    schedules_by_employee = {}
-    for schedule in weekly_schedules:
-        emp = schedule.employee
-        emp_name = f"{emp.first_name} {emp.last_name}" if hasattr(emp, 'first_name') else emp.username
-        if emp_name not in schedules_by_employee:
-            schedules_by_employee[emp_name] = []
-        schedules_by_employee[emp_name].append(schedule)
-    
     context = {
         'is_superuser': is_superuser,
         'is_manager': is_manager,
@@ -92,7 +70,6 @@ def manager_dashboard(request):
         'monthly_summaries': monthly_summaries,
         'current_month': current_month,
         'current_month_display': f"{current_date.year}/{current_date.month:02d}",
-        'schedules_by_employee': schedules_by_employee,
     }
     
     return render(request, 'morqk/manager_dashboard.html', context)
@@ -294,3 +271,69 @@ def manager_edit_task(request, task_id):
     
     return render(request, 'morqk/manager_edit_task.html', context)
 
+
+@login_required
+def admin_overview_dashboard(request):
+    """
+    داشبورد مدیریتی برای ادمین - نمایش برنامه هفتگی و هدف ماهانه همه کارمندان
+    """
+    user = request.user
+    
+    # فقط ادمین می‌تواند به این صفحه دسترسی داشته باشد
+    if not user.is_superuser:
+        messages.error(request, 'شما به این صفحه دسترسی ندارید.')
+        return redirect('morqk_dashboard')
+    
+    from ..EmployeeAttendanceModel import WeeklySchedule, MonthlyTarget
+    
+    # دریافت ماه جاری
+    current_date = jdatetime.datetime.now()
+    current_month = f"{current_date.year}-{current_date.month:02d}"
+    
+    # دریافت همه کارمندان (افرادی که Employee record دارند یا superuser هستند)
+    all_employees = User.objects.filter(
+        Q(employee__isnull=False) | Q(is_superuser=True)
+    ).distinct().order_by('first_name', 'username')
+    
+    # آماده‌سازی داده‌ها برای هر کارمند
+    employees_data = []
+    
+    for employee in all_employees:
+        # برنامه هفتگی
+        schedules = WeeklySchedule.objects.filter(
+            employee=employee,
+            is_active=True
+        ).order_by('day_of_week')
+        
+        # محاسبه مجموع ساعات هفتگی
+        total_weekly_hours = sum([s.duration_hours for s in schedules])
+        
+        # هدف ماهانه برای ماه جاری
+        monthly_target = MonthlyTarget.objects.filter(
+            employee=employee,
+            month=current_month
+        ).first()
+        
+        # خلاصه مرغک ماهانه
+        morqk_summary = MonthlyMorqkSummary.objects.filter(
+            employee=employee,
+            month=current_month
+        ).first()
+        
+        employees_data.append({
+            'employee': employee,
+            'full_name': f"{employee.first_name} {employee.last_name}" if employee.first_name else employee.username,
+            'schedules': schedules,
+            'total_weekly_hours': total_weekly_hours,
+            'monthly_target': monthly_target,
+            'morqk_summary': morqk_summary,
+        })
+    
+    context = {
+        'employees_data': employees_data,
+        'current_month': current_month,
+        'current_month_display': f"{current_date.year}/{current_date.month:02d}",
+        'current_date': current_date,
+    }
+    
+    return render(request, 'morqk/admin_overview_dashboard.html', context)

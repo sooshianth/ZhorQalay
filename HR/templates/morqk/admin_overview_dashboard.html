@@ -1,0 +1,524 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}داشبورد مدیریتی کلی{% endblock %}
+
+{% block extra_css %}
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-family: Tahoma, Arial, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        padding: 0;
+    }
+    
+    .dashboard-container {
+        padding: 30px;
+        direction: rtl;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .page-header {
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        margin-bottom: 30px;
+        text-align: center;
+    }
+    
+    .page-header h1 {
+        margin: 0 0 10px 0;
+        color: #667eea;
+        font-size: 36px;
+        font-weight: bold;
+    }
+    
+    .page-header p {
+        margin: 0;
+        color: #666;
+        font-size: 16px;
+    }
+    
+    .search-filter-section {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+    }
+    
+    .search-box {
+        width: 100%;
+    }
+    
+    .search-box input {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 10px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+    }
+    
+    .search-box input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+    
+    .employees-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
+        gap: 30px;
+    }
+    
+    .employee-card {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-top: 5px solid #667eea;
+    }
+    
+    .employee-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    }
+    
+    .employee-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .employee-info h3 {
+        margin: 0 0 5px 0;
+        color: #333;
+        font-size: 22px;
+        font-weight: bold;
+    }
+    
+    .employee-info .username {
+        color: #999;
+        font-size: 14px;
+    }
+    
+    .employee-status {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .status-indicator.active {
+        background: #4caf50;
+        box-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+    }
+    
+    .status-indicator.inactive {
+        background: #f44336;
+    }
+    
+    .section-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: #667eea;
+        margin: 0 0 15px 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .section-title i {
+        font-size: 20px;
+    }
+    
+    /* برنامه هفتگی */
+    .weekly-schedule {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .schedule-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .schedule-table tr {
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .schedule-table tr:last-child {
+        border-bottom: none;
+    }
+    
+    .schedule-table td {
+        padding: 10px 5px;
+    }
+    
+    .schedule-day {
+        font-weight: bold;
+        color: #333;
+        width: 30%;
+    }
+    
+    .schedule-time {
+        color: #666;
+        text-align: left;
+    }
+    
+    .schedule-hours {
+        color: #667eea;
+        font-weight: bold;
+        text-align: center;
+        width: 25%;
+    }
+    
+    .total-weekly-hours {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+    
+    /* هدف ماهانه */
+    .monthly-target {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .target-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .target-item {
+        background: white;
+        padding: 12px;
+        border-radius: 8px;
+        text-align: center;
+        border: 2px solid #e0e0e0;
+    }
+    
+    .target-item .label {
+        font-size: 12px;
+        color: #999;
+        margin-bottom: 5px;
+    }
+    
+    .target-item .value {
+        font-size: 22px;
+        font-weight: bold;
+        color: #333;
+    }
+    
+    .target-item .value.achieved {
+        color: #4caf50;
+    }
+    
+    .target-item .value.partial {
+        color: #ff9800;
+    }
+    
+    .target-item .value.low {
+        color: #f44336;
+    }
+    
+    .progress-bar-container {
+        background: #e0e0e0;
+        border-radius: 10px;
+        height: 30px;
+        overflow: hidden;
+        position: relative;
+        margin-top: 10px;
+    }
+    
+    .progress-bar {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 14px;
+        position: relative;
+    }
+    
+    .progress-bar.high {
+        background: linear-gradient(135deg, #4caf50 0%, #8bc34a 100%);
+    }
+    
+    .progress-bar.medium {
+        background: linear-gradient(135deg, #ff9800 0%, #ffc107 100%);
+    }
+    
+    .progress-bar.low {
+        background: linear-gradient(135deg, #f44336 0%, #e57373 100%);
+    }
+    
+    .progress-percentage {
+        position: absolute;
+        width: 100%;
+        text-align: center;
+        color: #333;
+        font-weight: bold;
+        z-index: 1;
+        text-shadow: 0 0 3px white;
+    }
+    
+    .no-data-message {
+        text-align: center;
+        color: #999;
+        font-size: 14px;
+        padding: 20px;
+        font-style: italic;
+    }
+    
+    /* مرغک ماهانه */
+    .morqk-summary {
+        background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .morqk-value {
+        font-size: 36px;
+        font-weight: bold;
+        margin: 10px 0;
+    }
+    
+    .morqk-label {
+        font-size: 14px;
+        opacity: 0.9;
+    }
+    
+    .morqk-details {
+        display: flex;
+        justify-content: space-around;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    
+    .morqk-detail-item {
+        text-align: center;
+    }
+    
+    .morqk-detail-item .number {
+        font-size: 20px;
+        font-weight: bold;
+        display: block;
+    }
+    
+    .morqk-detail-item .label {
+        font-size: 11px;
+        opacity: 0.8;
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 50px;
+        color: white;
+        font-size: 18px;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .employees-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .page-header h1 {
+            font-size: 28px;
+        }
+    }
+    
+    /* آیکون‌های fontawesome */
+    .fa-calendar-week, .fa-bullseye, .fa-chart-line, .fa-search {
+        margin-left: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <!-- هدر صفحه -->
+    <div class="page-header">
+        <h1>📊 داشبورد کلی مدیریتی</h1>
+        <p>نمایش برنامه هفتگی و پیشرفت ماهانه همه کارمندان - ماه جاری: {{ current_month_display }}</p>
+    </div>
+    
+    <!-- بخش جستجو -->
+    <div class="search-filter-section">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 جستجوی کارمند بر اساس نام، نام خانوادگی یا نام کاربری...">
+        </div>
+    </div>
+    
+    <!-- گرید کارمندان -->
+    <div class="employees-grid" id="employeesGrid">
+        {% for emp_data in employees_data %}
+        <div class="employee-card" data-search="{{ emp_data.full_name|lower }} {{ emp_data.employee.username|lower }}">
+            <!-- هدر کارمند -->
+            <div class="employee-header">
+                <div class="employee-info">
+                    <h3>{{ emp_data.full_name }}</h3>
+                    <span class="username">@{{ emp_data.employee.username }}</span>
+                </div>
+                <div class="employee-status">
+                    <span class="status-indicator {% if emp_data.schedules %}active{% else %}inactive{% endif %}" 
+                          title="{% if emp_data.schedules %}برنامه فعال دارد{% else %}برنامه ندارد{% endif %}"></span>
+                </div>
+            </div>
+            
+            <!-- برنامه هفتگی -->
+            <div class="weekly-schedule">
+                <h4 class="section-title">
+                    <i class="fa fa-calendar-week"></i>
+                    برنامه هفتگی
+                </h4>
+                {% if emp_data.schedules %}
+                    <table class="schedule-table">
+                        {% for schedule in emp_data.schedules %}
+                        <tr>
+                            <td class="schedule-day">{{ schedule.get_day_of_week_display }}</td>
+                            <td class="schedule-time">{{ schedule.start_time|time:"H:i" }} - {{ schedule.end_time|time:"H:i" }}</td>
+                            <td class="schedule-hours">{{ schedule.duration_hours }} ساعت</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                    <div class="total-weekly-hours">
+                        مجموع هفتگی: {{ emp_data.total_weekly_hours }} ساعت
+                    </div>
+                {% else %}
+                    <div class="no-data-message">
+                        برنامه هفتگی تعریف نشده است
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- هدف ماهانه -->
+            <div class="monthly-target">
+                <h4 class="section-title">
+                    <i class="fa fa-bullseye"></i>
+                    هدف ماهانه ({{ current_month_display }})
+                </h4>
+                {% if emp_data.monthly_target %}
+                    <div class="target-info">
+                        <div class="target-item">
+                            <div class="label">هدف</div>
+                            <div class="value">{{ emp_data.monthly_target.target_hours }}</div>
+                        </div>
+                        <div class="target-item">
+                            <div class="label">انجام شده</div>
+                            <div class="value {% if emp_data.monthly_target.achievement_percentage >= 100 %}achieved{% elif emp_data.monthly_target.achievement_percentage >= 75 %}partial{% else %}low{% endif %}">
+                                {{ emp_data.monthly_target.achieved_hours }}
+                            </div>
+                        </div>
+                        <div class="target-item">
+                            <div class="label">باقی‌مانده</div>
+                            <div class="value">{{ emp_data.monthly_target.remaining_hours }}</div>
+                        </div>
+                        <div class="target-item">
+                            <div class="label">وضعیت</div>
+                            <div class="value">{{ emp_data.monthly_target.status }}</div>
+                        </div>
+                    </div>
+                    
+                    <!-- نوار پیشرفت -->
+                    <div class="progress-bar-container">
+                        <div class="progress-percentage">{{ emp_data.monthly_target.achievement_percentage }}%</div>
+                        <div class="progress-bar {% if emp_data.monthly_target.achievement_percentage >= 90 %}high{% elif emp_data.monthly_target.achievement_percentage >= 75 %}medium{% else %}low{% endif %}" 
+                             style="width: {% if emp_data.monthly_target.achievement_percentage > 100 %}100{% else %}{{ emp_data.monthly_target.achievement_percentage }}{% endif %}%;">
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="no-data-message">
+                        هدف ماهانه تعریف نشده است
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- خلاصه مرغک -->
+            {% if emp_data.morqk_summary %}
+            <div class="morqk-summary">
+                <div class="morqk-label">مرغک‌های ماه جاری</div>
+                <div class="morqk-value">{{ emp_data.morqk_summary.total_approved_morqk }}</div>
+                <div class="morqk-details">
+                    <div class="morqk-detail-item">
+                        <span class="number">{{ emp_data.morqk_summary.total_tasks }}</span>
+                        <span class="label">کل تسک‌ها</span>
+                    </div>
+                    <div class="morqk-detail-item">
+                        <span class="number">{{ emp_data.morqk_summary.completed_tasks }}</span>
+                        <span class="label">تکمیل شده</span>
+                    </div>
+                    <div class="morqk-detail-item">
+                        <span class="number">{{ emp_data.morqk_summary.approved_tasks }}</span>
+                        <span class="label">تایید شده</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div class="no-results">
+            هیچ کارمندی یافت نشد.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const employeeCards = document.querySelectorAll('.employee-card');
+    
+    // جستجو
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        
+        employeeCards.forEach(card => {
+            const searchText = card.dataset.search;
+            
+            if (searchTerm === '' || searchText.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
