@@ -301,13 +301,17 @@ class MonthlyAttendance(models.Model):
                 
             print(f"Debug - update_monthly_hours: Month range: {start_of_month} to {end_of_month}")
                 
-            # فقط ساعات تأیید شده توسط ادمین را حساب می‌کنیم
-            # با توجه به تغییر منطق تایید، دیگر نیازی به تایید کاربران نیست
+            # محاسبه ساعات تأیید شده توسط ادمین یا حداقل 2 تایید کاربر
+            from django.db.models import Q
             total = WeeklyAttendance.objects.filter(
                 employee=employee,
                 week_start_date__gte=start_of_month,
-                week_start_date__lte=end_of_month,
-                approved_by_admin=True,  # فقط ساعات تأیید شده توسط ادمین
+                week_start_date__lte=end_of_month
+            ).filter(
+                Q(approved_by_admin=True) |  # تایید ادمین
+                (Q(user1_approved=True) & Q(user2_approved=True)) |  # 2 تایید: کاربر 1 و 2
+                (Q(user1_approved=True) & Q(user3_approved=True)) |  # 2 تایید: کاربر 1 و 3
+                (Q(user2_approved=True) & Q(user3_approved=True))    # 2 تایید: کاربر 2 و 3
             ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
             
             print(f"Debug - update_monthly_hours: Total approved hours for {month_str}: {total}")
@@ -575,13 +579,13 @@ class MonthlyTarget(models.Model):
         """وضعیت دستیابی به هدف"""
         percentage = self.achievement_percentage
         if percentage >= 100:
-            return "کامل"
+            return "دمت گرم مشتی"
         elif percentage >= 90:
-            return "قابل قبول"
+            return "قابل قبوله"
         elif percentage >= 75:
-            return "نیاز به تلاش بیشتر"
+            return "میتونه بهتر بشه"
         else:
-            return "ضعیف"
+            return "خسته نشی"
     
     @property
     def status_color(self):
