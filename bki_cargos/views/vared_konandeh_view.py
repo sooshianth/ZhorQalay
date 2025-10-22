@@ -6,8 +6,10 @@ from core.decorators.det_user_role import determine_user_role
 from django.db.models import Q
 from .cargo_product_CRUD_panel import get_client_ip
 import logging
+from core.logging_levels import *
 
-logger = logging.getLogger("bki_cargos_vared_konandeh_view")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 @role_required('admin', 'logistics_manager', 'financial_manager')
 @login_required
@@ -15,7 +17,7 @@ def vared_konandeh_list(request):
     """
     لیست واردکنندگان
     """
-    logger.warning(f"لیست واردکنندگان: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"vared_konandeh_list accessed")
     user_role = determine_user_role(request.user)
     
     # جستجو
@@ -42,13 +44,14 @@ def vared_konandeh_add(request):
     """
     افزودن واردکننده جدید
     """
-    logger.warning(f"افزودن واردکننده جدید: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"vared_konandeh_add accessed")
     if request.method == 'POST':
         name = request.POST.get('name')
         phone_number = request.POST.get('phone_number')
         email = request.POST.get('email')
         website = request.POST.get('website')
         balance = request.POST.get('balance', 0)
+        audit_logger.info(f"New VaredKonandeh created: {name}")
         
         VaredKonandeh.objects.create(
             name=name,
@@ -68,7 +71,7 @@ def bulk_edit_vared_konandehs(request):
     """
     ویرایش گروهی واردکنندگان
     """
-    logger.warning(f"ویرایش گروهی واردکنندگان: {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"bulk_edit_vared_konandehs accessed")
     if request.method == 'POST':
         selected_vared_konandeh_ids = request.POST.getlist('selected_vared_konandeh_ids')
         
@@ -81,24 +84,28 @@ def bulk_edit_vared_konandehs(request):
         # Check if updates are required
         if request.POST.get('update_phone'):
             phone_number = request.POST.get('phone_number')
+            audit_logger.info(f"Updating phone number for vared konandehs: {selected_vared_konandeh_ids}")
             for vared_konandeh in selected_vared_konandehs:
                 vared_konandeh.phone_number = phone_number
                 vared_konandeh.save()
         
         if request.POST.get('update_email'):
             email = request.POST.get('email')
+            audit_logger.info(f"Updating email for vared konandehs: {selected_vared_konandeh_ids}")
             for vared_konandeh in selected_vared_konandehs:
                 vared_konandeh.email = email
                 vared_konandeh.save()
         
         if request.POST.get('update_website'):
             website = request.POST.get('website')
+            audit_logger.info(f"Updating website for vared konandehs: {selected_vared_konandeh_ids}")
             for vared_konandeh in selected_vared_konandehs:
                 vared_konandeh.website = website
                 vared_konandeh.save()
         
         if request.POST.get('update_balance'):
             balance = request.POST.get('balance')
+            audit_logger.info(f"Updating balance for vared konandehs: {selected_vared_konandeh_ids}")
             for vared_konandeh in selected_vared_konandehs:
                 vared_konandeh.balance = balance
                 vared_konandeh.save()
@@ -107,6 +114,7 @@ def bulk_edit_vared_konandehs(request):
     
     # Get vared_konandehs IDs from query parameters
     selected_vared_konandeh_ids = request.GET.getlist('ids')
+    audit_logger.info(f"vared konandeh ids: {selected_vared_konandeh_ids}")
     
     if not selected_vared_konandeh_ids:
         return redirect('vared_konandeh_list')

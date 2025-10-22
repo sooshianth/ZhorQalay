@@ -3,13 +3,13 @@ import json
 from core.CustomerModel import Customer
 import logging
 
-logger = logging.getLogger("core_copy_preferences_to_json")
+logger = logging.getLogger("bugs")
 
 class Command(BaseCommand):
     help = 'کپی ترجیحات مشتری از فیلدهای ManyToMany به فیلدهای JSON'
 
     def handle(self, *args, **options):
-        logger.info('شروع کپی ترجیحات مشتری...')
+        logger.debug('Starting to copy customer preferences...')
         
         customers = Customer.objects.all()
         count = 0
@@ -32,6 +32,6 @@ class Command(BaseCommand):
                 customer.save(update_fields=['_field_of_activity_json', '_product_preferences_json', '_purchase_preferences_json'])
                 count += 1
             except Exception as e:
-                logger.error(f'خطا در ذخیره ترجیحات برای مشتری {customer.id}: {e}')
+                logger.error(f'Error saving preferences for customer {customer.id}: {e}')
         
-        logger.info(f'کپی ترجیحات {count} مشتری با موفقیت انجام شد.') 
+        logger.debug(f'Successfully copied preferences for {count} customers.')

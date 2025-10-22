@@ -7,7 +7,7 @@ from core.CustomerModel import ActivityField, ProductPreference, PaymentPreferen
 from core.CargoProductModel import CargoProduct
 import logging
 
-logger = logging.getLogger("core_migrate_customer_preferences")
+logger = logging.getLogger("bugs")
 
 class Command(BaseCommand):
     help = 'Migrates Customer JSONFields to ManyToMany models'
@@ -31,13 +31,13 @@ class Command(BaseCommand):
         # Create ActivityField objects
         for code, name in FIELD_OF_ACTIVITY:
             ActivityField.objects.get_or_create(code=code)
-        logger.info(f'Created {len(FIELD_OF_ACTIVITY)} activity fields')
+        logger.debug(f'Created {len(FIELD_OF_ACTIVITY)} activity fields')
         
         # Create ProductPreference objects
         product_choices = CargoProduct.PRODUCT_TYPES
         for code, name in product_choices:
             ProductPreference.objects.get_or_create(code=code)
-        logger.info(f'Created {len(product_choices)} product preferences')
+        logger.debug(f'Created {len(product_choices)} product preferences')
         
         # Create PaymentPreference objects from PAYMENT_PREFERENCE_CHOICES
         payment_choices = [
@@ -49,7 +49,7 @@ class Command(BaseCommand):
         ]
         for code, name in payment_choices:
             PaymentPreference.objects.get_or_create(code=code)
-        logger.info(f'Created {len(payment_choices)} payment preferences')
+        logger.debug(f'Created {len(payment_choices)} payment preferences')
     
     def migrate_customer_json_fields(self):
         """Migrate data from JSONFields to ManyToMany relationships"""
@@ -57,7 +57,7 @@ class Command(BaseCommand):
         count = 0
         
         for customer in Customer.objects.all():
-            logger.info(f'Processing customer {customer.id}: {customer.name}')
+            logger.debug(f'Processing customer {customer.id}: {customer.name}')
             
             # Field of activity
             if hasattr(customer, 'field_of_activity') and customer.field_of_activity:

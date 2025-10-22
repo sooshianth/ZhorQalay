@@ -8,8 +8,10 @@ from sms_api.apis import queue_sms, send_purchase_status_notification, send_purc
 from sms_api.models import SmsTemplate
 import logging
 from core.PurchaseModel import PurchaseStateChange
+from core.logging_levels import *
 
-logger = logging.getLogger("core_zignals")
+logger = logging.getLogger("bugs")
+
 
 
 @receiver(post_save, sender=Purchase, dispatch_uid="create_task_for_purchase")
@@ -78,12 +80,12 @@ def _should_send_sms(instance):
     """
     # اگر مشتری وجود ندارد یا تنظیمات sms_preference غیرفعال است، پیامک ارسال نمی‌شود
     if not instance.customer or not instance.customer.sms_preference:
-        logger.info(f"SMS not sent for purchase {instance.id}: Customer does not exist or SMS preference is disabled")
+        logger.debug(f"SMS not sent for purchase {instance.id}: Customer does not exist or SMS preference is disabled")
         return False
     
     # فقط برای خریدهایی که تنظیم send_cottage_sms آنها فعال است
     if not instance.send_cottage_sms:
-        logger.info(f"SMS not sent for purchase {instance.id}: send_cottage_sms is disabled")
+        logger.debug(f"SMS not sent for purchase {instance.id}: send_cottage_sms is disabled")
         return False
     
     return True
@@ -97,7 +99,7 @@ def _send_sms_for_state_change(purchase, previous_state, new_state, notes="تغ�
     template = SmsTemplate.objects.filter(status=new_state, is_active=True).first()
     
     if not template:
-        logger.info(f"No active SMS template found for state {new_state} (Purchase ID: {purchase.id})")
+        logger.warning(f"No active SMS template found for state {new_state} (Purchase ID: {purchase.id})")
         return False
         
     # پردازش قالب پیام با استفاده از تابع send_purchase_status_notification
@@ -139,7 +141,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
 
     # اگر پیامک قبلا ارسال شده، دیگر ارسال نکن
     if instance.sms_sent:
-        logger.info(f"SMS already sent for state change to {instance.new_state} for purchase {instance.purchase.id}")
+        logger.debug(f"SMS already sent for state change to {instance.new_state} for purchase {instance.purchase.id}")
         return
     
     purchase = instance.purchase
@@ -154,7 +156,7 @@ def send_sms_on_state_change(sender, instance, created, **kwargs):
         result = send_purchase_status_notification(purchase, status=new_state)
         
         if result:
-            logger.info(f"Successfully queued SMS for state change to {new_state} for purchase {purchase.id}")
+            logger.debug(f"Successfully queued SMS for state change to {new_state} for purchase {purchase.id}")
             
             # آپدیت فیلد sms_sent در رکورد تغییر وضعیت
             instance.sms_sent = True
@@ -197,7 +199,7 @@ def handle_direct_purchase_state_change(sender, instance, created, **kwargs):
     current_state = instance.state
     
     if old_state and old_state != current_state:
-        logger.info(f"🔄 تغییر مستقیم وضعیت خرید {instance.purchase_number}: {old_state} → {current_state}")
+        logger.info(f"🔄 Direct purchase state change {instance.purchase_number}: {old_state} → {current_state}")
         
         # بررسی اینکه آیا رکورد PurchaseStateChange برای این تغییر وجود دارد
         recent_state_change = PurchaseStateChange.objects.filter(
@@ -209,7 +211,7 @@ def handle_direct_purchase_state_change(sender, instance, created, **kwargs):
         
         if not recent_state_change:
             # ایجاد رکورد تغییر وضعیت برای تریگر کردن سیگنال پیامک
-            logger.info(f"📝 ایجاد رکورد تغییر وضعیت برای تغییر مستقیم: {old_state} → {current_state}")
+            logger.debug(f"Creating PurchaseStateChange record for direct state change: {old_state} → {current_state}")
             PurchaseStateChange.objects.create(
                 purchase=instance,
                 previous_state=old_state,
@@ -217,7 +219,7 @@ def handle_direct_purchase_state_change(sender, instance, created, **kwargs):
                 notes='تغییر مستقیم وضعیت توسط سیستم یا API'
             )
         else:
-            logger.debug(f"✅ رکورد تغییر وضعیت برای خرید {instance.purchase_number} قبلاً موجود است")
+            logger.debug(f"PurchaseStateChange record already exists for direct state change: {old_state} → {current_state}")
 
 
 # سیگنال جدید برای ارسال پیامک اطلاع‌رسانی خرید جدید به مدیریت

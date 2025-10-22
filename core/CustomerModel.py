@@ -10,7 +10,8 @@ from django.utils import timezone
 from datetime import timedelta
 import logging
 
-logger = logging.getLogger("core_customer")
+
+logger = logging.getLogger("bugs")
 
 
 FIELD_OF_ACTIVITY = [
@@ -111,14 +112,14 @@ class PhoneNumber(models.Model):
             if cleaned_number.startswith('98'):
                 cleaned_number = cleaned_number[2:]
             
-            # توصیه‌ها به جای اعتبارسنجی اجباری
+            # Recommendations instead of strict validation
             if not cleaned_number.startswith('9'):
-                # تنها هشدار بده، اما خطا نده
-                logger.info(f'توجه: شماره تلفن {cleaned_number} با 9 شروع نمی‌شود، اما پذیرفته می‌شود.')
+                # Log a notice but do not raise an error
+                logger.info(f'Notice: phone number {cleaned_number} does not start with 9, accepting anyway.')
                 
             if len(cleaned_number) != 10:
-                # تنها هشدار بده، اما خطا نده
-                logger.info(f'توجه: شماره تلفن {cleaned_number} دقیقاً 10 رقم نیست، اما پذیرفته می‌شود.')
+                # Log a notice but do not raise an error
+                logger.info(f'Notice: phone number {cleaned_number} is not exactly 10 digits, accepting anyway.')
             
             # ذخیره شماره پاکسازی شده
             self.number = cleaned_number
@@ -323,9 +324,7 @@ class Customer(models.Model):
         
         # Log for debugging (only if there are duplicates found)
         if len(raw_numbers) > len(result) and len(raw_numbers) > 1:
-            logger.info(f"Customer {self.id}: Removed {len(raw_numbers) - len(result)} duplicate phone numbers")
-            logger.debug(f"Raw numbers: {raw_numbers}")
-            logger.debug(f"Final unique numbers: {result}")
+            logger.debug(f"Customer {self.id}: Removed {len(raw_numbers) - len(result)} duplicate phone numbers")
         
         return result
 
@@ -559,10 +558,10 @@ class Customer(models.Model):
                         updated = True
                     
                     if updated:
-                        logger.info(f"✅ فیلدهای فاکتور مشتری '{self.name}' از آخرین خرید تکمیل شد")
+                        logger.debug(f"✅ Invoice fields for customer '{self.name}' were populated from the last purchase")
                         
             except Exception as e:
-                logger.warning(f"⚠️ خطا در تکمیل فیلدهای فاکتور از آخرین خرید: {str(e)}")
+                logger.warning(f"⚠️ Error populating invoice fields from last purchase: {str(e)}")
         
         # ذخیره نهایی
         super().save(*args, **kwargs)

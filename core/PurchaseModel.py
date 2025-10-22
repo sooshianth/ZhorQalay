@@ -19,8 +19,10 @@ import re
 from core.decorators.det_user_role import determine_user_role
 import logging
 from major.models.BasePurchase import BasePurchase
+from core.logging_levels import *
 
-logger = logging.getLogger("core_purchase")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 
 class Purchase(BasePurchase):
@@ -200,6 +202,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to confirm purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.type != 'bazaargah':
@@ -229,6 +232,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'financial_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to confirm purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         # در سیستم جدید، تایید پرداخت بازارگاه از طریق API انجام می‌شود
@@ -264,6 +268,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'sales_agent' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to register allocation for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if not self.shenase_takhsis:
@@ -290,6 +295,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to approve allocation for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         # در سیستم جدید، نیازی به بررسی وضعیت قبلی نیست، چون با API تایید می‌شود
@@ -316,6 +322,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to send address for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if not self.address:
@@ -340,6 +347,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to wait for barnameh for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'ADDRESS_SENT':
@@ -364,6 +372,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to issue barnameh for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'WAITING_FOR_BARNAMEH':
@@ -391,6 +400,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to mark barnameh incomplete for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'WAITING_FOR_BARNAMEH' and self.state != 'BARNAMEH_ISSUED':
@@ -415,6 +425,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'logistics_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to close purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'BARNAMEH_ISSUED' and self.state != 'BARNAMEH_INCOMPLETE':
@@ -439,6 +450,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'financial_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to approve difference for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'PURCHASE_CLOSED':
@@ -467,6 +479,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'financial_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to fully settle purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'DIFFERENCE_APPROVED' and self.state != 'PURCHASE_CLOSED':
@@ -495,6 +508,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'financial_manager' and user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to issue invoice for purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state != 'FULLY_SETTLED':
@@ -524,6 +538,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to cancel purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
         
         notification_message = (
@@ -546,6 +561,7 @@ class Purchase(BasePurchase):
         """
         user_role = determine_user_role(user)
         if user_role != 'admin':
+            audit_logger.alert(f"Unauthorized access attempt by user {user.id} to archive purchase {self.id}")
             raise ValidationError('شما اجازه دسترسی به این قسمت را ندارید')
             
         if self.state in ['PAYMENT_VERIFIED', 'BARNAMEH_ISSUED', 'PURCHASE_CLOSED', 'CANCELED']:
@@ -667,12 +683,12 @@ class Purchase(BasePurchase):
                 sales_agent = SalesAgent.objects.filter(factor_code=self.unique_sales_agent_code).first()
                 if sales_agent:
                     self.unique_sales_agent = sales_agent
-                    logger.info(f"✅ کارشناس فروش {sales_agent.name} با کد {sales_agent.factor_code} برای خرید {self.pk or 'جدید'} تنظیم شد")
+                    logger.debug(f"✅ Sales agent {sales_agent.name} with code {sales_agent.factor_code} set for purchase {self.pk or 'new'}")
                 else:
-                    logger.warning(f"⚠️ کارشناس فروش با کد '{self.unique_sales_agent_code}' یافت نشد")
+                    logger.warning(f"⚠️ Sales agent with code '{self.unique_sales_agent_code}' not found")
                 
         except Exception as e:
-            logger.warning(f"❌ خطا در همگام‌سازی کارشناس فروش: {str(e)}")
+            logger.warning(f"❌ Error syncing sales agent: {str(e)}")
                 
         if not self.invoice_id:
             factor_code = '99'  # Código por defecto para administrador
@@ -687,7 +703,7 @@ class Purchase(BasePurchase):
                         if sales_agent and sales_agent.factor_code:
                             factor_code = sales_agent.factor_code
                     except Exception as e:
-                        logger.warning(f"Error al obtener factor_code del agente: {str(e)}")
+                        logger.warning(f"Error obtaining sales agent factor_code: {str(e)}")
             
             # Generamos el número de factura secuencial
             last_purchase = Purchase.objects.filter(invoice_id__startswith=factor_code).order_by('-invoice_id').first()
@@ -717,7 +733,6 @@ class Purchase(BasePurchase):
             # بررسی اینکه آیا این کارشناس قبلاً در لیست sales_agent های مشتری هست یا نه
             if not self.customer.sales_agent.filter(id=self.unique_sales_agent.id).exists():
                 self.customer.sales_agent.add(self.unique_sales_agent)
-                logger.info(f"✅ کارشناس فروش {self.unique_sales_agent.name} به لیست کارشناسان مشتری {self.customer.name} اضافه شد")
         
         # اضافه کردن کاربر فعلی به عنوان کارشناس فروش خرید
         # این قسمت را در view هایی که خرید ایجاد می‌کنند استفاده می‌کنیم
@@ -788,10 +803,10 @@ class Purchase(BasePurchase):
                         customer=self.bazaargah_customer,
                         phone_number=self.bazaargah_phone_number
                     )
-                    logger.info(f"✅ شماره تلفن {self.bazaargah_phone_number} به CRM مشتری {self.bazaargah_customer.name} اضافه شد")
+                    logger.debug(f"✅ Phone number {self.bazaargah_phone_number} added to CRM for customer {self.bazaargah_customer.name}")
                     
             except Exception as e:
-                logger.warning(f"❌ خطا در اضافه کردن شماره تلفن به CRM: {str(e)}")
+                logger.warning(f"❌ Error adding phone number to CRM: {str(e)}")
 
         if not self.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
             self.is_address_sent = '1'  # اصلاح: استفاده از string '1' به جای boolean True
@@ -921,7 +936,7 @@ class Purchase(BasePurchase):
         try:
             total_weight = self.barnamehs.aggregate(Sum('tonnage'))['tonnage__sum'] or 0
         except Exception as e:
-            logger.error(f"خطا در محاسبه مجموع وزن بارنامه‌ها برای خرید {self.id}: {str(e)}")
+            logger.error(f"Error calculating total barnameh weight for purchase {self.id}: {str(e)}")
         return total_weight
                 
 

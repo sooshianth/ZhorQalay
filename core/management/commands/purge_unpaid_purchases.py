@@ -4,7 +4,7 @@ from datetime import timedelta
 from core.PurchaseModel import Purchase, PurchaseStateChange
 import logging
 
-logger = logging.getLogger("core_purge_unpaid_purchases")
+logger = logging.getLogger("bugs")
 
 class Command(BaseCommand):
     help = 'حذف خودکار خریدهایی که بعد از یک روز پرداخت نشده‌اند'
@@ -28,9 +28,9 @@ class Command(BaseCommand):
         
         start_time = timezone.now()
         cutoff_date = start_time - timedelta(days=days)
-        
-        logger.info(f"شروع حذف خریدهای پرداخت نشده قبل از {cutoff_date}")
-        
+
+        logger.debug(f"Cutoff date: {cutoff_date}")
+
         # پیدا کردن خریدهایی که در مرحله شروع شده یا پیامک ارسال شده یا تایید بازارگاه هستند
         # و بیش از تعداد روز مشخص شده از ایجاد آنها گذشته است
         purchases_to_delete = Purchase.objects.filter(
@@ -41,9 +41,9 @@ class Command(BaseCommand):
         count = purchases_to_delete.count()
         
         if dry_run:
-            logger.info(f"حالت آزمایشی: {count} خرید پرداخت نشده یافت شد که حذف نخواهند شد")
+            logger.debug(f"حالت آزمایشی: {count} خرید پرداخت نشده یافت شد که حذف نخواهند شد")
             for purchase in purchases_to_delete:
-                logger.info(f"[آزمایشی] خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
+                logger.debug(f"[آزمایشی] خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
         else:
             if count > 0:
                 # ثبت لاگ قبل از حذف

@@ -15,8 +15,10 @@ import random
 import mimetypes
 import logging
 import html
+from core.logging_levels import *
 
-logger = logging.getLogger("chat_chatBot_view") 
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 # Allowed MIME types for file uploads
 ALLOWED_MIME_TYPES = {
@@ -112,13 +114,14 @@ def get_client_ip(request):
 @login_required
 def user_list(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt to access user list")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"User list accessed")
         users = User.objects.exclude(id=request.user.id).values('id', 'username')
         return JsonResponse(list(users), safe=False)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -126,15 +129,17 @@ def user_list(request):
 @login_required
 def get_username(request, user_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt to access user username: {user_id}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"Getting username for user: {user_id}")
         user = User.objects.get(id=user_id)
         return JsonResponse({'username': user.username})
     except User.DoesNotExist:
+        audit_logger.alert(f"404 error imppossible: {user_id}")
         return JsonResponse({'error': 'User not found'}, status=404)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -142,9 +147,10 @@ def get_username(request, user_id):
 @login_required
 def chat_history(request, user_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt to access chat history: {user_id}")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"Getting chat history for user: {user_id}")
         messages = Message.objects.filter(
             (models.Q(sender=request.user) & models.Q(receiver_id=user_id)) |
             (models.Q(sender_id=user_id) & models.Q(receiver=request.user)),
@@ -169,7 +175,7 @@ def chat_history(request, user_id):
         
         return JsonResponse(list(messages), safe=False)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -177,9 +183,10 @@ def chat_history(request, user_id):
 @login_required
 def global_chat_history(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt to access global chat history")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"Getting global chat history")
         messages = Message.objects.filter(
             is_global=True
         ).order_by('-timestamp')[:100].values('sender_id', 'message', 'file_url', 'file_type', 'timestamp', 'reply_to', 'is_pinned')
@@ -205,7 +212,7 @@ def global_chat_history(request):
                 
         return JsonResponse(list(messages), safe=False)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -213,25 +220,27 @@ def global_chat_history(request):
 @login_required
 def upload_file(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt to upload file")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
     try:
+        audit_logger.info(f"User is uploading a file")
         # Rate limiting check
         rate_limit_key = f"file_upload_rate_limit_{request.user.id}"
         if cache.get(rate_limit_key):
-            logger.warning(f"ارسال فایل سریع: {get_client_ip(request)}, user: {request.user}")
+            audit_logger.alert(f"Rate limit exceeded for user")
             return JsonResponse({
                 'error': f'لطفاً {RATE_LIMIT_SECONDS} ثانیه صبر کنید قبل از ارسال فایل بعدی'
             }, status=429)
 
         file = request.FILES.get('file')
         if not file:
+            audit_logger.activity(f"File upload attempt without file")
             return JsonResponse({'error': 'هیچ فایلی ارسال نشده است'}, status=400)
         
         # Check file size
         if file.size > MAX_FILE_SIZE:
-            logger.warning(f"ارسال فایل با حجم بیشتر از مجاز: {get_client_ip(request)}, user: {request.user}")
+            audit_logger.activity(f"File size exceeds limit, file: {file.name}, size: {file.size}")
             return JsonResponse({
                 'error': f'حجم فایل نمی‌تواند بیشتر از {MAX_FILE_SIZE // (1024*1024)} مگابایت باشد'
             }, status=400)
@@ -239,16 +248,16 @@ def upload_file(request):
         # Check file type
         file_mime_type = file.content_type
         if file_mime_type not in ALLOWED_MIME_TYPES:
-            logger.warning(f"ارسال فایل با نوع مجاز نیست: {get_client_ip(request)}, user: {request.user}, نوع فایل: {file_mime_type}, فایل: {file.name}")
+            audit_logger.alert(f"Unauthorized file type: {file_mime_type}, file: {file.name}")
             return JsonResponse({
                 'error': 'نوع فایل مجاز نیست. فقط فایل‌های PDF، Office، آرشیو و تصاویر پذیرفته می‌شوند'
             }, status=400)
         
         # Additional security check for executable files
         file_extension = os.path.splitext(file.name)[1].lower()
-        dangerous_extensions = {'.exe', '.bat', '.cmd', '.com', '.scr', '.pif', '.vbs', '.js', '.jar', '.msi', '.dmg', '.app'}
+        dangerous_extensions = {'.exe', '.bat', '.cmd', '.com', '.scr', '.pif', '.vbs', '.js', '.jar', '.msi', '.dmg', '.app', '.sh', '.sql','.sqlite', '.sqlite3'}
         if file_extension in dangerous_extensions:
-            logger.warning(f"ارسال فایل اجرایی: {get_client_ip(request)}, user: {request.user}, فایل: {file.name}, نوع فایل: {file_extension}, نوع فایل: {file_mime_type}")
+            audit_logger.alert(f"Unauthorized executable file: {file.name}, type: {file_mime_type}")
             return JsonResponse({
                 'error': 'فایل‌های اجرایی مجاز نیستند'
             }, status=400)
@@ -294,11 +303,13 @@ def upload_file(request):
             )
         else:
             if not receiver_id:
+                audit_logger.activity(f"File upload attempt without receiver ID")
                 return JsonResponse({'error': 'شناسه گیرنده الزامی است'}, status=400)
                 
             try:
                 receiver = User.objects.get(id=receiver_id)
             except User.DoesNotExist:
+                audit_logger.activity(f"File upload attempt to non-existent user: {receiver_id}")
                 return JsonResponse({'error': 'کاربر گیرنده یافت نشد'}, status=404)
                 
             message = Message.objects.create(
@@ -323,7 +334,7 @@ def upload_file(request):
             'reply_to': reply_to,
         })
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        audit_logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -331,13 +342,14 @@ def upload_file(request):
 @login_required
 def online_users(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.error(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"Online users list requested")
         users = User.objects.exclude(id=request.user.id).values('id', 'username')
         return JsonResponse(list(users), safe=False)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -345,9 +357,10 @@ def online_users(request):
 @login_required
 def unread_messages_count(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
+        audit_logger.info(f"Unread messages count requested")
         unread_messages = Message.objects.filter(
             receiver=request.user,
             is_global=False,
@@ -367,15 +380,15 @@ def unread_messages_count(request):
             'by_user': by_user
         })
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        audit_logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
+    
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
 @api_view(['GET'])
 @login_required
 def unread_global_messages_count(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         count = Message.objects.filter(
@@ -387,7 +400,7 @@ def unread_global_messages_count(request):
             'count': count
         })
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -395,7 +408,7 @@ def unread_global_messages_count(request):
 @login_required
 def mark_messages_as_read(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         sender_id = request.data.get('sender_id')
@@ -414,6 +427,7 @@ def mark_messages_as_read(request):
                 is_read=False
             ).update(is_read=True)
         else:
+            audit_logger.activity(f"Invalid request data: sender_id or is_global required")
             return JsonResponse({'error': 'sender_id or is_global required'}, status=400)
         
         return JsonResponse({
@@ -421,7 +435,7 @@ def mark_messages_as_read(request):
             'count': count
         })
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -429,14 +443,14 @@ def mark_messages_as_read(request):
 @login_required
 def send_message(request):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     
     try:
         # Rate limiting check for messages
         message_rate_limit_key = f"message_rate_limit_{request.user.id}"
         if cache.get(message_rate_limit_key):
-            logger.warning(f"ارسال پیام سریع: {get_client_ip(request)}, user: {request.user}")
+            audit_logger.alert(f"Too many messages sent in a short period")
             return JsonResponse({
                 'success': False,
                 'error': f'لطفاً {MESSAGE_RATE_LIMIT_SECONDS} ثانیه صبر کنید قبل از ارسال پیام بعدی'
@@ -465,11 +479,13 @@ def send_message(request):
             )
         else:
             if not receiver_id:
+                audit_logger.activity(f"Invalid request data: receiver_id is required")
                 return JsonResponse({'error': 'شناسه گیرنده الزامی است'}, status=400)
             
             try:
                 receiver = User.objects.get(id=receiver_id)
             except User.DoesNotExist:
+                audit_logger.activity(f"Invalid request data: receiver_id not found")
                 return JsonResponse({'error': 'کاربر گیرنده یافت نشد'}, status=404)
             
             message = Message.objects.create(
@@ -491,7 +507,7 @@ def send_message(request):
             'reply_to': reply_to
         })
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
     
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
@@ -499,7 +515,7 @@ def send_message(request):
 @login_required
 def pin_message(request, message_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک:, ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         msg = Message.objects.get(id=message_id)
@@ -507,16 +523,17 @@ def pin_message(request, message_id):
         msg.save()
         return JsonResponse({'success': True, 'message_id': msg.id})
     except Message.DoesNotExist:
+        audit_logger.activity(f"Invalid request data: message_id not found")
         return JsonResponse({'error': 'Message not found'}, status=404)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
-    
+        logger.error(f"Error occurred: {str(e)}")
+
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent', 'employee')
 @api_view(['POST'])
 @login_required
 def unpin_message(request, message_id):
     if not request.user.is_authenticated:
-        logger.error(f"خطر هک: , ip: {get_client_ip(request)}, user: {request.user}")
+        audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
         msg = Message.objects.get(id=message_id)
@@ -524,6 +541,7 @@ def unpin_message(request, message_id):
         msg.save()
         return JsonResponse({'success': True, 'message_id': msg.id})
     except Message.DoesNotExist:
+        audit_logger.activity(f"Invalid request data: message_id not found")
         return JsonResponse({'error': 'Message not found'}, status=404)
     except Exception as e:
-        logger.error(f"خطای: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")

@@ -4,14 +4,15 @@ from django.contrib.auth.models import User
 from chat.MessageModel import Message
 import logging
 import html
-
-logger = logging.getLogger("chat_chatBot_view")
+from core.logging_levels import *
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
         if not self.user.is_authenticated:
-            logger.warning(f"کاربر احراز هویت نشده، بستن WebSocket")
+            audit_logger.alert(f"Closing WebSocket for unauthenticated user")
             await self.close()
             return
         self.user_id = self.scope['url_route']['kwargs']['user_id']
@@ -34,7 +35,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             receiver = User.objects.get(id=receiver_id)
         except User.DoesNotExist:
-            logger.warning(f"کاربر با ID {receiver_id} وجود ندارد")
+            audit_logger.activity(f"User with ID {receiver_id} does not exist")
             return
 
         if data['type'] == 'chat_message':
@@ -47,7 +48,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
                 #print('Message saved:', msg)
             except Exception as e:
-                logger.error(f"خطای ذخیره پیام: {str(e)}")
+                logger.error(f"Error saving message: {str(e)}")
                 return
 
             await self.channel_layer.group_send(
@@ -80,7 +81,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 )
                 #print('File message saved:', msg)
             except Exception as e:
-                logger.error(f"خطای ذخیره پیام فایل: {str(e)}")
+                logger.error(f"Error saving file message: {str(e)}")
                 return
 
             await self.channel_layer.group_send(
