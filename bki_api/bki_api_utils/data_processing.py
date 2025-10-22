@@ -1069,6 +1069,12 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 # ذخیره وضعیت قبلی برای ایجاد رکورد تغییر وضعیت
                 previous_state = purchase.state
                 purchase.state = suggested_state
+                
+                # ثبت تاریخ بسته شدن خرید
+                if suggested_state == 'PURCHASE_CLOSED' and not purchase.closed_at:
+                    from django.utils import timezone
+                    purchase.closed_at = timezone.now()
+                
                 log_state_change_attempt(purchase_number, previous_state, suggested_state, True)
                 
                 # ایجاد رکورد تغییر وضعیت برای فعال‌سازی سیگنال ارسال پیامک
@@ -1165,6 +1171,12 @@ def process_grouped_purchase_data(purchase_data_list, create_if_not_exists=True)
                 # ذخیره وضعیت قبلی برای ایجاد رکورد تغییر وضعیت
                 previous_state = purchase.state
                 purchase.state = suggested_state
+                
+                # ثبت تاریخ بسته شدن خرید
+                if suggested_state == 'PURCHASE_CLOSED' and not purchase.closed_at:
+                    from django.utils import timezone
+                    purchase.closed_at = timezone.now()
+                
                 log_state_change_attempt(purchase_number, previous_state, suggested_state, True)
                 
                 # ایجاد رکورد تغییر وضعیت برای فعال‌سازی سیگنال ارسال پیامک

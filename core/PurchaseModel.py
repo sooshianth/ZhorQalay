@@ -420,6 +420,10 @@ class Purchase(BasePurchase):
         if self.state != 'BARNAMEH_ISSUED' and self.state != 'BARNAMEH_INCOMPLETE':
             raise ValidationError('ابتدا باید بارنامه صادر شود یا وضعیت بارنامه ناقص داشته باشد')
         
+        # ثبت تاریخ بسته شدن خرید
+        self.closed_at = timezone.now()
+        self.save(update_fields=['closed_at'])
+        
         notification_message = (
             f"خرید {self.invoice_id} به وزن {self.delivered_weight:,} کیلوگرم "
             f"در بازارگاه به حالت بسته شده تغییر وضعیت داد"
@@ -796,6 +800,11 @@ class Purchase(BasePurchase):
         if not self.state in ['INITIATED', 'SMS_SENT', 'PAYMENT_VERIFIED', 'ALLOCATION_APPROVED']:
             self.is_address_sent = '1'  # اصلاح: استفاده از string '1' به جای boolean True
             super().save(update_fields=['is_address_sent'])
+        
+        # ثبت تاریخ بسته شدن خرید
+        if self.state == 'PURCHASE_CLOSED' and not self.closed_at:
+            self.closed_at = timezone.now()
+            super().save(update_fields=['closed_at'])
             
         # تولید خودکار شناسه یکتا تحویل
         if not self.unique_delivery_id and self.invoice_id:
