@@ -496,4 +496,9 @@ class NonBazargahPurchase(BasePurchase):
         if self.delivered_weight and self.empty_weight and self.quantity:
             self.weight_difference = self.calculate_weight_difference()
         
+        # ثبت تاریخ بسته شدن خرید
+        if self.state == 'purchase_closed' and not self.closed_at:
+            from django.utils import timezone
+            self.closed_at = timezone.now()
+        
         super().save(*args, **kwargs)

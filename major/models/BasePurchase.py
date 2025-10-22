@@ -33,6 +33,7 @@ class BasePurchase(models.Model):
     type = models.CharField("نوع خرید", max_length=25, default='bazaargah', choices=PURCHASE_TYPE_CHOICES)
     created_at = jmodels.jDateTimeField("تاریخ ثبت", default=timezone.now)
     updated_at  = jmodels.jDateTimeField("تاریخ بروزرسانی", auto_now=True, blank=True, null=True)
+    closed_at = jmodels.jDateTimeField("تاریخ بسته شدن خرید", null=True, blank=True)
 
     #قیمت
     company_price = models.PositiveIntegerField("فی خرید(ریال)", default=0)

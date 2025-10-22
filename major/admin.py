@@ -24,7 +24,7 @@ class NonBazargahPurchaseAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'purchase_number', 'product', 'customer', 'unique_sales_agent',
         'total_weight', 'unit', 'state', 'company_price',
-        'customer_price', 'created_at'
+        'customer_price', 'created_at', 'closed_at'
     )
     list_filter = (
         'state', 'unit', 'type', 'buyer_user_type', 'purchase_number',
@@ -73,7 +73,7 @@ class NonBazargahPurchaseAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('تاریخ‌ها', {
-            'fields': ('created_at', 'updated_at'),
+            'fields': ('created_at', 'updated_at', 'closed_at'),
             'classes': ('collapse',)
         }),
     )
