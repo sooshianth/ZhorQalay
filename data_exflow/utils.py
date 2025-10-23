@@ -865,10 +865,16 @@ def process_import(session):
             if getattr(field, 'unique', False) and not getattr(field, 'primary_key', False):
                 unique_fields.append(field.name)
         
+        # لیست برای نگهداری تمام خطاها
+        all_errors = []
+        
         for index, row in df.iterrows():
+            row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
+            instance = None
+            previous_state = None
+            field_values = {}
+            
             try:
-                row_number = index + 2  # +2 because pandas is 0-indexed and we have a header row
-                
                 # Get the unique identifier value
                 identifier_value = row.get(unique_identifier_field)
                 
@@ -924,13 +930,15 @@ def process_import(session):
                                         field_values[model_field_name] = related_obj
                                     else:
                                         # Log error and skip this field
+                                        error_msg = f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد"
                                         ImportExportLog.objects.create(
                                             session=session,
                                             log_level='error',
-                                            message=f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد",
+                                            message=error_msg,
                                             row_number=row_number
                                         )
-                                        logger.warning(f"ردیف {row_number}: مقدار {value} برای فیلد {model_field_name} پیدا نشد")
+                                        logger.warning(error_msg)
+                                        all_errors.append(error_msg)
                                         continue
                             # Handle normal fields
                             else:
@@ -964,110 +972,82 @@ def process_import(session):
                         for field_name, value in field_values.items():
                             setattr(instance, field_name, value)
                         
-                        try:
-                            # Try to save the instance with validation
-                            instance.full_clean()
-                            instance.save()
-                            
-                            # Log update
-                            ImportExportLog.objects.create(
-                                session=session,
-                                log_level='success',
-                                message=f"ردیف {row_number}: رکورد با شناسه {identifier_value} بروزرسانی شد",
-                                row_number=row_number
-                            )
-                            
-                            
-                            update_count += 1
-                            
-                        except Exception as e:
-                            # Log error
-                            ImportExportLog.objects.create(
-                                session=session,
-                                log_level='error',
-                                message=f"ردیف {row_number}: خطا در بروزرسانی رکورد: {str(e)}",
-                                row_number=row_number
-                            )
-                            logger.warning(f"ردیف {row_number}: خطا در بروزرسانی رکورد: {str(e)}")
-                            error_count += 1
-                            raise  # Re-raise to rollback the transaction
+                        # Try to save the instance with validation
+                        instance.full_clean()
+                        instance.save()
+                        
+                        # Log update
+                        ImportExportLog.objects.create(
+                            session=session,
+                            log_level='success',
+                            message=f"ردیف {row_number}: رکورد با شناسه {identifier_value} بروزرسانی شد",
+                            row_number=row_number
+                        )
+                        
+                        update_count += 1
                             
                     else:  # Create new instance
-                        try:
-                            # بررسی تداخل با سایر رکوردها در فیلدهای یونیک
-                            for field_name in unique_fields:
-                                if field_name in field_values:
-                                    value = field_values[field_name]
-                                    # بررسی وجود رکورد با همین مقدار
-                                    try:
-                                        existing = model_class.objects.get(**{field_name: value})
-                                        if existing:
-                                            # خطا برای فیلد یونیک
-                                            raise ValidationError(f"مقدار {value} برای فیلد {field_name} قبلاً در دیتابیس ثبت شده و منحصر به فرد باید باشد")
-                                    except model_class.DoesNotExist:
-                                        # مشکلی وجود ندارد
-                                        pass
-                            
-                            # Create a new instance
-                            instance = model_class(**field_values)
-                            
-                            # Validate and save the instance
-                            instance.full_clean()
-                            instance.save()
-                            
-                            # Log creation
-                            ImportExportLog.objects.create(
-                                session=session,
-                                log_level='success',
-                                message=f"ردیف {row_number}: رکورد جدید با شناسه {instance.pk} ایجاد شد",
-                                row_number=row_number
-                            )
-                            
-                            
-                            create_count += 1
-                            
-                        except Exception as e:
-                            # Check for unique constraint violation
-                            error_msg = str(e)
-                            if 'UNIQUE constraint failed' in error_msg or 'unique constraint' in error_msg.lower() or 'duplicate key' in error_msg.lower():
-                                field_name = error_msg.split(':')[-1].strip() if ':' in error_msg else 'unknown field'
-                                ImportExportLog.objects.create(
-                                    session=session,
-                                    log_level='error',
-                                    message=f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد.",
-                                    row_number=row_number
-                                )
-                                logger.warning(f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد.")
-                            else:
-                                ImportExportLog.objects.create(
-                                    session=session,
-                                    log_level='error',
-                                    message=f"ردیف {row_number}: خطا در ایجاد رکورد: {str(e)}",
-                                    row_number=row_number
-                                )
-                                logger.warning(f"ردیف {row_number}: خطا در ایجاد رکورد: {str(e)}")
-                            error_count += 1
-                            raise  # Re-raise to rollback the transaction
+                        # بررسی تداخل با سایر رکوردها در فیلدهای یونیک
+                        for field_name in unique_fields:
+                            if field_name in field_values:
+                                value = field_values[field_name]
+                                # بررسی وجود رکورد با همین مقدار
+                                try:
+                                    existing = model_class.objects.get(**{field_name: value})
+                                    if existing:
+                                        # خطا برای فیلد یونیک
+                                        raise ValidationError(f"مقدار {value} برای فیلد {field_name} قبلاً در دیتابیس ثبت شده و منحصر به فرد باید باشد")
+                                except model_class.DoesNotExist:
+                                    # مشکلی وجود ندارد
+                                    pass
+                        
+                        # Create a new instance
+                        instance = model_class(**field_values)
+                        
+                        # Validate and save the instance
+                        instance.full_clean()
+                        instance.save()
+                        
+                        # Log creation
+                        ImportExportLog.objects.create(
+                            session=session,
+                            log_level='success',
+                            message=f"ردیف {row_number}: رکورد جدید با شناسه {instance.pk} ایجاد شد",
+                            row_number=row_number
+                        )
+                        
+                        create_count += 1
                     
                     # Update processed count
                     session.processed_count += 1
                     
             except Exception as e:
-                # Log general error
+                # Check for unique constraint violation
+                error_msg = str(e)
+                if 'UNIQUE constraint failed' in error_msg or 'unique constraint' in error_msg.lower() or 'duplicate key' in error_msg.lower():
+                    field_name = error_msg.split(':')[-1].strip() if ':' in error_msg else 'unknown field'
+                    error_message = f"ردیف {row_number}: خطای تکراری بودن داده در فیلد {field_name}. مقدار باید منحصر به فرد باشد."
+                else:
+                    error_message = f"ردیف {row_number}: خطا در پردازش - {str(e)}"
+                
+                # Log error
                 ImportExportLog.objects.create(
                     session=session,
                     log_level='error',
-                    message=f"خطا در پردازش ردیف {row_number}: {str(e)}",
-                    row_number=row_number if 'row_number' in locals() else None
+                    message=error_message,
+                    row_number=row_number
                 )
-                logger.warning(f"خطا در پردازش ردیف {row_number}: {str(e)}")
+                logger.warning(error_message)
+                all_errors.append(error_message)
                 error_count += 1
-                raise  # Re-raise to rollback the transaction
+                
+                # به جای raise کردن، فقط ادامه می‌دهیم
+                continue
                 
             # ایجاد ImportRecord خارج از atomic block
             try:
-                if 'instance' in locals() and instance:
-                    if 'previous_state' in locals():
+                if instance:
+                    if previous_state:
                         # Update case
                         ImportRecord.objects.create(
                             session=session,
@@ -1105,19 +1085,33 @@ def process_import(session):
         session.error_count = error_count
         session.save()
         
-        # Log success
+        # Log success with summary
+        summary_message = f"ایمپورت با موفقیت انجام شد. {create_count} رکورد ایجاد شده، {update_count} رکورد بروزرسانی شده، {error_count} خطا، {skipped_count} رد شده."
         ImportExportLog.objects.create(
             session=session,
             log_level='info',
-            message=f"ایمپورت با موفقیت انجام شد. {create_count} رکورد ایجاد شده، {update_count} رکورد بروزرسانی شده، {error_count} خطا، {skipped_count} رد شده."
+            message=summary_message
         )
+        
+        # اگر خطایی وجود داشت، خلاصه تمام خطاها را هم لاگ کن
+        if all_errors:
+            errors_summary = "خلاصه خطاهای رخ داده:\n" + "\n".join(all_errors[:50])  # فقط 50 خطای اول
+            if len(all_errors) > 50:
+                errors_summary += f"\n... و {len(all_errors) - 50} خطای دیگر"
+            
+            ImportExportLog.objects.create(
+                session=session,
+                log_level='warning',
+                message=errors_summary
+            )
         
         return {
             'success': True,
             'creates': create_count,
             'updates': update_count,
             'errors': error_count,
-            'skipped': skipped_count
+            'skipped': skipped_count,
+            'error_details': all_errors
         }
         
     except Exception as e:
