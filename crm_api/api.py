@@ -18,8 +18,10 @@ import logging
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from core.logging_levels import *
 
 logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def check_api_key(request):
     """
@@ -38,13 +40,13 @@ def check_api_key(request):
         ip = request.META.get('REMOTE_ADDR', 'unknown')
         path = request.path
         method = request.method
-        logger.warning(f"Unauthorized API access: IP={ip}, Path={path}, Method={method}, ProvidedKey={api_key}")
+        audit_logger.alert(f"Unauthorized API access: IP={ip}, Path={path}, Method={method}, ProvidedKey={api_key}")
         return False
     except Exception as e:
         ip = request.META.get('REMOTE_ADDR', 'unknown')
         path = getattr(request, 'path', 'unknown')
         method = getattr(request, 'method', 'unknown')
-        logger.error(f"API key check exception: {str(e)} | IP={ip}, Path={path}, Method={method}")
+        logger.critical(f"API key check exception: {str(e)} | IP={ip}, Path={path}, Method={method}")
         return False
 
 
@@ -94,6 +96,7 @@ def validate_access(phone_number, purchase_number):
                 purchase = NonBazargahPurchase.objects.get(purchase_number=purchase_number)
                 purchase_type = 'non_bazargah'
             except NonBazargahPurchase.DoesNotExist:
+                audit_logger.activity(f"Purchase not found: {purchase_number}")
                 return None, None, "شماره خرید یافت نشد", None
         
         # راه اول: جستجو در CrmAccessNumbers
@@ -154,11 +157,11 @@ def validate_access(phone_number, purchase_number):
                 if (allocation.coordination_phone and 
                     clean_phone_number(allocation.coordination_phone) == clean_phone):
                     return purchase.customer, purchase, None, purchase_type
-        
+        audit_logger.activity(f"Phone number not allowed for purchase: {purchase.id}")
         return None, None, "شماره تلفن برای این خرید مجاز نیست", purchase_type
         
     except Exception as e:
-        logger.error(f"خطا در اعتبارسنجی دسترسی: {str(e)}")
+        logger.error(f"Error occurred: {str(e)}")
         return None, None, f"خطای سیستمی: {str(e)}", None
 
 def safe_get_attr(obj, attr_name, default_value='---'):
@@ -615,13 +618,15 @@ class PurchaseInfoAPI(View):
             })
             
         except json.JSONDecodeError:
+            logger.error(f"Invalid JSON format")
+            audit_logger.activity(f"Invalid JSON format")
             return JsonResponse({
                 'success': False,
                 'error': 'فرمت JSON نامعتبر است'
             }, status=400)
             
         except Exception as e:
-            logger.error(f"خطا در API اطلاعات خرید: {str(e)}")
+            logger.error(f"Error occurred during purchase: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': 'خطای داخلی سرور'
@@ -728,7 +733,7 @@ class CargoProductsAPI(View):
             })
 
         except Exception as e:
-            logger.error(f"خطا در API لیست محصولات: {str(e)}")
+            logger.error(f"Error occurred: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': 'خطای داخلی سرور'
@@ -746,6 +751,8 @@ class CustomerPurchasesAPI(View):
             phone_number = data.get('phone_number')
             
             if not phone_number:
+                logger.warning("Phone number is required")
+                audit_logger.activity("Phone number is required")
                 return JsonResponse({
                     'success': False,
                     'error': 'شماره تلفن الزامی است'
@@ -1012,13 +1019,15 @@ class CustomerPurchasesAPI(View):
             })
             
         except json.JSONDecodeError:
+            logger.error("Invalid JSON format")
+            audit_logger.activity("Invalid JSON format")
             return JsonResponse({
                 'success': False,
                 'error': 'فرمت JSON نامعتبر است'
             }, status=400)
             
         except Exception as e:
-            logger.error(f"خطا در API لیست خریدها: {str(e)}")
+            logger.error(f"Error occurred during purchase: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': 'خطای داخلی سرور'
@@ -1036,6 +1045,8 @@ class PhoneValidationAPI(View):
             phone_number = data.get('phone_number')
             
             if not phone_number:
+                logger.warning("Phone number is required")
+                audit_logger.activity("Phone number is required")
                 return JsonResponse({
                     'success': False,
                     'error': 'شماره تلفن الزامی است'
@@ -1166,7 +1177,10 @@ class PhoneValidationAPI(View):
                             'access_type': 'Legacy Phone',
                             'created_at': customer.created_at.isoformat() if customer.created_at else None,
                         })
-            
+
+            if not has_access:
+                audit_logger.activity(f"Phone number not allowed for purchase: {clean_phone}")
+
             return JsonResponse({
                 'success': True,
                 'data': {
@@ -1186,13 +1200,15 @@ class PhoneValidationAPI(View):
             })
             
         except json.JSONDecodeError:
+            logger.error("Invalid JSON format")
+            audit_logger.activity("Invalid JSON format")
             return JsonResponse({
                 'success': False,
                 'error': 'فرمت JSON نامعتبر است'
             }, status=400)
             
         except Exception as e:
-            logger.error(f"خطا در API احراز هویت: {str(e)}")
+            logger.error(f"Error occurred: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'error': 'خطای داخلی سرور'
@@ -1237,7 +1253,7 @@ class HealthCheckAPI(View):
             })
             
         except Exception as e:
-            logger.error(f"خطا در بررسی سلامت سرویس: {str(e)}")
+            logger.error(f"Error occurred: {str(e)}")
             return JsonResponse({
                 'success': False,
                 'status': 'unhealthy',

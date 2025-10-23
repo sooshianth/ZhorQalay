@@ -360,7 +360,7 @@ def unread_messages_count(request):
         audit_logger.alert(f"Hack attempt detected")
         return JsonResponse({'error': 'User not authenticated'}, status=401)
     try:
-        audit_logger.info(f"Unread messages count requested")
+
         unread_messages = Message.objects.filter(
             receiver=request.user,
             is_global=False,

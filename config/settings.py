@@ -213,7 +213,7 @@ LOGGING = {
             'style': '{',
         },
         'audit': {
-            'format': '{levelname} !@# {asctime} !@# {user_id} !@# {username} !@# {action} !@# {resource} !@# {ip_address} !@# {user_agent} !@# {changes} !@# {result} !@# {message} !@# {user_phone}',
+            'format': '{levelname} !@# {asctime} !@# {user_id} !@# {username} !@# {action} !@# {method} !@# {endpoint} !@# {ip_address} !@# {user_agent} !@# {message} !@# {user_phone}',
             'style': '{',
         },
     },
