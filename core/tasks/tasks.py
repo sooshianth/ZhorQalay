@@ -7,7 +7,7 @@ from core.SupportAgentModel import SupportAgent
 from core.SupportAgentTask import SupportAgentTask
 from django.db.models import Q
 
-logger = logging.getLogger("core_tasks")
+logger = logging.getLogger("bugs")
 
 @shared_task
 def purge_unpaid_purchases_task(days=1):
@@ -22,9 +22,9 @@ def purge_unpaid_purchases_task(days=1):
     """
     start_time = timezone.now()
     cutoff_date = start_time - timedelta(days=days)
-    
-    logger.info(f"شروع حذف خودکار خریدهای پرداخت نشده قبل از {cutoff_date}")
-    
+
+    logger.debug(f"Deleting unpaid purchases older than {cutoff_date}")
+
     # پیدا کردن خریدهایی که در مرحله شروع شده یا پیامک ارسال شده یا تایید بازارگاه هستند
     # و بیش از تعداد روز مشخص شده از ایجاد آنها گذشته است
     purchases_to_delete = Purchase.objects.filter(
@@ -45,13 +45,13 @@ def purge_unpaid_purchases_task(days=1):
                 'created_at': str(purchase.created_at)
             }
             deleted_purchases.append(purchase_info)
-            logger.info(f"حذف خودکار خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
+            logger.debug(f"Auto-deleting purchase {purchase.invoice_id} - {purchase.customer.name} - state: {purchase.get_state_display()} - created_at: {purchase.created_at}")
         
-        # حذف خریدها
+        # delete purchases
         purchases_to_delete.delete()
-        logger.info(f"{count} خرید پرداخت نشده با موفقیت حذف شد")
+        logger.info(f"Successfully deleted {count} unpaid purchases")
     else:
-        logger.info("هیچ خرید پرداخت نشده‌ای برای حذف یافت نشد")
+        logger.debug("No unpaid purchases found to delete")
     
     end_time = timezone.now()
     duration = (end_time - start_time).total_seconds()
@@ -132,9 +132,9 @@ def check_purchases_for_support_tasks():
                 urgency_level=4
             )
 
-        logger.info("تسک‌های پشتیبانی با موفقیت ایجاد شدند.")
+        logger.debug("Support tasks created successfully.")
     except Exception as e:
-        logger.error(f"خطا در ایجاد تسک‌های پشتیبانی: {str(e)}")
+        logger.error(f"Error creating support tasks: {str(e)}")
 
 def create_support_task(purchase, description, urgency_level):
     """
@@ -144,7 +144,7 @@ def create_support_task(purchase, description, urgency_level):
         # انتخاب یک کارشناس پشتیبانی به‌صورت تصادفی یا بر اساس منطق خاص
         support_agent = SupportAgent.objects.order_by('?').first()
         if not support_agent:
-            logger.warning("هیچ کارشناس پشتیبانی‌ای یافت نشد.")
+            logger.warning("No support agent found.")
             return
 
         SupportAgentTask.objects.create(
@@ -157,6 +157,6 @@ def create_support_task(purchase, description, urgency_level):
             urgency_level=urgency_level,
             due_date=timezone.now() + timedelta(days=2)  # مهلت 2 روزه
         )
-        logger.info(f"تسک پشتیبانی برای خرید {purchase.purchase_number} با اولویت {urgency_level} ایجاد شد.")
+        logger.debug(f"Support task created for purchase {purchase.purchase_number} with priority {urgency_level}.")
     except Exception as e:
-        logger.error(f"خطا در ایجاد تسک پشتیبانی برای خرید {purchase.purchase_number}: {str(e)}")
+        logger.error(f"Error creating support task for purchase {purchase.purchase_number}: {str(e)}")

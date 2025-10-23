@@ -41,22 +41,22 @@ class Command(BaseCommand):
         count = purchases_to_delete.count()
         
         if dry_run:
-            logger.debug(f"حالت آزمایشی: {count} خرید پرداخت نشده یافت شد که حذف نخواهند شد")
+            logger.debug(f"Dry run: {count} unpaid purchases found; none will be deleted")
             for purchase in purchases_to_delete:
-                logger.debug(f"[آزمایشی] خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
+                logger.debug(f"[Dry run] Purchase {purchase.invoice_id} - {purchase.customer.name} - State: {purchase.get_state_display()} - Created at: {purchase.created_at}")
         else:
             if count > 0:
-                # ثبت لاگ قبل از حذف
+                # log before deletion
                 for purchase in purchases_to_delete:
-                    logger.info(f"حذف خودکار خرید {purchase.invoice_id} - {purchase.customer.name} - وضعیت: {purchase.get_state_display()} - تاریخ ایجاد: {purchase.created_at}")
+                    logger.debug(f"Deleting unpaid purchase {purchase.invoice_id} - {purchase.customer.name} - State: {purchase.get_state_display()} - Created at: {purchase.created_at}")
                 
-                # حذف خریدها
+                # delete purchases
                 purchases_to_delete.delete()
                 
-                logger.info(f"{count} خرید پرداخت نشده با موفقیت حذف شد")
+                logger.info(f"{count} unpaid purchases successfully deleted")
             else:
-                logger.info("هیچ خرید پرداخت نشده‌ای برای حذف یافت نشد")
+                logger.debug("No unpaid purchases found to delete")
         
         end_time = timezone.now()
         duration = (end_time - start_time).total_seconds()
-        logger.info(f"پایان عملیات حذف خودکار در {end_time} (زمان: {duration:.2f} ثانیه)") 
+        logger.debug(f"Purge operation finished at {end_time} (duration: {duration:.2f} seconds)")

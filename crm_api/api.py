@@ -19,6 +19,8 @@ from django.db import models
 from django.db.models import Q
 from django.utils import timezone
 
+logger = logging.getLogger("bugs")
+
 def check_api_key(request):
     """
     Check API key from request headers. If DEBUG is True, always accept.
@@ -45,7 +47,7 @@ def check_api_key(request):
         logger.error(f"API key check exception: {str(e)} | IP={ip}, Path={path}, Method={method}")
         return False
 
-logger = logging.getLogger("crm_api_api")
+
 
 def clean_phone_number(phone: str) -> str:
     """تمیز کردن شماره تلفن"""
