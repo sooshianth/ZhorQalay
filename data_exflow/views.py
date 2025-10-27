@@ -28,9 +28,10 @@ import csv
 from openpyxl.utils import get_column_letter
 import logging
 from core.decorators.decorators import role_required
+from core.logging_levels import *
 
-
-logger = logging.getLogger("data_exflow_views")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 from .models import ImportExportSession, ImportExportLog, ImportRecord
 from .utils import (
@@ -93,7 +94,7 @@ def validate_content_type(content_type_id):
 @role_required('admin','logistics_manager') 
 def index_view(request):
     """نمایش داشبورد اصلی"""
-    logger.warning(f"Index view called by {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"Index view called")
     # دریافت جلسات اخیر
     recent_sessions = ImportExportSession.objects.filter(
         user=request.user
@@ -195,6 +196,7 @@ def index_view(request):
 @role_required('admin','logistics_manager') 
 def import_view(request):
     """Main import view showing available models to import."""
+    audit_logger.info(f"Import view accessed by user")
     models = get_all_registered_models()
     
     # تبدیل مدل‌ها به فرمت مناسب ContentType برای نمایش در صفحه
@@ -222,7 +224,7 @@ def import_view(request):
                             'model_verbose_name': model['verbose_name']
                         })
                     except Exception as e:
-                        logger.warning(f"خطا در دریافت مدل {app_label}.{model['name']}: {str(e)}")
+                        logger.warning(f"Error retrieving model {app_label}.{model['name']}: {str(e)}")
                         continue
     
     # Get recent import sessions
@@ -246,19 +248,24 @@ def import_view(request):
 @role_required('admin','logistics_manager') 
 def import_upload(request):
     """Handle file upload for import."""
+
     if request.method != 'POST':
         return redirect('data_exflow:import')
     
     # Get form data
     content_type_id = request.POST.get('content_type_id')
     file = request.FILES.get('file')
+
+    audit_logger.info(f"File upload {file.name} initiated")
     
     # Validate required fields with specific error messages
     if not content_type_id:
+        audit_logger.activity(f"File upload failed: {str(e)}")
         messages.error(request, 'لطفاً مدل داده را انتخاب کنید')
         return redirect('data_exflow:import')
         
     if not file:
+        audit_logger.activity(f"File upload failed: No file selected")
         messages.error(request, 'لطفاً فایل مورد نظر را انتخاب کنید')
         return redirect('data_exflow:import')
     
@@ -272,6 +279,7 @@ def import_upload(request):
     # Check file extension
     file_extension = get_file_extension(file.name)
     if not is_valid_file_type(file_extension):
+        audit_logger.alert(f"File upload failed: Unsupported file type {file_extension}")
         messages.error(request, f'فرمت فایل {file_extension} پشتیبانی نمی‌شود. فرمت‌های مجاز: .xlsx, .xls, .csv')
         return redirect('data_exflow:import')
     
@@ -279,6 +287,7 @@ def import_upload(request):
     try:
         check_file_size(file)
     except ValueError as e:
+        audit_logger.alert(f"File size too large: {str(e)}")
         messages.error(request, f'خطای حجم فایل: {str(e)}')
         return redirect('data_exflow:import')
     
@@ -313,6 +322,7 @@ def import_upload(request):
 @role_required('admin','logistics_manager') 
 def import_preview(request, session_id):
     """Preview the uploaded file contents."""
+    audit_logger.info(f"Import preview accessed by user")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
@@ -324,14 +334,14 @@ def import_preview(request, session_id):
     file_extension = get_file_extension(session.file_name)
     
     try:
-        logger.info(f"DEBUG: Reading file: {file_path}")
-        logger.info(f"DEBUG: File extension: {file_extension}")
+        logger.debug(f"DEBUG: Reading file: {file_path}")
+        logger.debug(f"DEBUG: File extension: {file_extension}")
         df = read_file_to_dataframe(file_path, file_extension)
-        logger.info(f"DEBUG: DataFrame shape: {df.shape}")
-        logger.info(f"DEBUG: DataFrame columns: {df.columns.tolist()}")
-        logger.info(f"DEBUG: First few rows:")
-        logger.info(df.head())
-        
+        logger.debug(f"DEBUG: DataFrame shape: {df.shape}")
+        logger.debug(f"DEBUG: DataFrame columns: {df.columns.tolist()}")
+        logger.debug(f"DEBUG: First few rows:")
+        logger.debug(df.head())
+
         # Convert dataframe to JSON for template
         preview_data = {
             'columns': df.columns.tolist(),
@@ -339,16 +349,16 @@ def import_preview(request, session_id):
             'total_rows': len(df)
         }
         
-        logger.info(f"DEBUG: Preview data columns: {preview_data['columns']}")
-        logger.info(f"DEBUG: Preview data rows count: {len(preview_data['rows'])}")
-        logger.info(f"DEBUG: First row: {preview_data['rows'][0] if preview_data['rows'] else 'No rows'}")
+        logger.debug(f"DEBUG: Preview data columns: {preview_data['columns']}")
+        logger.debug(f"DEBUG: Preview data rows count: {len(preview_data['rows'])}")
+        logger.debug(f"DEBUG: First row: {preview_data['rows'][0] if preview_data['rows'] else 'No rows'}")
 
         # Get model fields for mapping
         model_class = session.get_model_class()
-        logger.info(f"DEBUG: Model class: {model_class}")
+        logger.debug(f"DEBUG: Model class: {model_class}")
         fields = get_model_fields(model_class._meta.app_label, model_class.__name__)
-        logger.info(f"DEBUG: Model fields count: {len(fields)}")
-        
+        logger.debug(f"DEBUG: Model fields count: {len(fields)}")
+
         context = {
             'title': 'Preview Import Data',
             'session': session,
@@ -360,7 +370,7 @@ def import_preview(request, session_id):
         return render(request, 'data_exflow/import_preview.html', context)
     except Exception as e:
         import traceback
-        logger.warning(f"Traceback: {traceback.format_exc()}")
+        logger.warning(f"Error reading file: {str(e)}")
         messages.error(request, f'Error reading file: {str(e)}')
         return redirect('data_exflow:import')
 
@@ -369,6 +379,7 @@ def import_preview(request, session_id):
 @role_required('admin','logistics_manager') 
 def import_map_fields(request, session_id):
     """Map file columns to model fields."""
+    audit_logger.info(f"Import map fields accessed by user")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
@@ -491,6 +502,7 @@ def import_map_fields(request, session_id):
 @role_required('admin','logistics_manager')  
 def import_validate(request, session_id):
     """Validate the import data against the model."""
+    audit_logger.info(f"Import validate accessed by user")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
@@ -533,7 +545,8 @@ def import_validate(request, session_id):
                 log_level=ImportExportLog.ERROR,
                 message=f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا."
             )
-            logger.warning(f"Validation failed with {len(validation_result['errors'])} errors. user: {request.user}, ip: {get_client_ip(request)}")
+            audit_logger.activity(f"Validation failed with {len(validation_result['errors'])} errors.")
+            logger.warning(f"Validation failed with {len(validation_result['errors'])} errors. ")
             messages.error(request, f"اعتبارسنجی ناموفق با {len(validation_result['errors'])} خطا. لطفا خطاها را برطرف کنید.")
             
             # Log each error
@@ -573,7 +586,7 @@ def import_validate(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطای اعتبارسنجی: {str(e)}"
         )
-        logger.warning(f"خطای اعتبارسنجی: {str(e)}. user: {request.user}, ip: {get_client_ip(request)}")
+        logger.warning(f"Validation error: {str(e)}.")
         
         messages.error(request, f'خطای اعتبارسنجی: {str(e)}')
         return redirect('data_exflow:import')
@@ -583,6 +596,7 @@ def import_validate(request, session_id):
 @role_required('admin','logistics_manager') 
 def import_process(request, session_id):
     """Process the import operation."""
+    audit_logger.info(f"Import process initiated by user")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
@@ -616,7 +630,7 @@ def import_process(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطا در پردازش ایمپورت: {str(e)}"
         )
-        logger.warning(f"خطای پردازش ایمپورت: {str(e)}.")
+        logger.warning(f"Import processing error: {str(e)}.")
         
         session.status = ImportExportSession.FAILED
         session.save()
@@ -631,7 +645,7 @@ def import_process(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطای پردازش ایمپورت: {str(e)}"
         )
-        logger.warning(f"خطای پردازش ایمپورت: {str(e)}.")
+        logger.warning(f"Import processing error: {str(e)}.")
         messages.error(request, f'خطای پردازش ایمپورت: {str(e)}')
         return redirect('data_exflow:import_validate', session_id=session.id)
 
@@ -641,6 +655,7 @@ def import_process(request, session_id):
 def import_results(request, session_id):
     """Show import results."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
+    audit_logger.info(f"Import results accessed by user")
     
     if session.session_type != ImportExportSession.IMPORT:
         messages.error(request, 'Invalid session type')
@@ -671,12 +686,14 @@ def import_results(request, session_id):
 def import_revert(request, session_id):
     """Revert an import operation."""
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
+    audit_logger.info(f"Import revert initiated by user")
     
     if session.session_type != ImportExportSession.IMPORT:
         messages.error(request, 'نوع جلسه نامعتبر است')
         return redirect('data_exflow:import')
     
     if not session.can_be_reverted:
+        audit_logger.activity(f"Import revert failed: {session.id}, reason: not revertable session")
         messages.error(request, 'این جلسه قابل بازگشت نیست. فقط جلسه‌های ایمپورت موفق قابل بازگشت هستند')
         return redirect('data_exflow:import_results', session_id=session.id)
     
@@ -705,7 +722,7 @@ def import_revert(request, session_id):
             log_level=ImportExportLog.ERROR,
             message=f"خطا در بازگشت ایمپورت: {str(e)}"
         )
-        logger.warning(f"خطای بازگشت ایمپورت: {str(e)}.")
+        logger.warning(f"Import revert error: {str(e)}.")
         
         return redirect('data_exflow:import_results', session_id=session.id)
     except Exception as e:
@@ -730,6 +747,7 @@ def export_view(request):
     """Main export view showing available models to export."""
     # Get all registered models organized by app
     models_by_app = get_all_registered_models()
+    audit_logger.info(f"Export view accessed by user")
     
     # Get recent exports
     recent_exports = ImportExportSession.objects.filter(
@@ -755,6 +773,8 @@ def export_select_fields(request):
     if request.method != 'POST':
         return redirect('data_exflow:export')
     
+    audit_logger.info(f"Export select fields accessed by user")
+
     # Get selected models - could be a list or a single value
     selected_models = request.POST.getlist('models')
     if not selected_models and request.POST.get('models'):
@@ -802,6 +822,7 @@ def export_confirm(request):
     """Confirm export settings and process the export."""
     if request.method != 'POST':
         return redirect('data_exflow:export')
+    audit_logger.info(f"Export confirm accessed by user")
     
     # Get form data
     field_mapping = {}
@@ -844,6 +865,7 @@ def export_confirm(request):
         return redirect('data_exflow:export_download', session_id=session.id)
         
     except Exception as e:
+        audit_logger.activity(f"Export error with fields: {list(field_mapping.keys())}")
         messages.error(request, f'Export error: {str(e)}')
         return redirect('data_exflow:export')
 
@@ -852,14 +874,16 @@ def export_confirm(request):
 @role_required('admin','logistics_manager') 
 def export_download(request, session_id):
     """Show download page for the exported file."""
-    logger.warning(f"Export download called by {get_client_ip(request)}, user: {request.user}")
+    audit_logger.info(f"Export download accessed by user")
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.EXPORT:
+        audit_logger.activity(f"Invalid session type accessed by user")
         messages.error(request, 'Invalid session type')
         return redirect('data_exflow:export')
     
     if not session.file:
+        audit_logger.activity(f"Export file not found for session {session_id}")
         messages.error(request, 'No export file found')
         return redirect('data_exflow:export')
     
@@ -920,6 +944,7 @@ def export_download(request, session_id):
 @role_required('admin','logistics_manager') 
 def export_process(request):
     """Process the export operation."""
+    audit_logger.info(f"Export process initiated by user")
     if request.method != 'POST':
         return redirect('data_exflow:export')
     
@@ -948,6 +973,7 @@ def export_process(request):
             field_mapping[model_key][field_name] = value
     
     if not content_types or not field_mapping:
+        audit_logger.activity(f"Export process failed: No fields selected")
         messages.error(request, 'No fields selected for export')
         return redirect('data_exflow:export')
     
@@ -977,6 +1003,7 @@ def export_process(request):
 @role_required('admin','logistics_manager') 
 def api_get_models(request):
     """API endpoint to get all registered models."""
+    audit_logger.info(f"API get models accessed by user")
     models = get_all_registered_models()
     return JsonResponse(models)
 
@@ -987,6 +1014,7 @@ def api_get_model_fields(request, app_label=None, model_name=None):
     """API endpoint for getting model fields."""
     # Get content type ID from URL or query param
     content_type_id = request.GET.get('content_type_id')
+    audit_logger.info(f"API get model fields accessed by user")
     
     try:
         if content_type_id:
@@ -1165,8 +1193,11 @@ def api_get_model_fields(request, app_label=None, model_name=None):
 def api_edit_cell(request, session_id):
     """API endpoint to edit a cell in the preview."""
     if request.method != 'POST':
+        audit_logger.activity(f"API edit cell accessed without POST method")
         return JsonResponse({'error': 'Invalid request method'}, status=405)
     
+    audit_logger.info(f"API edit cell accessed by user")
+
     session = get_object_or_404(ImportExportSession, id=session_id, user=request.user)
     
     if session.session_type != ImportExportSession.IMPORT:
@@ -1236,6 +1267,7 @@ def api_edit_cell(request, session_id):
 def api_list_contenttypes(request):
     """API endpoint to list all content types."""
     try:
+        audit_logger.info(f"API list content types accessed by user")
         from django.contrib.contenttypes.models import ContentType
         
         # Get all content types
@@ -1254,7 +1286,7 @@ def api_list_contenttypes(request):
         return JsonResponse({'contenttypes': data})
     except Exception as e:
         import traceback
-        logger.warning(f"Error in api_list_contenttypes: {str(e)}, traceback: {traceback.format_exc()}")
+        logger.warning(f"Error in api_list_contenttypes: {str(e)}")
         return JsonResponse({
             'error': f'Error listing content types: {str(e)}'
         }, status=500)
@@ -1264,9 +1296,10 @@ def api_list_contenttypes(request):
 @role_required('admin','logistics_manager')      
 def download_sample_file(request):
     """Download a sample file with valid choices values."""
+    
     content_type_id = request.GET.get('content_type_id')
     file_format = request.GET.get('format', 'csv')  # Default to CSV
-    
+    audit_logger.info(f"Download sample file accessed by user: {file_format}")
     if not content_type_id:
         messages.error(request, 'لطفاً مدل داده را انتخاب کنید')
         return redirect('data_exflow:import')
@@ -1540,6 +1573,6 @@ def download_sample_file(request):
         return response
     except Exception as e:
         import traceback
-        logger.warning(f"Error in download_sample_file: {str(e)}, traceback: {traceback.format_exc()}")
+        logger.warning(f"Error in download_sample_file: {str(e)}")
         messages.error(request, f'خطا در ایجاد فایل نمونه: {str(e)}')
         return redirect('data_exflow:import')

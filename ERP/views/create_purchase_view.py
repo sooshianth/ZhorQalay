@@ -16,8 +16,10 @@ from core.SalesAgentModel import SalesAgent
 from core.CargoProductModel import CargoProduct
 from major.models.NonBazargahProduct import NonBazargahProduct
 from ERP.forms import CreatePurchaseForm
+from core.logging_levels import *
 
-logger = logging.getLogger('erp_create_purchase')
+logger = logging.getLogger('bugs')
+audit_logger = logging.getLogger('audit')
 
 
 def is_admin_or_manager(user):
@@ -37,6 +39,7 @@ def create_purchase_view(request):
     ویو ایجاد خرید توسط ادمین
     """
     if request.method == 'POST':
+        audit_logger.info(f"Purchase create by user role: {determine_user_role(request.user)}")
         form = CreatePurchaseForm(request.POST)
         
         if form.is_valid():
@@ -73,17 +76,17 @@ def create_purchase_view(request):
                         messages.success(request, f'خرید خارج از بازارگاه {purchase.purchase_number} با موفقیت ایجاد شد.')
                     
                     # ثبت لاگ
-                    logger.info(f'خرید جدید توسط {request.user.username} ایجاد شد: {purchase}')
+                    audit_logger.activity(f"New purchase created by {request.user.username}: {purchase}")
                     
                     return redirect('purchase_list')
                     
             except ValidationError as e:
                 messages.error(request, f'خطا در ایجاد خرید: {str(e)}')
-                logger.error(f'خطای اعتبارسنجی در ایجاد خرید: {str(e)}')
+                logger.error(f'Validation error in purchase creation: {str(e)}')
                 
             except Exception as e:
                 messages.error(request, 'خطای غیرمنتظره در ایجاد خرید رخ داد.')
-                logger.error(f'خطای غیرمنتظره در ایجاد خرید: {str(e)}')
+                logger.error(f'Unexpected error in purchase creation: {str(e)}')
         
         else:
             messages.error(request, 'لطفاً اطلاعات فرم را بررسی کنید.')
@@ -92,6 +95,7 @@ def create_purchase_view(request):
                     messages.error(request, f'{form.fields[field].label}: {error}')
     
     else:
+        audit_logger.info(f"Create purchase view accessed by user role: {determine_user_role(request.user)}")
         form = CreatePurchaseForm()
     
     # آماده‌سازی context
@@ -150,7 +154,7 @@ def create_non_bazaargah_purchase(form_data, customer, sales_agent, description,
     total_weight_kg = calculate_purchase_weight(unit, quantity, bag_weight)
     
     # ثبت لاگ برای بررسی
-    logger.info(f'محاسبه وزن خرید خارج از بازارگاه: واحد={unit}, مقدار={quantity}, وزن کیسه={bag_weight}, وزن کل={total_weight_kg} کیلوگرم')
+    logger.debug(f'Non-bazaar purchase weight calculation: unit={unit}, quantity={quantity}, bag_weight={bag_weight}, total_weight={total_weight_kg} kg')
     
     # ایجاد خرید - شماره خرید به صورت خودکار تولید می‌شود (از 100000)
     purchase = NonBazargahPurchase.objects.create(
@@ -210,8 +214,10 @@ def get_product_details_api(request):
     """
     product_id = request.GET.get('product_id')
     product_type = request.GET.get('product_type')
+    audit_logger.info(f"Get product details API called with product_id={product_id}, product_type={product_type}")
     
     if not product_id or not product_type:
+        audit_logger.activity("Missing product_id or product_type")
         return JsonResponse({'error': 'پارامترهای لازم ارسال نشده'}, status=400)
     
     try:
@@ -232,6 +238,7 @@ def get_product_details_api(request):
                 'name': product.name,
             }
         else:
+            audit_logger.activity(f"Invalid product type: {product_type}")
             return JsonResponse({'error': 'نوع محصول نامعتبر'}, status=400)
             
         return JsonResponse(data)
@@ -239,7 +246,7 @@ def get_product_details_api(request):
     except (CargoProduct.DoesNotExist, NonBazargahProduct.DoesNotExist):
         return JsonResponse({'error': 'محصول یافت نشد'}, status=404)
     except Exception as e:
-        logger.error(f'خطا در دریافت جزئیات محصول: {str(e)}')
+        logger.error(f'Error retrieving product details: {str(e)}')
         return JsonResponse({'error': 'خطای سرور'}, status=500)
 
 
@@ -250,8 +257,10 @@ def get_customer_details_api(request):
     API برای دریافت جزئیات مشتری
     """
     customer_id = request.GET.get('customer_id')
+    audit_logger.info(f"Get customer details API called with customer_id={customer_id}")
     
     if not customer_id:
+        audit_logger.activity("Missing customer_id")
         return JsonResponse({'error': 'شناسه مشتری ارسال نشده'}, status=400)
     
     try:
@@ -274,8 +283,8 @@ def get_customer_details_api(request):
         
         return JsonResponse(data)
         
-    except Customer.DoesNotExist:
+    except Customer.DoesNotExist:    
         return JsonResponse({'error': 'مشتری یافت نشد'}, status=404)
     except Exception as e:
-        logger.error(f'خطا در دریافت جزئیات مشتری: {str(e)}')
+        logger.error(f'Error retrieving customer details: {str(e)}')
         return JsonResponse({'error': 'خطای سرور'}, status=500)

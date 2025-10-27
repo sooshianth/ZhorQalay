@@ -3,7 +3,9 @@ from django.contrib.auth.decorators import login_required
 from core.PurchaseModel import Purchase, determine_user_role
 from core.decorators.decorators import role_required
 import logging
-logger = logging.getLogger("erp_managers_profile_view")
+from core.logging_levels import *
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def get_client_ip(request):
     """
@@ -38,7 +40,7 @@ def get_client_ip(request):
 @role_required('logistics_manager')
 @login_required
 def logistics_manager_profile_view(request):
-    logger.warning(f"Logistics Manager Profile View accessed by user: {request.user.username}, IP: {get_client_ip(request)}")
+    audit_logger.info(f"Logistics Manager Profile View accessed ")
     manager = request.user.logistics_manager
     user_role = determine_user_role(request.user)
     
@@ -70,7 +72,7 @@ def logistics_manager_profile_view(request):
 @login_required
 def financial_manager_profile_view(request):
 
-    logger.warning(f"Financial Manager Profile View accessed by user: {request.user.username}, IP: {get_client_ip(request)}")
+    audit_logger.info(f"Financial Manager Profile View accessed ")
     manager = request.user.financial_manager
     user_role = determine_user_role(request.user)
     

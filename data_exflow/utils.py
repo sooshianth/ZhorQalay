@@ -1604,15 +1604,15 @@ def parse_jalali_date(date_string):
                         from django_jalali.db import models as jmodels
                         return jmodels.jdatetime.datetime(year, month, day).date()
                     else:
-                        logger.warning(f"تاریخ جلالی نامعتبر: {date_string}")
+                        logger.warning(f"Invalid Jalali date: {date_string}")
                         return None
                         
             except (ValueError, TypeError) as e:
-                logger.warning(f"خطا در پردازش تاریخ جلالی {date_string}: {str(e)}")
+                logger.warning(f"Error parsing Jalali date {date_string}: {str(e)}")
                 continue
     
-    # اگر هیچ فرمت معتبری پیدا نشد
-    logger.warning(f"فرمت تاریخ جلالی نامعتبر: {date_string}")
+    # If no valid format was found
+    logger.warning(f"Jalali date format invalid: {date_string}")
     return None
 
 
@@ -1673,11 +1673,11 @@ def parse_date_string(date_string):
                     return date(year, month, day)
                         
             except (ValueError, TypeError) as e:
-                logger.warning(f"خطا در پردازش تاریخ میلادی {date_string}: {str(e)}")
+                logger.warning(f"Error parsing Gregorian date {date_string}: {str(e)}")
                 continue
     
-    # اگر هیچ فرمت معتبری پیدا نشد
-    logger.warning(f"فرمت تاریخ میلادی نامعتبر: {date_string}")
+    # If no valid format was found
+    logger.warning(f"Gregorian date format invalid: {date_string}")
     return None
 
 
@@ -1711,7 +1711,7 @@ def parse_datetime_string(datetime_string):
                 
                 return datetime.combine(parsed_date, datetime.min.time().replace(hour=hour, minute=minute, second=second))
         except (ValueError, TypeError) as e:
-            logger.warning(f"خطا در پردازش زمان {time_part}: {str(e)}")
+            logger.warning(f"Error parsing time {time_part}: {str(e)}")
             return None
     else:
         # فقط تاریخ بدون زمان

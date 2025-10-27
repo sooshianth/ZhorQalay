@@ -8,8 +8,7 @@ from django.http import HttpResponse, JsonResponse
 import json
 from django.utils import timezone
 import logging
-import logging
-import traceback
+
 
 from core.CargoProductModel import CargoProduct
 from django.core.exceptions import ValidationError
@@ -26,6 +25,7 @@ import jdatetime
 from core.logging_levels import *
 
 logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 def persian_digits_to_english(persian_text):
     """تبدیل اعداد فارسی به انگلیسی"""
@@ -77,10 +77,10 @@ def jalali_to_gregorian_date(jalali_date_str):
         return gregorian_date
         
     except ValueError as e:
-        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        logger.error(f"Error converting Jalali date {jalali_date_str}: {str(e)}")
         raise ValueError(f"فرمت تاریخ نامعتبر: {jalali_date_str}. {str(e)}")
     except Exception as e:
-        logger.error(f"خطا در تبدیل تاریخ جلالی {jalali_date_str}: {str(e)}")
+        logger.error(f"Error converting Jalali date {jalali_date_str}: {str(e)}")
         raise ValueError(f"خطا در تبدیل تاریخ: {str(e)}")
 
 def get_all_purchase_columns():
@@ -338,7 +338,7 @@ def get_allowed_search_filters(global_search, request):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_list(request):
-    logger.warning(f"لیست خرید توسط {request.user.username} باز شد با آیپی {get_client_ip(request)}")
+    audit_logger.info("Entering purchase_list")
     # دریافت پارامترهای فیلتر
     global_search = request.GET.get('global_search', '')
     customer = request.GET.get('customer', '')
@@ -615,8 +615,6 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        logger.warning(f"ستون های انتخابی مسئول فروش {request.user.username}: {selected_columns}")
-        logger.info(f"ستون های قابل انتخاب مسئول فروش {request.user.username}: {all_columns}")
 
     elif user_role == 'support_agent':
         all_columns = [
@@ -666,9 +664,6 @@ def purchase_list(request):
         # اطمینان از حضور ستون actions
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
-            logger.warning(f"ستون های انتخابی مسئول پیگیری {request.user.username}: {selected_columns}")
-        logger.info(f"ستون های قابل انتخاب مسئول پیگیری {request.user.username}: {all_columns}")
-    
     elif user_role == 'financial_manager':
         all_columns = [
             {'id': 'actions', 'name': 'جزئیات'},
@@ -735,8 +730,6 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        logger.warning(f"ستون های انتخابی مسئول مالی {request.user.username}: {selected_columns}")
-        logger.info(f"ستون های قابل انتخاب مسئول مالی {request.user.username}: {all_columns}")
 
     elif user_role == 'admin' or user_role == 'logistics_manager':
         all_columns = [
@@ -817,8 +810,6 @@ def purchase_list(request):
         if 'actions' not in selected_columns:
             selected_columns.append('actions')
         
-        logger.warning(f"ستون های انتخابی ادمین {request.user.username}: {selected_columns}")
-        logger.info(f"ستون های قابل انتخاب ادمین {request.user.username}: {all_columns}")
     """if user_role == 'admin':
         # دریافت ستون های انتخاب شده از کوکی برای کاربران غیرمحدود
         selected_columns = request.COOKIES.get('selected_columns', '')
@@ -893,8 +884,8 @@ def purchase_list(request):
                 {'id': 'company_price', 'name': 'فی خرید', 'field': 'company_price', 'unit': 'ریال'},
                 {'id': 'amount_paid', 'name': 'مبلغ پرداختی', 'field': 'amount_paid', 'unit': 'ریال'},
             ])
-        logger.warning(f"ستون های انتخابی کاربر نامحدود {request.user.username}: {selected_columns}")
-        logger.warning(f"ستون های قابل انتخاب کاربر نامحدود {request.user.username}: {all_columns}")"""
+        logger.warning(f"Selected columns for unrestricted user {request.user.username}: {selected_columns}")
+        logger.warning(f"Available columns for unrestricted user {request.user.username}: {all_columns}")"""
     # اگر درخواست AJAX است، فقط داده‌های JSON برگردان
     if is_ajax:
         return JsonResponse({
@@ -978,10 +969,10 @@ def purchase_list(request):
 @require_POST
 @login_required
 def update_columns(request):
+    audit_logger.info("Entering update_columns")
     """
     به‌روزرسانی ستون‌های انتخاب شده برای نمایش در لیست خریدها
     """
-    logger.warning(f"ستون های لیست خرید اپدیت شدند توسط {request.user.username} و {get_client_ip(request)}")
     try:
         # دریافت ستون‌های انتخاب شده از فرم
         selected_columns = request.POST.getlist('columns[]')
@@ -1003,7 +994,6 @@ def update_columns(request):
                 'message': 'هیچ ستونی انتخاب نشده است'
             }, status=400)
         
-        logger.warning(f"ستون‌های دریافت شده: {selected_columns} برای {request.user.username}")
 
         # فیلتر کردن ستون‌های انتخاب شده برای کاربران محدود
         user_role = determine_user_role(request.user)
@@ -1034,13 +1024,13 @@ def update_columns(request):
         return response
     except Exception as e:
         import traceback
-        logger.error(f"خطا در update_columns: {str(e)}, {traceback.format_exc()}")
+        logger.error(f"Error in update_columns: {str(e)}")
         return JsonResponse({'status': 'error', 'message': "خطا در اپدیت ستون های لیست خرید"}, status=500)
 
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def export_to_excel(request):
-    logger.warning(f"خروجی اکسل توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
+    audit_logger.info("Entering export_to_excel")
     # Support both GET and POST requests
     if request.method == 'POST':
         purchase_ids = request.POST.get('ids', '').split(',')
@@ -1191,7 +1181,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
                     value = column_mapping[col][1](purchase)
                     row.append(value)
                 except Exception as e:
-                    logger.warning(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
+                    logger.warning(f"Error extracting value for {col} in purchase {purchase.id}: {str(e)}")
                     row.append("-")
         
         ws.append(row)
@@ -1208,10 +1198,10 @@ def _export_regular_excel(purchase_ids, selected_columns):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def update_column_order(request):
+    audit_logger.info("Entering update_column_order")
     """
     ذخیره ترتیب جدید ستون‌ها
     """
-    logger.warning(f"ذخیه ترتیب جدید ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
     try:
         data = json.loads(request.body)
         column_order = data.get('column_order', [])
@@ -1249,10 +1239,10 @@ def update_column_order(request):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def get_column_order(request):
+    audit_logger.info("Entering get_column_order")
     """
     دریافت ترتیب ستون‌ها از سرور
     """
-    logger.warning(f"دریافت ترتیب ستون ها توسط {request.user.username} و آیپی {get_client_ip(request)}")
     try:
         user_role = determine_user_role(request.user)
         
@@ -1282,10 +1272,11 @@ def get_column_order(request):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 def reset_column_order(request):
+    audit_logger.info("Entering reset_column_order")
     """
     بازگرداندن ترتیب ستون‌ها به حالت پیش‌فرض
     """
-    logger.warning(f"بازگرداندن ترتیب ستون ها به حالت پیش‌فرض توسط {request.user.username} و آیپی {get_client_ip(request)}")
+    audit_logger.info(f"Resetting column order to default")
     
     try:
         # تشخیص نقش کاربر و دریافت ستون‌های پیش‌فرض
@@ -1334,10 +1325,10 @@ def reset_column_order(request):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager')
 def get_purchase_aggregated_stats(request):
+    audit_logger.info("Entering get_purchase_aggregated_stats")
     """
     API برای دریافت آمار اجماعی خریدهای انتخاب شده
     """
-    logger.warning(f"دریافت آمار اجماعی خریدهای انتخاب شده توسط {request.user.username} و {get_client_ip(request)}")
     try:
         # تشخیص نقش کاربر
         user_role = determine_user_role(request.user)
@@ -1462,10 +1453,10 @@ def get_purchase_aggregated_stats(request):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager')
 def clear_column_cache(request):
+    audit_logger.info("Entering clear_column_cache")
     """
     پاک کردن cache و کوکی‌های مربوط به ستون‌ها
     """
-    logger.warning(f"پاک کردن کش و کوکی ستون ها {request.user.username} و {get_client_ip(request)}")
     
     try:
         # ایجاد پاسخ
@@ -1477,16 +1468,16 @@ def clear_column_cache(request):
         
         return response
     except Exception as e:
-        logger.error(f"error in clearing column cahse: {str(e)}")
+        logger.error(f"Error in clearing column cache: {str(e)}")
         return JsonResponse({'status': 'error', 'message': "error"}, status=500)
 
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager')
 def get_section_purchase_ids(request):
+    audit_logger.info("Entering get_section_purchase_ids")
     """
     API برای دریافت تمام ID های خریدهای یک بخش خاص (فعال، در انتظار پرداخت، آرشیو)
     """
-    logger.warning(f"دریافت آیدی های خرید های بخش خاص توسط {request.user.username} و {get_client_ip(request)}")
     try:
         section = request.GET.get('section', 'active')  # active, pending, archived
         
@@ -1608,7 +1599,7 @@ def get_section_purchase_ids(request):
         })
         
     except Exception as e:
-        logger.error(f"خطا در دریافت ایدی بخش خرید آیدی ها {str(e)}, {section}")
+        logger.error(f"Error getting section purchase IDs: {str(e)}, {section}")
         return JsonResponse({
             'status': 'error',
             'message': f'خطا در دریافت لیست خریدها: {str(e)}'
@@ -1617,10 +1608,10 @@ def get_section_purchase_ids(request):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def get_purchase_table_configuration(request):
+    audit_logger.info("Entering get_purchase_table_configuration")
     """
     API برای دریافت تنظیمات ستون‌های جدول خریدها
     """
-    logger.warning(f"دریافت تنظیمات ستون‌های جدول خریدها توسط {request.user.username} و {get_client_ip(request)}")
     try:
         table_name = request.GET.get('table_name', 'purchases')
         user_role = determine_user_role(request.user)
@@ -1723,10 +1714,10 @@ def get_purchase_table_configuration(request):
 @require_POST
 @login_required
 def apply_purchase_filter(request):
+    audit_logger.info("Entering apply_purchase_filter")
     """
     API برای اعمال فیلتر سمت سرور به خریدها
     """
-    logger.warning(f"درخواست فیلتر خرید توسط {request.user.username} انجام شده. {get_client_ip(request)}")
     logger.warning(f"apply purchase filter")
     try:
         # دریافت پارامترهای فیلتر
@@ -1748,7 +1739,7 @@ def apply_purchase_filter(request):
             else:
                 per_page = int(per_page_param)
         except (ValueError, TypeError):
-            logger.error(f"❌ مقادیر pagination نامعتبر: page={page_param}, per_page={per_page_param}")
+            logger.error(f"❌ Invalid pagination values: page={page_param}, per_page={per_page_param}")
             page = 1
             per_page = 50
         
@@ -2408,12 +2399,12 @@ def apply_purchase_filter(request):
 @require_POST
 @login_required
 def get_purchase_column_values(request):
+    audit_logger.info("Entering get_purchase_column_values")
     """
     API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر
     """
     from core.PurchaseModel import Purchase
     
-    logger.warning(f"API برای دریافت مقادیر منحصر به فرد یک ستون برای فیلتر توسط {request.user.username} دسترسی یافت. {get_client_ip(request)}")
     try:
         column_id = request.POST.get('column_id')
         section = request.POST.get('section', 'active')
@@ -3109,10 +3100,10 @@ def get_purchase_column_values(request):
 # @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def export_full_purchase_excel(request):
+    audit_logger.info("Entering export_full_purchase_excel")
     """
     خروجی اکسل کامل از همه خریدها با تمام ستون‌ها و امکان انتخاب بازه تاریخ
     """
-    logger.warning(f"خروجی اکسل کامل خریدها توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
     
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'}, status=405)
@@ -3122,22 +3113,20 @@ def export_full_purchase_excel(request):
         from_date = request.POST.get('from_date')
         to_date = request.POST.get('to_date')
         
-        logger.warning(f"بازه تاریخی درخواستی: از {from_date} تا {to_date}")
+        audit_logger.info(f"Requested date range: from {from_date} to {to_date}")
         
         # تست تبدیل تاریخ برای دیباگ
         if from_date:
             try:
                 test_from = jalali_to_gregorian_date(from_date)
-                logger.warning(f"تست تبدیل از تاریخ: {from_date} -> {test_from}")
             except Exception as e:
-                logger.error(f"خطا در تست تبدیل از تاریخ: {e}")
+                logger.error(f"Error in test conversion from date: {e}")
         
         if to_date:
             try:
                 test_to = jalali_to_gregorian_date(to_date)
-                logger.warning(f"تست تبدیل تا تاریخ: {to_date} -> {test_to}")
             except Exception as e:
-                logger.error(f"خطا در تست تبدیل تا تاریخ: {e}")
+                logger.error(f"Error in test conversion to date: {e}")
         
         # ایجاد QuerySet پایه با select_related برای بهینه‌سازی
         base_queryset = Purchase.objects.select_related(
@@ -3160,9 +3149,8 @@ def export_full_purchase_excel(request):
                     if from_date_obj:
                         # فیلتر روی created_at (تاریخ ایجاد خرید)
                         base_queryset = base_queryset.filter(created_at__date__gte=from_date_obj)
-                        logger.info(f"فیلتر از تاریخ شمسی {from_date} (میلادی: {from_date_obj}) اعمال شد")
                 except ValueError as e:
-                    logger.error(f"فرمت تاریخ شروع نامعتبر: {from_date} - {str(e)}")
+                    logger.error(f"Invalid start date format: {from_date} - {str(e)}")
                     return JsonResponse({
                         'status': 'error', 
                         'message': f'فرمت تاریخ شروع نامعتبر: {from_date}'
@@ -3175,9 +3163,8 @@ def export_full_purchase_excel(request):
                     if to_date_obj:
                         # فیلتر روی created_at (تاریخ ایجاد خرید)
                         base_queryset = base_queryset.filter(created_at__date__lte=to_date_obj)
-                        logger.info(f"فیلتر تا تاریخ شمسی {to_date} (میلادی: {to_date_obj}) اعمال شد")
                 except ValueError as e:
-                    logger.error(f"فرمت تاریخ پایان نامعتبر: {to_date} - {str(e)}")
+                    logger.error(f"Invalid end date format: {to_date} - {str(e)}")
                     return JsonResponse({
                         'status': 'error', 
                         'message': f'فرمت تاریخ پایان نامعتبر: {to_date}'
@@ -3185,7 +3172,6 @@ def export_full_purchase_excel(request):
         
         # شمارش کل خریدها
         total_count = base_queryset.count()
-        logger.warning(f"تعداد کل خریدهای قابل خروجی: {total_count}")
         
         if total_count == 0:
             return JsonResponse({
@@ -3205,14 +3191,13 @@ def export_full_purchase_excel(request):
         all_columns_data = get_all_purchase_columns()
         all_column_ids = [col['id'] for col in all_columns_data if col['id'] != 'actions']
         
-        logger.warning(f"تمام ستون‌های قابل خروجی: {len(all_column_ids)} ستون")
         
         # تولید فایل اکسل
         return _export_purchase_excel_full(base_queryset, all_column_ids, from_date, to_date)
         
     except Exception as e:
         import traceback
-        logger.error(f"خطا در خروجی اکسل کامل: {str(e)}, {traceback.format_exc()}")
+        logger.error(f"Error in full Excel export: {str(e)}, {traceback.format_exc()}")
         return JsonResponse({
             'status': 'error', 
             'message': f'خطا در تولید فایل اکسل: {str(e)}'
@@ -3221,7 +3206,6 @@ def export_full_purchase_excel(request):
 def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_date=None):
     """پردازش و ایجاد فایل اکسل کامل برای همه خریدها"""
     
-    logger.warning(f"شروع تولید فایل اکسل کامل برای {queryset.count()} خرید با {len(selected_columns)} ستون")
     
     wb = Workbook()
     ws = wb.active
@@ -3358,7 +3342,7 @@ def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_d
                     value = column_mapping[col][1](purchase)
                     row.append(value)
                 except Exception as e:
-                    logger.warning(f"خطا در استخراج مقدار {col} برای خرید {purchase.id}: {str(e)}")
+                    logger.warning(f"Error extracting value for {col} in purchase {purchase.id}: {str(e)}")
                     # برای فیلدهای عددی، مقدار پیش‌فرض 0 قرار می‌دهیم
                     if col in ['company_price', 'customer_price', 'amount_paid', 'order_weight', 'total_weight', 'delivered_weight']:
                         row.append("0")
@@ -3369,15 +3353,12 @@ def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_d
         processed_count += 1
         
         # نمایش پیشرفت هر 1000 رکورد
-        if processed_count % batch_size == 0:
-            logger.info(f"پردازش شد: {processed_count:,} از {queryset.count():,} خرید")
         
         # تنظیم استایل برای سطرهای داده
         current_row = ws.max_row
         for j, cell in enumerate(ws[current_row], 1):
             cell.alignment = alignment
     
-    logger.warning(f"تمام {processed_count:,} خرید پردازش شد")
     
     # تنظیم عرض ستون‌ها - ساده
     for i in range(1, len(headers) + 1):
@@ -3401,5 +3382,5 @@ def _export_purchase_excel_full(queryset, selected_columns, from_date=None, to_d
     
     wb.save(response)
     
-    logger.warning(f"فایل اکسل کامل با موفقیت تولید شد: {filename}")
+    audit_logger.info(f"Full Excel file successfully generated: {filename}")
     return response  

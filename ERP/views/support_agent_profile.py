@@ -11,13 +11,15 @@ from django.db.models import Q
 from django_jalali.db import models as jmodels
 from django.utils import timezone
 import logging
-logger = logging.getLogger("erp_managers_profile_view")
+from core.logging_levels import *
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 @role_required('support_agent', 'admin')
 @login_required
 @csrf_exempt
 def support_agent_profile_view(request):
-    logger.warning(f"Support Agent Profile View accessed by user: {request.user.username}, IP: {get_client_ip(request)}")
+    audit_logger.info(f"Support Agent Profile View accessed by user: ")
     
     # تشخیص نقش کاربر
     user_role = determine_user_role(request.user)

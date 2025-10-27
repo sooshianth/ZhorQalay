@@ -4,6 +4,8 @@ from ERP.models.NotificationService import NotificationService
 from django.views.decorators.http import require_http_methods
 from django.shortcuts import get_object_or_404
 from ERP.models.Notification import Notification
+import logging
+audit_logger = logging.getLogger("audit")
 
 @login_required
 @require_http_methods(["GET"])
@@ -27,4 +29,5 @@ def mark_notification_read(request, notification_id):
     """علامت‌گذاری نوتیفیکیشن به عنوان خوانده شده"""
     notification = get_object_or_404(Notification, id=notification_id, user=request.user)
     NotificationService.mark_as_read(notification_id)
+    audit_logger.info(f"Notification marked as read: {notification_id}")
     return JsonResponse({'status': 'success'})

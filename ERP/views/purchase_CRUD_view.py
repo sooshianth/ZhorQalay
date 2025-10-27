@@ -48,8 +48,10 @@ from django.views.decorators.http import require_http_methods
 from collections import OrderedDict
 
 import logging
+from core.logging_levels import *
 
-logger = logging.getLogger("erp_purchase_crude_view")
+logger = logging.getLogger("bugs")
+audit_logger = logging.getLogger("audit")
 
 try:
     import arabic_reshaper
@@ -476,7 +478,7 @@ class RoleBasedPurchaseForm(forms.ModelForm):
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
 @login_required
 def purchase_CRUD_view(request, purchase_id):
-    logger.warning(f"نمای خرید توسط: {request.user.username}, با آیپی IP: {get_client_ip(request)} باز شد")
+    audit_logger.info(f"Purchase view with id {purchase_id} Opened")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
@@ -500,7 +502,7 @@ def purchase_CRUD_view(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست دسترسی داد: {purchase.purchase_number}.")
+            audit_logger.activity(f"Sales agent {request.user.username} requested access to purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
     
     history_logs = PurchaseHistory.objects.filter(purchase=purchase).order_by('-timestamp')
@@ -651,6 +653,9 @@ def purchase_CRUD_view(request, purchase_id):
         progress_steps = [step for i, step in enumerate(progress_steps) if i not in [2, 4, 5]]
 
     if request.method == 'POST':
+        # Audit log: Log all POST data at the start
+        audit_logger.info(f"Purchase {purchase_id} POST request by {request.user.username} (role: {user_role}) from IP {get_client_ip(request)} | Data: {dict(request.POST)}")
+        
         # کپی کردن داده‌های POST برای اعمال حفاظت فیلدهای غیرقابل ویرایش
         post_data = request.POST.copy()
         
@@ -818,6 +823,9 @@ def purchase_CRUD_view(request, purchase_id):
                         if allocation_ids_text:
                             allocation_ids = [code.strip() for code in allocation_ids_text.strip().split('\n') if code.strip()]
                             
+                        # Get old allocation IDs for audit log
+                        old_allocation_ids = list(ShenaseTakhsis.objects.filter(purchase=purchase_instance).values_list('code', flat=True))
+                        
                         # شناسه‌های تخصیص قبلی را حذف می‌کنیم
                         ShenaseTakhsis.objects.filter(purchase=purchase_instance).delete()
                         
@@ -852,9 +860,8 @@ def purchase_CRUD_view(request, purchase_id):
                         for error in errors:
                             messages.error(request, error)
             except Exception as e:
-                logger.error(f"خطا در اکشن {e} برای خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)}")
+                logger.error(f"Error in action {e} for purchase {purchase_id}")
                 import traceback
-                logger.error(traceback.format_exc())
                 messages.error(request, f'خطا: {str(e)}')
         else:
             for field, errors in form.errors.items():
@@ -884,7 +891,7 @@ def purchase_CRUD_view(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'sales_agent')
 def delete_purchase_view(request, purchase_id):
-    logger.warning(f"خرید {purchase_id} پاک شد توسط {request.user.username} with ip {get_client_ip(request)}")
+    audit_logger.info(f"Purchase {purchase_id} deleting")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     # بررسی دسترسی کارشناس فروش - فقط به خریدهای خودش دسترسی دارد
@@ -907,7 +914,7 @@ def delete_purchase_view(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست پاک کردن داد: {purchase.purchase_number}.")
+            audit_logger.activity(f"Sales agent {request.user.username} requested deletion of purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
     if request.method == 'POST':
         purchase.delete()
@@ -922,10 +929,10 @@ def delete_purchase_view(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def generate_purchase_pdf(request, purchase_id):
-    logger.warning(f"پی دی اف خرید {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)} ایجاد شد")
+    audit_logger.info(f"PDF for purchase {purchase_id} generated")
     user_role = determine_user_role(request.user)
     if user_role == 'support_agent':
-        logger.warning(f"مسئول پیگیری {request.user.username} به خرید {purchase_id} درخواست خلاف پی دی اف داد")
+        audit_logger.activity(f"Support agent {request.user.username} requested unauthorized PDF for purchase {purchase_id}")
         messages.error(request, 'شما اجازه ایجاد گزارش خرید را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
 
@@ -949,7 +956,7 @@ def generate_purchase_pdf(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست گزارش پی دی اف داد: {purchase.purchase_number}.")
+            audit_logger.activity(f"Sales agent {request.user.username} requested PDF report for purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
     
     # ساخت پاسخ HTTP برای PDF
@@ -1273,7 +1280,7 @@ def generate_purchase_pdf(request, purchase_id):
 @login_required
 @role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent')
 def upload_purchase_document(request, purchase_id):
-    logger.warning(f"دسترسی به آپلود اسناد {purchase_id} توسط {request.user.username} با آیپی {get_client_ip(request)}")
+    audit_logger.info(f"Access to document upload for {purchase_id} ")
     """
     View for handling document uploads for purchases
     """
@@ -1282,7 +1289,7 @@ def upload_purchase_document(request, purchase_id):
     
     # Check if user has permission to upload documents
     if user_role not in ['sales_agent', 'financial_manager', 'logistics_manager', 'admin']:
-        logger.warning(f"کاربر {request.user.username} به خرید {purchase_id} غیر قانونی درخواست آپلود اسناد داد. {get_client_ip(request)}")
+        audit_logger.alert(f"User {request.user.username} requested unauthorized document upload for purchase {purchase_id}.")
         messages.error(request, 'شما اجازه بارگذاری اسناد را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1305,7 +1312,7 @@ def upload_purchase_document(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست اپلود اسناد داد: {purchase.purchase_number}.")
+            audit_logger.activity(f"Sales agent {request.user.username} requested document upload for purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
 
     if request.method == 'POST':
@@ -1320,7 +1327,7 @@ def upload_purchase_document(request, purchase_id):
             valid_types.extend(['extelaf_receipt', 'invoice'])
             
         if document_type not in valid_types:
-            logger.warning(f"کاربر {request.user.username} فایل {document_type} را که مجاز به آن نیز درخواست آپلود داد. {get_client_ip(request)}")
+            audit_logger.alert(f"User {request.user.username} requested upload of unauthorized file type {document_type}.")
             messages.error(request, 'شما اجازه بارگذاری این نوع سند را ندارید')
             return redirect('purchase_CRUD', purchase_id=purchase_id)
         
@@ -1400,12 +1407,13 @@ def link_bazaargah_purchase(request, purchase_id):
     مشتری، شناسه فاکتور و کارشناس فروش از خرید دستی حفظ می‌شود،
     اما سایر اطلاعات از خرید API می‌آید.
     """
-    logger.warning(f"لینک بازارگاه با خرید توسط {request.user.username} با خرید {purchase_id} درخواست شد. {get_client_ip(request)}")
+    audit_logger.info(f"Bazaar link with purchase for purchase {purchase_id}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
     # بررسی دسترسی کاربر
     if user_role not in ['sales_agent', 'admin']:
+        audit_logger.alert(f"Unauthorized access attempt by {request.user.username} for purchase {purchase_id}.")
         messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
 
@@ -1428,7 +1436,7 @@ def link_bazaargah_purchase(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست لینک بازارگاه داد: {purchase.purchase_number}.")
+            audit_logger.activity(f"Sales agent {request.user.username} requested bazaar link for purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
     
     # بررسی دسترسی کارشناس فروش به خرید - برداشته شد برای رفع مشکل محدودیت دسترسی
@@ -1436,13 +1444,14 @@ def link_bazaargah_purchase(request, purchase_id):
     
     # بررسی نوع درخواست
     if request.method != 'POST':
-        logger.warning(f"درخواست نامعتبر برای لینک خرید بازارگاه توسط {request.user.username}. not POST")
+        audit_logger.alert(f"Invalid request for bazaar purchase link, not POST")
         messages.error(request, 'درخواست نامعتبر')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
         
     purchase_number = request.POST.get('purchase_number')
     
     if not purchase_number:
+        audit_logger.alert(f"Missing bazaar purchase number for purchase {purchase_id}.")
         messages.error(request, 'شماره خرید بازارگاه الزامی است')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1475,7 +1484,7 @@ def link_bazaargah_purchase(request, purchase_id):
     # بررسی محدودیت زمانی 24 ساعت
     time_threshold = timezone.now() - datetime.timedelta(hours=24)
     if api_purchase.created_at < time_threshold:
-        logger.warning(f"ادغام خرید بازارگاه با عمر بیش از 24 ساعت توسط {request.user.username} (خرید دستی: {purchase.id})")
+        logger.warning(f"Bazaar purchase merge with age over 24 hours by {request.user.username} (manual purchase: {purchase.id})")
         messages.error(request, 'امکان ادغام خرید‌های بازارگاه با عمر بیشتر از 24 ساعت وجود ندارد.')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1520,9 +1529,9 @@ def link_bazaargah_purchase(request, purchase_id):
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        logger.error(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
-        messages.error(request, f'خطا در ارتباط با سرور: ')
-    
+        logger.error(f"Error connecting to server: {str(e)}")
+        messages.error(request, f'خطا در ارتباط با سرور')
+
     return redirect('purchase_CRUD', purchase_id=purchase_id)
 
 @login_required
@@ -1534,12 +1543,13 @@ def link_manual_purchase(request, purchase_id):
     این تابع برعکس link_bazaargah_purchase کار می‌کند و خرید API را که توسط API ایجاد شده
     با خرید دستی که کارشناس فروش ایجاد کرده ادغام می‌کند.
     """
-    logger.warning(f"لینک خرید دستی با بازارگاه توسط {request.user.username} با خرید {purchase_id} درخواست شد. {get_client_ip(request)}")
+    audit_logger.info(f"Manual purchase link with bazaar requested for purchase {purchase_id}")
     purchase = get_object_or_404(Purchase, id=purchase_id)
     user_role = determine_user_role(request.user)
     
     # بررسی دسترسی کاربر
     if user_role not in ['sales_agent', 'admin']:
+        audit_logger.alert(f"Unauthorized access attempt for purchase {purchase_id}.")
         messages.error(request, 'شما اجازه انجام این عملیات را ندارید')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1562,7 +1572,7 @@ def link_manual_purchase(request, purchase_id):
         
         if not has_access:
             messages.error(request, 'شما اجازه دسترسی به این خرید را ندارید.')
-            logger.warning(f"مسئول فروش {request.user.username} به خرید غیر خود درخواست لینک خرید دستی داد: {purchase.purchase_number}.")
+            logger.warning(f"Sales agent {request.user.username} requested manual purchase link for purchase not owned by them: {purchase.purchase_number}.")
             return redirect('purchase_list')
     
     # بررسی که این خرید API باشد (دارای شماره خرید)
@@ -1577,13 +1587,14 @@ def link_manual_purchase(request, purchase_id):
     
     # بررسی نوع درخواست
     if request.method != 'POST':
-        logger.warning(f"درخواست نامعتبر برای لینک خرید ذستی توسط {request.user.username}. not POST")
+        audit_logger.alert(f"Invalid request for manual purchase link, not POST")
         messages.error(request, 'درخواست نامعتبر')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
         
     manual_purchase_id = request.POST.get('manual_purchase_id')
     
     if not manual_purchase_id:
+        audit_logger.alert(f"Missing manual purchase ID for purchase {purchase_id}.")
         messages.error(request, 'شناسه خرید دستی الزامی است')
         return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1614,7 +1625,7 @@ def link_manual_purchase(request, purchase_id):
                 has_access = True
         
         if not has_access:
-            logger.warning(f"کارشناس فروش {request.user.username} تلاش برای دسترسی به خرید دستی شخص دیگر را داشت. ایدی خرید: {purchase_id}")
+            audit_logger.activity(f"Sales agent {request.user.username} attempted to access another user's manual purchase. Purchase id: {purchase_id}")
             messages.error(request, 'شما اجازه دسترسی به خرید دستی انتخاب شده را ندارید')
             return redirect('purchase_CRUD', purchase_id=purchase_id)
     
@@ -1660,7 +1671,7 @@ def link_manual_purchase(request, purchase_id):
     except Exception as e:
         import traceback
         error_details = traceback.format_exc()
-        logger.error(f"خطا در ارتباط با سرور: {str(e)}\n{error_details}")
+        logger.error(f"Error connecting to server: {str(e)}")
         messages.error(request, f'خطا در ارتباط با سرور:')
     
     return redirect('purchase_CRUD', purchase_id=purchase_id)
@@ -1670,14 +1681,17 @@ def link_manual_purchase(request, purchase_id):
 @csrf_exempt
 def create_support_task_from_purchase(request, purchase_id):
     """ایجاد تسک کارشناس پشتیبانی از صفحه خرید"""
+    audit_logger.info(f"Creating support task from purchase {purchase_id}")
     try:
         if request.method != 'POST':
+            audit_logger.alert(f"Invalid request for support task creation, not POST")
             return JsonResponse({'status': 'error', 'message': 'فقط درخواست POST پذیرفته می‌شود'})
         
         # دریافت خرید
         try:
             purchase = Purchase.objects.get(id=purchase_id)
         except Purchase.DoesNotExist:
+            audit_logger.activity(f"Purchase not found: {purchase_id}")
             return JsonResponse({'status': 'error', 'message': 'خرید مورد نظر یافت نشد'})
         
         # دریافت داده‌های ارسالی
@@ -1728,8 +1742,7 @@ def create_support_task_from_purchase(request, purchase_id):
         })
         
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
         logger.error(f"Error creating support task: {str(e)}")
         return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد تسک: {str(e)}'})
 
@@ -1737,6 +1750,7 @@ def create_support_task_from_purchase(request, purchase_id):
 @require_http_methods(["GET"])
 def get_support_agents_api(request):
     """API برای دریافت لیست کارشناسان پشتیبانی"""
+    audit_logger.info("Accessed get_support_agents_api")
     try:
         from core.SupportAgentModel import SupportAgent
         
@@ -1759,7 +1773,6 @@ def get_support_agents_api(request):
         
     except Exception as e:
         import logging
-        logger = logging.getLogger(__name__)
         logger.error(f"Error getting support agents: {str(e)}")
         return JsonResponse({
             'status': 'error',
