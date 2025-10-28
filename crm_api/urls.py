@@ -1,5 +1,5 @@
 from django.urls import path
-from .api import PurchaseInfoAPI, CustomerPurchasesAPI, PhoneValidationAPI, HealthCheckAPI, CargoProductsAPI
+from .api import PurchaseInfoAPI, CustomerPurchasesAPI, PhoneValidationAPI, HealthCheckAPI, CargoProductsAPI, VerifiedPurchasesAPI
 
 app_name = 'crm_api'
 
@@ -18,5 +18,8 @@ urlpatterns = [
 
     # API برای دریافت لیست محصولات فعال بازارگاهی
     path('cargo-products/', CargoProductsAPI.as_view(), name='cargo_products'),
+    
+    # API برای دریافت خریدهای تایید شده و دارای تخصیص
+    path('verified-purchases/', VerifiedPurchasesAPI.as_view(), name='verified_purchases'),
 ]
 

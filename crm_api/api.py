@@ -1197,6 +1197,369 @@ class PhoneValidationAPI(View):
             }, status=500)
 
 @method_decorator(csrf_exempt, name='dispatch')
+class VerifiedPurchasesAPI(View):
+    """API برای دریافت خریدهای تایید شده و دارای تخصیص ثبت شده"""
+    
+    def post(self, request):
+        if not check_api_key(request):
+            return JsonResponse({'success': False, 'error': 'API key missing or invalid'}, status=401)
+        try:
+            data = json.loads(request.body) if request.body else {}
+            
+            # بررسی پارامترهای اختیاری
+            start_date = data.get('start_date')  # فرمت: YYYY-MM-DD
+            end_date = data.get('end_date')  # فرمت: YYYY-MM-DD
+            state_filter = data.get('state')  # فیلتر بر اساس وضعیت
+            
+            # جستجوی خریدهای بازرگانی تایید شده
+            bazargah_query = Q(
+                state__in=['PAYMENT_VERIFIED', 'ALLOCATION_APPROVED', 'ADDRESS_SENT', 'WAITING_FOR_BARNAMEH']
+            )
+            
+            # اعمال فیلتر تاریخ شروع
+            if start_date:
+                bazargah_query &= Q(created_at__gte=start_date)
+            
+            # اعمال فیلتر تاریخ پایان
+            if end_date:
+                bazargah_query &= Q(created_at__lte=end_date)
+            
+            # اعمال فیلتر وضعیت
+            if state_filter:
+                bazargah_query = Q(state=state_filter)
+            
+            bazargah_purchases = Purchase.objects.filter(bazargah_query).select_related(
+                'cargo', 'customer', 'bazaargah_customer', 'unique_sales_agent'
+            ).prefetch_related(
+                'shenase_takhsis_set', 'sales_agent'
+            ).order_by('-created_at')
+            
+            # جستجوی خریدهای غیربازارگاهی تایید شده
+            non_bazargah_query = Q(
+                state__in=['confirmed', 'allocated', 'address_sent', 'waiting_barnameh']
+            )
+            
+            if start_date:
+                non_bazargah_query &= Q(created_at__gte=start_date)
+            
+            if end_date:
+                non_bazargah_query &= Q(created_at__lte=end_date)
+            
+            if state_filter:
+                non_bazargah_query = Q(state=state_filter)
+            
+            non_bazargah_purchases = NonBazargahPurchase.objects.filter(
+                non_bazargah_query
+            ).select_related(
+                'product', 'customer', 'unique_sales_agent'
+            ).prefetch_related(
+                'allocations'
+            ).order_by('-created_at')
+            
+            purchases_data = []
+            
+            # پردازش خریدهای بازرگانی
+            for purchase in bazargah_purchases:
+                # بررسی وجود تخصیص
+                allocations = purchase.shenase_takhsis_set.all()
+                if not allocations.exists():
+                    continue  # فقط خریدهای دارای تخصیص
+                
+                # استفاده از تابع نرمال‌سازی
+                purchase_info = normalize_purchase_data(purchase, 'bazargah')
+                
+                # اطلاعات محصول
+                if purchase.cargo:
+                    purchase_info['cargo'] = {
+                        # اطلاعات اصلی محصول
+                        'cottage': purchase.cargo.cottage,
+                        'product_type': purchase.cargo.product_type,
+                        'product_type_display': purchase.cargo.get_product_type_display(),
+                        'country': purchase.cargo.country,
+                        'country_display': purchase.cargo.get_country_display(),
+                        'type': purchase.cargo.type_of_product,
+
+                        # اطلاعات تکمیلی محصول
+                        'port': purchase.cargo.port,
+                        'loading_time': purchase.cargo.loading_time,
+                        'description': purchase.cargo.description,
+                        'weight': purchase.cargo.weight,
+                        'status': purchase.cargo.status,
+                        'created_at': purchase.cargo.created_at.isoformat() if purchase.cargo.created_at else None,
+                        'last_modified': purchase.cargo.last_modified.isoformat() if purchase.cargo.last_modified else None,
+                        'customer_price': purchase.cargo.customer_price,
+                        
+                        # اطلاعات باربری
+                        'barbary_info': {
+                            'name': purchase.cargo.barbary.name if purchase.cargo.barbary else None,
+                            'phone_number': purchase.cargo.barbary.phone_number if purchase.cargo.barbary else None,
+                            'email': purchase.cargo.barbary.email if purchase.cargo.barbary else None,
+                            'description': purchase.cargo.barbary.description if purchase.cargo.barbary else None,
+                        } if purchase.cargo.barbary else None,
+                        
+                        # اطلاعات واردکننده
+                        'vared_konandeh_name': purchase.cargo.vared_konandeh.name if purchase.cargo.vared_konandeh else None,
+                    }
+                
+                # اطلاعات تخصیص‌ها - کامل و دقیق
+                allocations_data = []
+                for allocation in allocations:
+                    # تعیین مشتری مرتبط با این تخصیص
+                    related_customer = None
+                    if purchase.bazaargah_customer:
+                        related_customer = {
+                            'id': purchase.bazaargah_customer.id,
+                            'name': purchase.bazaargah_customer.name,
+                            'city': purchase.bazaargah_customer.city,
+                            'phone_number': purchase.bazaargah_customer.get_primary_phone(),
+                        }
+                    elif purchase.customer:
+                        related_customer = {
+                            'id': purchase.customer.id,
+                            'name': purchase.customer.name,
+                            'city': purchase.customer.city,
+                            'phone_number': purchase.customer.get_primary_phone(),
+                        }
+                    
+                    allocations_data.append({
+                        # اطلاعات اصلی تخصیص
+                        'code': allocation.code,
+                        'weight': allocation.weight,
+                        'weight_in_tons': (allocation.weight / 1000) if allocation.weight else None,
+                        'barnameh_weight': getattr(allocation, 'barnameh_weight', None),
+                        
+                        # اطلاعات تحویل گیرنده - اولویت با فیلدهای تخصیص
+                        'delivery_receiver_name': allocation.delivery_receiver_name or purchase.delivery_receiver_name or purchase.buyer_name or 'نامشخص',
+                        'delivery_phone': allocation.tahvil_phone_number or purchase.tahvil_phone_number or 'نامشخص',
+                        'delivery_national_id': allocation.code_melli_tahvil or purchase.code_melli_tahvil or purchase.buyer_national_id or 'نامشخص',
+                        
+                        # اطلاعات آدرس - اولویت با فیلدهای تخصیص
+                        'delivery_address': allocation.delivery_address or purchase.delivery_address or purchase.address or 'آدرس ثبت نشده',
+                        'delivery_postal_code': allocation.delivery_postal_code or purchase.delivery_postal_code or 'نامشخص',
+                        
+                        # اطلاعات مشتری مرتبط
+                        'related_customer': related_customer,
+                        
+                        # اطلاعات خرید مرتبط
+                        'purchase_number': purchase.purchase_number,
+                        'purchase_id': purchase.id,
+                        'invoice_id': purchase.invoice_id,
+                        
+                        # اطلاعات محصول مرتبط
+                        'product_type': purchase.cargo.get_product_type_display() if purchase.cargo else 'نامشخص',
+                        'product_cottage': purchase.cargo.cottage if purchase.cargo else 'نامشخص',
+                        'product_country': purchase.cargo.get_country_display() if purchase.cargo else 'نامشخص',
+                        
+                        # اطلاعات مالی
+                        'customer_price': purchase.customer_price,
+                        'estimated_value': (allocation.weight * purchase.customer_price) if allocation.weight and purchase.customer_price else None,
+                        
+                        # اطلاعات تاریخ
+                        'created_at': allocation.created_at.isoformat() if allocation.created_at else None,
+                        'purchase_created_at': purchase.created_at.isoformat() if purchase.created_at else None,
+                        
+                        # وضعیت خرید
+                        'purchase_state': purchase.state,
+                        'purchase_state_display': purchase.get_state_display(),
+                        
+                        # اطلاعات کارشناس فروش
+                        'sales_agent_name': purchase.unique_sales_agent.name if purchase.unique_sales_agent else 'نامشخص',
+                        'sales_agent_phone': purchase.unique_sales_agent.phone_number if purchase.unique_sales_agent else 'نامشخص',
+                        'sales_agent_factor_code': purchase.unique_sales_agent.factor_code if purchase.unique_sales_agent else None,
+                    })
+                
+                purchase_info['allocations'] = allocations_data
+                purchase_info['allocations_count'] = len(allocations_data)
+                purchase_info['total_allocation_weight'] = sum(a['weight'] or 0 for a in allocations_data)
+                purchase_info['total_allocation_weight_tons'] = sum(a['weight'] or 0 for a in allocations_data) / 1000
+                
+                # اطلاعات مشتری
+                if purchase.customer:
+                    purchase_info['customer'] = {
+                        'id': purchase.customer.id,
+                        'name': purchase.customer.name,
+                        'city': purchase.customer.city,
+                        'phone_number': purchase.customer.get_primary_phone(),
+                    }
+                
+                if purchase.bazaargah_customer:
+                    purchase_info['bazaargah_customer'] = {
+                        'id': purchase.bazaargah_customer.id,
+                        'name': purchase.bazaargah_customer.name,
+                        'city': purchase.bazaargah_customer.city,
+                        'phone_number': purchase.bazaargah_customer.get_primary_phone(),
+                    }
+                
+                # اطلاعات کارشناس فروش
+                if purchase.unique_sales_agent:
+                    purchase_info['sales_agent'] = {
+                        'name': purchase.unique_sales_agent.name,
+                        'phone_number': purchase.unique_sales_agent.phone_number,
+                        'factor_code': purchase.unique_sales_agent.factor_code,
+                    }
+                
+                purchases_data.append(purchase_info)
+            
+            # پردازش خریدهای غیربازارگاهی
+            for purchase in non_bazargah_purchases:
+                # بررسی وجود تخصیص
+                allocations = purchase.allocations.all()
+                if not allocations.exists():
+                    continue  # فقط خریدهای دارای تخصیص
+                
+                # استفاده از تابع نرمال‌سازی
+                purchase_info = normalize_purchase_data(purchase, 'non_bazargah')
+                
+                # اطلاعات محصول NonBazargah
+                if purchase.product:
+                    purchase_info['cargo'] = {
+                        'cottage': '---',
+                        'product_type': purchase.product.name,
+                        'product_type_display': purchase.product.name,
+                        'country': 'ایران',
+                        'country_display': 'ایران',
+                        'type': 'NonBazargah',
+
+                        'port': '---',
+                        'loading_time': '---',
+                        'description': purchase.product.description or '---',
+                        'weight': '---',
+                        'status': purchase.product.status,
+                        'created_at': safe_get_attr(purchase.product, 'created_at', None),
+                        'last_modified': safe_get_attr(purchase.product, 'created_at', None),
+                        'customer_price': '---',
+                        
+                        'barbary_info': None,
+                        'vared_konandeh_name': None,
+                    }
+                
+                # اطلاعات تخصیص‌ها - کامل و دقیق برای NonBazargah
+                allocations_data = []
+                for allocation in allocations:
+                    # اطلاعات مشتری مرتبط
+                    related_customer = None
+                    if purchase.customer:
+                        related_customer = {
+                            'id': purchase.customer.id,
+                            'name': purchase.customer.name,
+                            'city': purchase.customer.city,
+                            'phone_number': purchase.customer.get_primary_phone(),
+                        }
+                    
+                    allocations_data.append({
+                        # اطلاعات اصلی تخصیص
+                        'code': allocation.allocation_number,
+                        'weight': allocation.allocated_weight,
+                        'weight_in_tons': (allocation.allocated_weight / 1000) if allocation.allocated_weight else None,
+                        'barnameh_weight': None,  # NonBazargah هنوز بارنامه ندارد
+                        
+                        # اطلاعات تحویل گیرنده
+                        'delivery_receiver_name': allocation.delivery_receiver_name or 'نامشخص',
+                        'delivery_phone': allocation.coordination_phone or 'نامشخص',
+                        'delivery_national_id': None,  # NonBazargah کد ملی ندارد
+                        
+                        # اطلاعات آدرس
+                        'delivery_address': allocation.delivery_address or 'آدرس ثبت نشده',
+                        'delivery_postal_code': allocation.delivery_postal_code or 'نامشخص',
+                        
+                        # توضیحات
+                        'notes': allocation.notes or None,
+                        
+                        # اطلاعات مشتری مرتبط
+                        'related_customer': related_customer,
+                        
+                        # اطلاعات خرید مرتبط
+                        'purchase_number': purchase.purchase_number,
+                        'purchase_id': purchase.id,
+                        'invoice_id': purchase.invoice_id,
+                        
+                        # اطلاعات محصول مرتبط
+                        'product_type': purchase.product.name if purchase.product else 'نامشخص',
+                        'product_description': purchase.product.description if (purchase.product and purchase.product.description) else 'نامشخص',
+                        'product_status': purchase.product.status if purchase.product else None,
+                        
+                        # اطلاعات مالی
+                        'customer_price': purchase.customer_price,
+                        'estimated_value': (allocation.allocated_weight * purchase.customer_price) if allocation.allocated_weight and purchase.customer_price else None,
+                        'quantity': purchase.quantity,
+                        'delivered_weight': purchase.delivered_weight,
+                        'total_weight': purchase.total_weight,
+                        
+                        # اطلاعات تاریخ
+                        'created_at': safe_get_attr(allocation, 'created_at', None),
+                        'purchase_created_at': purchase.created_at.isoformat() if purchase.created_at else None,
+                        
+                        # وضعیت خرید
+                        'purchase_state': purchase.state,
+                        'purchase_state_display': purchase.get_state_display(),
+                        
+                        # اطلاعات کارشناس فروش
+                        'sales_agent_name': purchase.unique_sales_agent.name if purchase.unique_sales_agent else 'نامشخص',
+                        'sales_agent_phone': purchase.unique_sales_agent.phone_number if purchase.unique_sales_agent else 'نامشخص',
+                        'sales_agent_factor_code': purchase.unique_sales_agent.factor_code if purchase.unique_sales_agent else None,
+                        
+                        # اطلاعات باربری (اگر موجود باشد)
+                        'barbary_confidential_number': purchase.barbary_confidential_number,
+                        'barbary_customer_number': purchase.barbary_customer_number,
+                    })
+                
+                purchase_info['allocations'] = allocations_data
+                purchase_info['allocations_count'] = len(allocations_data)
+                purchase_info['total_allocation_weight'] = sum(a['weight'] or 0 for a in allocations_data)
+                purchase_info['total_allocation_weight_tons'] = sum(a['weight'] or 0 for a in allocations_data) / 1000
+                
+                # اطلاعات مشتری
+                if purchase.customer:
+                    purchase_info['customer'] = {
+                        'id': purchase.customer.id,
+                        'name': purchase.customer.name,
+                        'city': purchase.customer.city,
+                        'phone_number': purchase.customer.get_primary_phone(),
+                    }
+                
+                # اطلاعات کارشناس فروش
+                if purchase.unique_sales_agent:
+                    purchase_info['sales_agent'] = {
+                        'name': purchase.unique_sales_agent.name,
+                        'phone_number': purchase.unique_sales_agent.phone_number,
+                        'factor_code': purchase.unique_sales_agent.factor_code,
+                    }
+                
+                purchases_data.append(purchase_info)
+            
+            # مرتب‌سازی بر اساس تاریخ
+            purchases_data.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+            
+            return JsonResponse({
+                'success': True,
+                'data': {
+                    'purchases': purchases_data,
+                    'total_count': len(purchases_data),
+                    'bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'bazaargah'),
+                    'non_bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'non_bazargah'),
+                    'filters_applied': {
+                        'start_date': start_date,
+                        'end_date': end_date,
+                        'state': state_filter,
+                    }
+                }
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'فرمت JSON نامعتبر است'
+            }, status=400)
+            
+        except Exception as e:
+            logger.error(f"خطا در API خریدهای تایید شده: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': f'خطای داخلی سرور: {str(e)}'
+            }, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class HealthCheckAPI(View):
     """API برای بررسی وضعیت سلامت سرویس"""
     
