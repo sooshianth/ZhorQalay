@@ -469,4 +469,8 @@ SALES_AGENT_SMS_QOUTA = int(os.environ.get('SALES_AGENT_SMS_QOUTA', '0'))
 
 CRM_API_KEY = os.environ.get('CRM_API_KEY', '')
 
+# URL برای ارسال اطلاعات خریدهای تایید شده به سرور خارجی
+VERIFIED_PURCHASES_WEBHOOK_URL = os.environ.get('VERIFIED_PURCHASES_WEBHOOK_URL', '')
+VERIFIED_PURCHASES_API_KEY = os.environ.get('VERIFIED_PURCHASES_API_KEY', '')
+
 PURCHASE_AWARE_NUMBERS = os.environ.get('PURCHASE_AWARE_NUMBERS', '').split(',')

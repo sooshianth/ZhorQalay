@@ -18,6 +18,7 @@ import logging
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+import requests
 
 def check_api_key(request):
     """
@@ -1530,20 +1531,79 @@ class VerifiedPurchasesAPI(View):
             # مرتب‌سازی بر اساس تاریخ
             purchases_data.sort(key=lambda x: x.get('created_at', ''), reverse=True)
             
-            return JsonResponse({
-                'success': True,
-                'data': {
-                    'purchases': purchases_data,
+            # آماده‌سازی داده‌ها برای ارسال به سرور خارجی
+            webhook_data = {
+                'purchases': purchases_data,
+                'total_count': len(purchases_data),
+                'bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'bazaargah'),
+                'non_bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'non_bazargah'),
+                'filters_applied': {
+                    'start_date': start_date,
+                    'end_date': end_date,
+                    'state': state_filter,
+                },
+                'timestamp': timezone.now().isoformat(),
+            }
+            
+            # ارسال به سرور خارجی
+            webhook_url = getattr(settings, 'VERIFIED_PURCHASES_WEBHOOK_URL', None)
+            webhook_api_key = getattr(settings, 'VERIFIED_PURCHASES_API_KEY', None)
+            
+            if webhook_url:
+                try:
+                    headers = {
+                        'Content-Type': 'application/json',
+                    }
+                    
+                    if webhook_api_key:
+                        headers['X-API-KEY'] = webhook_api_key
+                    
+                    response = requests.post(
+                        webhook_url,
+                        json=webhook_data,
+                        headers=headers,
+                        timeout=30  # 30 ثانیه timeout
+                    )
+                    
+                    if response.status_code == 200:
+                        logger.info(f"✅ اطلاعات {len(purchases_data)} خرید به سرور خارجی ارسال شد")
+                        return JsonResponse({
+                            'success': True,
+                            'message': 'اطلاعات خریدهای تایید شده با موفقیت به سرور خارجی ارسال شد',
+                            'sent_count': len(purchases_data),
+                            'webhook_status_code': response.status_code,
+                        })
+                    else:
+                        logger.error(f"❌ خطا در ارسال به سرور خارجی: Status {response.status_code}, Response: {response.text}")
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'خطا در ارسال به سرور خارجی',
+                            'webhook_status_code': response.status_code,
+                            'webhook_response': response.text[:200]
+                        }, status=500)
+                        
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"❌ خطا در اتصال به سرور خارجی: {str(e)}")
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'خطا در اتصال به سرور خارجی: {str(e)}',
+                        'local_data': {
+                            'total_count': len(purchases_data),
+                            'note': 'اطلاعات در سرور محلی آماده است اما ارسال به سرور خارجی ناموفق بود'
+                        }
+                    }, status=500)
+            else:
+                # اگر URL تعریف نشده باشد، اطلاعات را برگردان
+                logger.warning("⚠️ VERIFIED_PURCHASES_WEBHOOK_URL تعریف نشده - اطلاعات فقط در response نمایش داده می‌شود")
+                return JsonResponse({
+                    'success': True,
+                    'message': 'آماده برای ارسال به سرور خارجی',
                     'total_count': len(purchases_data),
                     'bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'bazaargah'),
                     'non_bazargah_count': sum(1 for p in purchases_data if p.get('type') == 'non_bazargah'),
-                    'filters_applied': {
-                        'start_date': start_date,
-                        'end_date': end_date,
-                        'state': state_filter,
-                    }
-                }
-            })
+                    'data': webhook_data,
+                    'note': 'برای فعال‌سازی ارسال خودکار، VERIFIED_PURCHASES_WEBHOOK_URL را در settings تنظیم کنید'
+                })
             
         except json.JSONDecodeError:
             return JsonResponse({
