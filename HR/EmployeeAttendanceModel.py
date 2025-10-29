@@ -279,14 +279,62 @@ class MonthlyAttendance(models.Model):
     month = models.CharField(max_length=7, verbose_name="ماه (YYYY-MM)")
     total_hours = models.DecimalField(max_digits=8, decimal_places=2, verbose_name="مجموع ساعات ماهانه", default=0)
 
+    @staticmethod
+    def adjust_date_to_next_month_if_needed(jalali_date):
+        """
+        اگر تاریخ 30 ام ماه‌های 30 روزه یا 31 ام ماه‌های 31 روزه باشد،
+        آن را به ماه بعد منتقل می‌کند.
+        
+        Args:
+            jalali_date: تاریخ جلالی (jdatetime.date)
+        
+        Returns:
+            تاریخ جلالی با ماه اصلاح شده در صورت نیاز
+        """
+        year = jalali_date.year
+        month = jalali_date.month
+        day = jalali_date.day
+        
+        # ماه‌های 30 روزه (7-11)
+        if month >= 7 and month <= 11:
+            if day == 30:
+                # انتقال به ماه بعد
+                if month == 11:
+                    # اگر ماه 11 باشد، به ماه 12 سال بعد می‌رویم
+                    return jdatetime.date(year + 1, 1, 1)
+                else:
+                    return jdatetime.date(year, month + 1, 1)
+        
+        # ماه‌های 31 روزه (1-6)
+        elif month >= 1 and month <= 6:
+            if day == 31:
+                # انتقال به ماه بعد
+                if month == 6:
+                    # اگر ماه 6 باشد، به ماه 7 همان سال می‌رویم
+                    return jdatetime.date(year, 7, 1)
+                else:
+                    return jdatetime.date(year, month + 1, 1)
+        
+        # ماه 12: 29 یا 30 روزه است (بستگی به سال کبیسه دارد)
+        elif month == 12:
+            if day == 30:
+                # انتقال به ماه 1 سال بعد
+                return jdatetime.date(year + 1, 1, 1)
+        
+        # اگر هیچ شرطی برقرار نبود، تاریخ را بدون تغییر برمی‌گردانیم
+        return jalali_date
+
     @classmethod
     def update_monthly_hours(cls, employee, week_start_date):
         # week_start_date حالا یک تاریخ جلالی است (jdatetime.date)
-        # استخراج سال و ماه به فرمت YYYY-MM
+        # اصلاح تاریخ در صورت نیاز (30 ام ماه‌های 30 روزه و 31 ام ماه‌های 31 روزه به ماه بعد)
+        adjusted_date = cls.adjust_date_to_next_month_if_needed(week_start_date)
+        
+        # استخراج سال و ماه به فرمت YYYY-MM (از تاریخ اصلاح شده)
         try:
-            print(f"Debug - update_monthly_hours: Processing date: {week_start_date}, Type: {type(week_start_date)}")
-            year = week_start_date.year
-            month = week_start_date.month
+            print(f"Debug - update_monthly_hours: Processing date: {week_start_date}, Adjusted date: {adjusted_date}, Type: {type(week_start_date)}")
+            year = adjusted_date.year
+            month = adjusted_date.month
             month_str = f"{year}-{month:02d}"
             print(f"Debug - update_monthly_hours: Extracted month: {month_str}")
             
@@ -302,17 +350,26 @@ class MonthlyAttendance(models.Model):
             print(f"Debug - update_monthly_hours: Month range: {start_of_month} to {end_of_month}")
                 
             # محاسبه ساعات تأیید شده توسط ادمین یا حداقل 2 تایید کاربر
+            # نکته: باید تاریخ همه رکوردها رو با منطق انتقال بررسی کنیم
             from django.db.models import Q
-            total = WeeklyAttendance.objects.filter(
-                employee=employee,
-                week_start_date__gte=start_of_month,
-                week_start_date__lte=end_of_month
+            all_attendances = WeeklyAttendance.objects.filter(
+                employee=employee
             ).filter(
                 Q(approved_by_admin=True) |  # تایید ادمین
                 (Q(user1_approved=True) & Q(user2_approved=True)) |  # 2 تایید: کاربر 1 و 2
                 (Q(user1_approved=True) & Q(user3_approved=True)) |  # 2 تایید: کاربر 1 و 3
                 (Q(user2_approved=True) & Q(user3_approved=True))    # 2 تایید: کاربر 2 و 3
-            ).aggregate(Sum('total_hours'))['total_hours__sum'] or 0
+            )
+            
+            # فیلتر کردن رکوردهایی که بعد از اعمال منطق انتقال، به ماه مورد نظر تعلق دارند
+            total = 0
+            for attendance in all_attendances:
+                adjusted_attendance_date = cls.adjust_date_to_next_month_if_needed(attendance.week_start_date)
+                adjusted_year = adjusted_attendance_date.year
+                adjusted_month = adjusted_attendance_date.month
+                
+                if adjusted_year == year and adjusted_month == month:
+                    total += float(attendance.total_hours)
             
             print(f"Debug - update_monthly_hours: Total approved hours for {month_str}: {total}")
             
@@ -321,8 +378,12 @@ class MonthlyAttendance(models.Model):
             obj.save()
         except Exception as e:
             print(f"Error in update_monthly_hours: {str(e)}")
-            # در صورت خطا، از ماه رشته‌ای که در jdatetime وجود دارد استفاده می‌کنیم
-            month_str = week_start_date.strftime('%Y-%m')
+            # در صورت خطا، از تاریخ اصلاح شده استفاده می‌کنیم
+            try:
+                adjusted_date = cls.adjust_date_to_next_month_if_needed(week_start_date)
+                month_str = adjusted_date.strftime('%Y-%m')
+            except:
+                month_str = week_start_date.strftime('%Y-%m')
             total = 0  # در صورت خطا، ساعت را 0 در نظر می‌گیریم
             obj, created = cls.objects.get_or_create(employee=employee, month=month_str)
             obj.total_hours = total

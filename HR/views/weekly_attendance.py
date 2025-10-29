@@ -817,18 +817,20 @@ def attendance_summary_view(request):
                 month_parts = month.split('/')
                 if len(month_parts) == 2:
                     year, month_val = map(int, month_parts)
-                    # برای فیلتر کردن بر اساس ماه در فیلد jDateField
-                    # باید محدوده ابتدا و انتهای ماه را محاسبه کنیم
-                    start_of_month = jdatetime.date(year, month_val, 1)
-                    if month_val == 12:
-                        end_of_month = jdatetime.date(year + 1, 1, 1) - jdatetime.timedelta(days=1)
-                    else:
-                        end_of_month = jdatetime.date(year, month_val + 1, 1) - jdatetime.timedelta(days=1)
                     
-                    weekly_qs = weekly_qs.filter(
-                        week_start_date__gte=start_of_month,
-                        week_start_date__lte=end_of_month
-                    )
+                    # استفاده از منطق انتقال برای فیلتر کردن
+                    # باید تاریخ‌ها رو با منطق انتقال بررسی کنیم
+                    from HR.EmployeeAttendanceModel import MonthlyAttendance
+                    
+                    # فیلتر کردن رکوردهای هفتگی: فقط آن‌هایی که بعد از اعمال منطق انتقال به ماه مورد نظر تعلق دارند
+                    filtered_weekly_attendances = []
+                    for attendance in weekly_qs:
+                        adjusted_date = MonthlyAttendance.adjust_date_to_next_month_if_needed(attendance.week_start_date)
+                        if adjusted_date.year == year and adjusted_date.month == month_val:
+                            filtered_weekly_attendances.append(attendance.id)
+                    
+                    # فیلتر کردن کوئری‌ست بر اساس ID‌های فیلتر شده
+                    weekly_qs = weekly_qs.filter(id__in=filtered_weekly_attendances)
                     
                     # برای ماهانه هنوز از رشته استفاده می‌کنیم
                     monthly_qs = monthly_qs.filter(month=f"{year}-{month_val:02d}")
