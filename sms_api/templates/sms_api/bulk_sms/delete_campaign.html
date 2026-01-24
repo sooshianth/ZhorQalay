@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}حذف کمپین: {{ campaign.name }}{% endblock %}
+{% block content %}
+<style>
+    .delete-warning {
+        background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+        border: 2px solid #f44336;
+        border-radius: 15px;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .warning-icon {
+        font-size: 4rem;
+        color: #f44336;
+        margin-bottom: 20px;
+    }
+    
+    .campaign-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .danger-actions {
+        background: #fff5f5;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #fed7d7;
+    }
+</style>
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="delete-warning">
+                <i class="fas fa-exclamation-triangle warning-icon"></i>
+                <h3 class="text-danger mb-3">حذف کمپین پیامک انبوه</h3>
+                <p class="mb-0">
+                    آیا از حذف این کمپین اطمینان دارید؟ این عمل غیرقابل بازگشت است.
+                </p>
+            </div>
+            
+            <!-- Campaign Information -->
+            <div class="campaign-info">
+                <h5 class="mb-3">
+                    <i class="fas fa-info-circle text-primary me-2"></i>
+                    اطلاعات کمپین
+                </h5>
+                
+                <div class="info-item">
+                    <span class="info-label">نام کمپین:</span>
+                    <span>{{ campaign.name }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">وضعیت:</span>
+                    <span class="badge bg-secondary">{{ campaign.get_status_display }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">تعداد شماره‌ها:</span>
+                    <span>{{ campaign.total_numbers|to_persian_digits }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">تاریخ ایجاد:</span>
+                    <span>{{ campaign.created_at|date:"Y/m/d H:i" }}</span>
+                </div>
+                
+                {% if campaign.start_time %}
+                <div class="info-item">
+                    <span class="info-label">زمان شروع:</span>
+                    <span>{{ campaign.start_time|date:"Y/m/d H:i" }}</span>
+                </div>
+                {% endif %}
+                
+                {% if campaign.description %}
+                <div class="info-item">
+                    <span class="info-label">توضیحات:</span>
+                    <span>{{ campaign.description|truncatechars:100 }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="info-item">
+                    <span class="info-label">ارسال شده:</span>
+                    <span>{{ campaign.sent_count|to_persian_digits }}</span>
+                </div>
+                
+                <div class="info-item">
+                    <span class="info-label">ناموفق:</span>
+                    <span>{{ campaign.failed_count|to_persian_digits }}</span>
+                </div>
+            </div>
+            
+            <!-- Warning Messages -->
+            <div class="alert alert-warning">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-exclamation-triangle me-2 mt-1"></i>
+                    <div>
+                        <strong>توجه:</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>با حذف این کمپین، تمام اطلاعات مربوط به آن از بین خواهد رفت</li>
+                            <li>پیامک‌های در انتظار ارسال لغو خواهند شد</li>
+                            <li>تاریخچه ارسال پیامک‌ها حفظ می‌ماند</li>
+                            <li>این عمل غیرقابل بازگشت است</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="danger-actions">
+                <div class="row">
+                    <div class="col-6">
+                        <a href="{% url 'sms_api:bulk_sms_detail' campaign.id %}" 
+                           class="btn btn-outline-secondary w-100">
+                            <i class="fas fa-arrow-right me-2"></i>
+                            انصراف
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <form method="post" class="w-100" onsubmit="return confirmDelete()">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger w-100">
+                                <i class="fas fa-trash me-2"></i>
+                                حذف کمپین
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Back to Campaigns -->
+            <div class="text-center mt-4">
+                <a href="{% url 'sms_api:bulk_sms_campaigns' %}" class="text-muted">
+                    <i class="fas fa-list me-1"></i>
+                    بازگشت به لیست کمپین‌ها
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete() {
+    const campaignName = '{{ campaign.name|escapejs }}';
+    const totalNumbers = {{ campaign.total_numbers }};
+    
+    let confirmText = `آیا از حذف کمپین "${campaignName}" با ${totalNumbers.toLocaleString('fa-IR')} شماره تلفن اطمینان دارید؟\n\n`;
+    confirmText += "برای تأیید، کلمه 'حذف' را تایپ کنید:";
+    
+    const userInput = prompt(confirmText);
+    
+    if (userInput === null) {
+        return false; // کاربر Cancel زده
+    }
+    
+    if (userInput.trim() !== 'حذف') {
+        alert('برای حذف کمپین، باید دقیقاً کلمه "حذف" را تایپ کنید.');
+        return false;
+    }
+    
+    // نمایش loading
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال حذف...';
+    submitBtn.disabled = true;
+    
+    return true;
+}
+
+$(document).ready(function() {
+    // Add shake animation on page load for attention
+    $('.delete-warning').addClass('animate__animated animate__pulse');
+    
+    // Focus management
+    $('.btn-danger').focus();
+    
+    // Keyboard shortcut - ESC to cancel
+    $(document).keydown(function(e) {
+        if (e.keyCode === 27) { // ESC key
+            window.location.href = '{% url "sms_api:bulk_sms_detail" campaign.id %}';
+        }
+    });
+});
+</script>
+{% endblock %}

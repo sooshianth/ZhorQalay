@@ -2050,3 +2050,356 @@ def export_phone_numbers_excel(request):
         logger.error(f"خطا در تولید خروجی اکسل: {str(e)}")
         messages.error(request, f'خطا در تولید فایل اکسل: {str(e)}')
         return redirect('sms_api:sms_dashboard')
+
+# ============================== Bulk SMS Views ==============================
+
+@login_required
+@role_required('admin')
+def bulk_sms_campaigns(request):
+    """لیست کمپین‌های پیامک انبوه"""
+    from .models import BulkSmsCampaign
+    from .apis import get_campaign_statistics
+    
+    campaigns = BulkSmsCampaign.objects.all().order_by('-created_at')
+    
+    # اضافه کردن آمار برای هر کمپین
+    for campaign in campaigns:
+        campaign.stats = get_campaign_statistics(campaign.id)
+    
+    context = {
+        'campaigns': campaigns,
+    }
+    
+    return render(request, 'sms_api/bulk_sms/campaigns_list.html', context)
+
+@login_required
+@role_required('admin')
+def bulk_sms_create(request):
+    """ایجاد کمپین پیامک انبوه جدید"""
+    if request.method == 'POST':
+        try:
+            from .models import BulkSmsCampaign
+            from .apis import (create_bulk_sms_campaign, process_excel_file, 
+                             parse_phone_numbers_from_text, schedule_bulk_sms_campaign)
+            from django.utils.dateparse import parse_datetime
+            from datetime import timedelta
+            
+            # دریافت داده‌های فرم
+            name = request.POST.get('name')
+            description = request.POST.get('description', '')
+            message = request.POST.get('message')
+            batch_size = int(request.POST.get('batch_size', 100))
+            batch_interval = int(request.POST.get('batch_interval', 5))
+            
+            # پردازش زمان شروع
+            start_time_str = request.POST.get('start_time')
+            if start_time_str:
+                start_time = parse_datetime(start_time_str)
+                if not start_time:
+                    raise ValueError("فرمت زمان شروع نامعتبر است")
+            else:
+                start_time = timezone.now() + timedelta(minutes=1)
+            
+            # دریافت شماره‌ها
+            phone_numbers = []
+            
+            # بررسی آپلود فایل اکسل
+            if 'excel_file' in request.FILES:
+                excel_file = request.FILES['excel_file']
+                try:
+                    phone_numbers.extend(process_excel_file(excel_file))
+                except Exception as e:
+                    messages.error(request, f"خطا در پردازش فایل اکسل: {str(e)}")
+                    return render(request, 'sms_api/bulk_sms/create_campaign.html')
+            
+            # بررسی شماره‌های متنی
+            text_numbers = request.POST.get('text_numbers', '').strip()
+            if text_numbers:
+                try:
+                    phone_numbers.extend(parse_phone_numbers_from_text(text_numbers))
+                except Exception as e:
+                    messages.error(request, f"خطا در پردازش شماره‌های متنی: {str(e)}")
+                    return render(request, 'sms_api/bulk_sms/create_campaign.html')
+            
+            if not phone_numbers:
+                messages.error(request, "هیچ شماره تلفن معتبری یافت نشد. لطفاً فایل اکسل یا شماره‌های متنی را بررسی کنید.")
+                return render(request, 'sms_api/bulk_sms/create_campaign.html')
+            
+            # ایجاد کمپین
+            campaign = create_bulk_sms_campaign(
+                name=name,
+                message=message,
+                phone_numbers=phone_numbers,
+                batch_size=batch_size,
+                batch_interval_minutes=batch_interval,
+                start_time=start_time,
+                created_by=request.user
+            )
+            
+            # اضافه کردن توضیحات
+            if description:
+                campaign.description = description
+                campaign.save()
+            
+            # آیا باید فوری شروع شود؟
+            start_immediately = request.POST.get('start_immediately') == 'on'
+            if start_immediately:
+                result = schedule_bulk_sms_campaign(campaign.id)
+                if result['success']:
+                    messages.success(request, f'کمپین "{campaign.name}" با موفقیت ایجاد و {result["queued_count"]} پیامک در صف قرار گرفت.')
+                else:
+                    messages.warning(request, f'کمپین ایجاد شد ولی در زمان‌بندی خطا رخ داد: {result["error"]}')
+            else:
+                messages.success(request, f'کمپین "{campaign.name}" با {len(phone_numbers)} شماره تلفن ایجاد شد.')
+            
+            return redirect('sms_api:bulk_sms_detail', campaign_id=campaign.id)
+            
+        except Exception as e:
+            messages.error(request, f'خطا در ایجاد کمپین: {str(e)}')
+            logger.exception(f"Error creating bulk SMS campaign: {str(e)}")
+    
+    return render(request, 'sms_api/bulk_sms/create_campaign.html')
+
+@login_required 
+@role_required('admin')
+def bulk_sms_detail(request, campaign_id):
+    """جزئیات کمپین پیامک انبوه"""
+    from .models import BulkSmsCampaign, BulkSmsNumber
+    from .apis import get_campaign_statistics
+    from django.core.paginator import Paginator
+    
+    campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
+    stats = get_campaign_statistics(campaign_id)
+    
+    # لیست شماره‌ها با pagination
+    phone_numbers = BulkSmsNumber.objects.filter(campaign=campaign).order_by('batch_number', 'phone_number')
+    paginator = Paginator(phone_numbers, 50)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    # آمار دسته‌ها
+    batch_stats = {}
+    if phone_numbers.exists():
+        from django.db.models import Count
+        batch_data = phone_numbers.values('batch_number').annotate(
+            total=Count('id'),
+            sent=Count('sms_queue__id', filter=Q(sms_queue__status='sent')),
+            failed=Count('sms_queue__id', filter=Q(sms_queue__status='failed')),
+            pending=Count('sms_queue__id', filter=Q(sms_queue__status='pending'))
+        ).order_by('batch_number')
+        
+        for batch in batch_data:
+            batch_stats[batch['batch_number']] = batch
+    
+    context = {
+        'campaign': campaign,
+        'stats': stats,
+        'page_obj': page_obj,
+        'batch_stats': batch_stats,
+    }
+    
+    return render(request, 'sms_api/bulk_sms/campaign_detail.html', context)
+
+@login_required
+@role_required('admin')
+def bulk_sms_schedule(request, campaign_id):
+    """شروع/زمان‌بندی کمپین"""
+    from .apis import schedule_bulk_sms_campaign
+    
+    if request.method == 'POST':
+        result = schedule_bulk_sms_campaign(campaign_id)
+        
+        if result['success']:
+            messages.success(request, f'{result["queued_count"]} پیامک با موفقیت در صف قرار گرفت.')
+        else:
+            messages.error(request, f'خطا در زمان‌بندی: {result["error"]}')
+    
+    return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
+
+@login_required
+@role_required('admin')  
+def bulk_sms_pause(request, campaign_id):
+    """متوقف کردن کمپین"""
+    from .apis import pause_bulk_sms_campaign
+    
+    if request.method == 'POST':
+        success = pause_bulk_sms_campaign(campaign_id)
+        
+        if success:
+            messages.success(request, 'کمپین با موفقیت متوقف شد.')
+        else:
+            messages.error(request, 'خطا در متوقف کردن کمپین.')
+    
+    return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
+
+@login_required
+@role_required('admin')
+def bulk_sms_resume(request, campaign_id):
+    """ادامه کمپین متوقف شده"""
+    from .apis import resume_bulk_sms_campaign
+    
+    if request.method == 'POST':
+        success = resume_bulk_sms_campaign(campaign_id)
+        
+        if success:
+            messages.success(request, 'کمپین با موفقیت ادامه یافت.')
+        else:
+            messages.error(request, 'خطا در ادامه کمپین.')
+    
+    return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
+
+@login_required
+@role_required('admin')
+def bulk_sms_delete(request, campaign_id):
+    """حذف کمپین"""
+    from .models import BulkSmsCampaign
+    
+    campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
+    
+    if request.method == 'POST':
+        # حذف پیامک‌های مربوطه از صف (اگر هنوز ارسال نشده‌اند)
+        SmsQueue.objects.filter(
+            id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
+            status='pending'
+        ).delete()
+        
+        campaign_name = campaign.name
+        campaign.delete()
+        
+        messages.success(request, f'کمپین "{campaign_name}" با موفقیت حذف شد.')
+        return redirect('sms_api:bulk_sms_campaigns')
+    
+    context = {'campaign': campaign}
+    return render(request, 'sms_api/bulk_sms/delete_campaign.html', context)
+
+@login_required
+@role_required('admin')  
+def bulk_sms_preview_excel(request):
+    """پیش‌نمایش فایل اکسل"""
+    logger.info("bulk_sms_preview_excel called")
+    
+    if request.method != 'POST':
+        logger.warning("bulk_sms_preview_excel: Invalid request method")
+        return JsonResponse({'success': False, 'error': 'روش درخواست نامعتبر است'})
+    
+    if 'excel_file' not in request.FILES:
+        logger.warning("bulk_sms_preview_excel: No excel file uploaded")
+        return JsonResponse({'success': False, 'error': 'فایل اکسل ارسال نشده است'})
+    
+    try:
+        from .apis import process_excel_file
+        
+        excel_file = request.FILES['excel_file']
+        logger.info(f"Processing Excel file: {excel_file.name}, size: {excel_file.size} bytes")
+        
+        # بررسی سایز فایل (حداکثر 10MB)
+        if excel_file.size > 10 * 1024 * 1024:
+            logger.error(f"Excel file too large: {excel_file.size} bytes")
+            return JsonResponse({
+                'success': False,
+                'error': 'فایل اکسل خیلی بزرگ است (حداکثر 10MB)'
+            })
+        
+        # بررسی فرمت فایل
+        if not excel_file.name.lower().endswith(('.xlsx', '.xls')):
+            logger.error(f"Invalid file format: {excel_file.name}")
+            return JsonResponse({
+                'success': False,
+                'error': 'فرمت فایل نامعتبر است. فقط فایل‌های .xlsx و .xls پشتیبانی می‌شوند'
+            })
+        
+        phone_numbers = process_excel_file(excel_file)
+        logger.info(f"Successfully processed Excel file. Found {len(phone_numbers)} valid phone numbers")
+        
+        return JsonResponse({
+            'success': True,
+            'phone_numbers': phone_numbers[:100],  # نمایش 100 شماره اول
+            'total_count': len(phone_numbers),
+            'sample_count': min(100, len(phone_numbers))
+        })
+        
+    except ImportError as e:
+        logger.error(f"Import error in bulk_sms_preview_excel: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'کتابخانه pandas برای پردازش فایل اکسل نصب نیست'
+        })
+    except ValueError as e:
+        logger.error(f"ValueError in bulk_sms_preview_excel: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+    except Exception as e:
+        logger.exception(f"Unexpected error in bulk_sms_preview_excel: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'خطای غیرمنتظره در پردازش فایل: {str(e)}'
+        })
+
+@login_required
+@role_required('admin')
+def bulk_sms_preview_text(request):
+    """پیش‌نمایش شماره‌های متنی"""
+    logger.info("bulk_sms_preview_text called")
+    
+    if request.method != 'POST':
+        logger.warning("bulk_sms_preview_text: Invalid request method")
+        return JsonResponse({'success': False, 'error': 'روش درخواست نامعتبر است'})
+    
+    try:
+        from .apis import parse_phone_numbers_from_text
+        
+        text_numbers = request.POST.get('text_numbers', '').strip()
+        logger.info(f"Processing text numbers: {len(text_numbers)} characters")
+        
+        if not text_numbers:
+            logger.warning("bulk_sms_preview_text: No text numbers provided")
+            return JsonResponse({
+                'success': False,
+                'error': 'متن شماره‌ها ارسال نشده است'
+            })
+        
+        # بررسی طول متن (حداکثر 500KB)
+        if len(text_numbers) > 500 * 1024:
+            logger.error(f"Text too long: {len(text_numbers)} characters")
+            return JsonResponse({
+                'success': False,
+                'error': 'متن شماره‌ها خیلی طولانی است (حداکثر 500KB)'
+            })
+        
+        phone_numbers = parse_phone_numbers_from_text(text_numbers)
+        logger.info(f"Successfully processed text numbers. Found {len(phone_numbers)} valid phone numbers")
+        
+        if not phone_numbers:
+            logger.warning("No valid phone numbers found in text")
+            return JsonResponse({
+                'success': False,
+                'error': 'هیچ شماره تلفن معتبری در متن یافت نشد'
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'phone_numbers': phone_numbers[:100],  # نمایش 100 شماره اول  
+            'total_count': len(phone_numbers),
+            'sample_count': min(100, len(phone_numbers))
+        })
+        
+    except ImportError as e:
+        logger.error(f"Import error in bulk_sms_preview_text: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'خطا در بارگذاری ماژول‌های مورد نیاز'
+        })
+    except ValueError as e:
+        logger.error(f"ValueError in bulk_sms_preview_text: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        })
+    except Exception as e:
+        logger.exception(f"Unexpected error in bulk_sms_preview_text: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': f'خطای غیرمنتظره در پردازش متن: {str(e)}'
+        })

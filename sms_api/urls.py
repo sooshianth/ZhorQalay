@@ -46,4 +46,17 @@ urlpatterns = [
     path('api/templates/marketing/', views.get_marketing_templates, name='get_marketing_templates'),
     path('api/templates/product/', views.get_product_templates, name='get_product_templates'),
     path('api/preview-template/', views.preview_template_api, name='preview_template_api'),
+    
+    # Bulk SMS URLs
+    path('bulk-sms/', views.bulk_sms_campaigns, name='bulk_sms_campaigns'),
+    path('bulk-sms/create/', views.bulk_sms_create, name='bulk_sms_create'),
+    path('bulk-sms/<int:campaign_id>/', views.bulk_sms_detail, name='bulk_sms_detail'),
+    path('bulk-sms/<int:campaign_id>/schedule/', views.bulk_sms_schedule, name='bulk_sms_schedule'),
+    path('bulk-sms/<int:campaign_id>/pause/', views.bulk_sms_pause, name='bulk_sms_pause'),
+    path('bulk-sms/<int:campaign_id>/resume/', views.bulk_sms_resume, name='bulk_sms_resume'),
+    path('bulk-sms/<int:campaign_id>/delete/', views.bulk_sms_delete, name='bulk_sms_delete'),
+    
+    # Bulk SMS API endpoints
+    path('api/bulk-sms/preview-excel/', views.bulk_sms_preview_excel, name='bulk_sms_preview_excel'),
+    path('api/bulk-sms/preview-text/', views.bulk_sms_preview_text, name='bulk_sms_preview_text'),
 ] 

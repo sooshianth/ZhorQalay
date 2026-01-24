@@ -1,6 +1,6 @@
 from django.contrib import admin
-from .models import SmsLog, SmsQueue, SmsTemplate, SmsConfig
-from .apis import process_sms_queue
+from .models import SmsLog, SmsQueue, SmsTemplate, SmsConfig, BulkSmsCampaign, BulkSmsNumber
+from .apis import process_sms_queue, schedule_bulk_sms_campaign, pause_bulk_sms_campaign, resume_bulk_sms_campaign
 from django.utils import timezone
 from django import forms
 from django.utils.safestring import mark_safe
@@ -109,3 +109,118 @@ class SmsConfigAdmin(admin.ModelAdmin):
         return True
     def has_change_permission(self, request, obj=None):
         return True
+
+class BulkSmsNumberInline(admin.TabularInline):
+    model = BulkSmsNumber
+    extra = 0
+    readonly_fields = ('phone_number', 'batch_number', 'scheduled_time', 'sms_queue')
+    fields = ('phone_number', 'batch_number', 'scheduled_time', 'sms_queue')
+    can_delete = False
+    
+    def has_add_permission(self, request, obj=None):
+        return False
+
+@admin.register(BulkSmsCampaign)
+class BulkSmsCampaignAdmin(admin.ModelAdmin):
+    list_display = ('name', 'status', 'total_numbers', 'sent_count', 'failed_count', 'progress_percentage', 'created_at', 'start_time')
+    list_filter = ('status', 'created_at', 'start_time')
+    search_fields = ('name', 'description')
+    readonly_fields = ('created_at', 'updated_at', 'sent_count', 'failed_count', 'progress_percentage')
+    inlines = [BulkSmsNumberInline]
+    actions = ['schedule_campaigns', 'pause_campaigns', 'resume_campaigns']
+    
+    fieldsets = (
+        ('اطلاعات کمپین', {
+            'fields': ('name', 'description', 'status', 'created_by')
+        }),
+        ('تنظیمات زمان‌بندی', {
+            'fields': ('batch_size', 'batch_interval_minutes', 'start_time')
+        }),
+        ('متن پیامک', {
+            'fields': ('message',)
+        }),
+        ('آمار', {
+            'fields': ('total_numbers', 'sent_count', 'failed_count'),
+            'classes': ('collapse',)
+        }),
+        ('تاریخ و زمان', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def progress_percentage(self, obj):
+        return f"{obj.progress_percentage}%"
+    progress_percentage.short_description = "پیشرفت"
+    
+    def schedule_campaigns(self, request, queryset):
+        scheduled_count = 0
+        failed_count = 0
+        
+        for campaign in queryset:
+            if campaign.status in ['draft', 'scheduled']:
+                result = schedule_bulk_sms_campaign(campaign.id)
+                if result['success']:
+                    scheduled_count += 1
+                else:
+                    failed_count += 1
+        
+        if scheduled_count > 0:
+            self.message_user(request, f'{scheduled_count} کمپین با موفقیت زمان‌بندی شد.')
+        if failed_count > 0:
+            self.message_user(request, f'{failed_count} کمپین در زمان‌بندی با خطا مواجه شد.', level='ERROR')
+    
+    schedule_campaigns.short_description = "شروع کمپین‌های انتخاب شده"
+    
+    def pause_campaigns(self, request, queryset):
+        paused_count = 0
+        
+        for campaign in queryset:
+            if campaign.status in ['scheduled', 'in_progress']:
+                success = pause_bulk_sms_campaign(campaign.id)
+                if success:
+                    paused_count += 1
+        
+        if paused_count > 0:
+            self.message_user(request, f'{paused_count} کمپین با موفقیت متوقف شد.')
+        else:
+            self.message_user(request, 'هیچ کمپینی متوقف نشد.')
+    
+    pause_campaigns.short_description = "توقف کمپین‌های انتخاب شده"
+    
+    def resume_campaigns(self, request, queryset):
+        resumed_count = 0
+        
+        for campaign in queryset:
+            if campaign.status == 'paused':
+                success = resume_bulk_sms_campaign(campaign.id)
+                if success:
+                    resumed_count += 1
+        
+        if resumed_count > 0:
+            self.message_user(request, f'{resumed_count} کمپین با موفقیت ادامه یافت.')
+        else:
+            self.message_user(request, 'هیچ کمپینی ادامه نیافت.')
+    
+    resume_campaigns.short_description = "ادامه کمپین‌های انتخاب شده"
+
+@admin.register(BulkSmsNumber)
+class BulkSmsNumberAdmin(admin.ModelAdmin):
+    list_display = ('phone_number', 'get_campaign_name', 'batch_number', 'scheduled_time', 'get_sms_status')
+    list_filter = ('campaign__status', 'batch_number', 'scheduled_time', 'sms_queue__status')
+    search_fields = ('phone_number', 'campaign__name')
+    readonly_fields = ('campaign', 'phone_number', 'batch_number', 'scheduled_time', 'sms_queue')
+    raw_id_fields = ('campaign', 'sms_queue')
+    
+    def get_campaign_name(self, obj):
+        return obj.campaign.name
+    get_campaign_name.short_description = "کمپین"
+    
+    def get_sms_status(self, obj):
+        if obj.sms_queue:
+            return obj.sms_queue.get_status_display()
+        return "زمان‌بندی نشده"
+    get_sms_status.short_description = "وضعیت پیامک"
+    
+    def has_add_permission(self, request):
+        return False  # شماره‌ها فقط از طریق کمپین اضافه می‌شوند

@@ -55,6 +55,10 @@
             <i class="fas fa-history"></i>
             تاریخچه ارسال پیامک
         </a>
+        <a href="{% url 'sms_api:bulk_sms_campaigns' %}" class="action-button cyan">
+            <i class="fas fa-broadcast-tower"></i>
+            کمپین‌های پیامک انبوه
+        </a>
         {% if user.is_superuser %}
         <a href="{% url 'sms_api:export_phone_numbers_excel' %}" class="action-button cyan">
             <i class="fas fa-download"></i>

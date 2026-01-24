@@ -31,6 +31,7 @@ class SmsQueue(models.Model):
         ('barnameh_notification', 'اطلاع رسانی بارنامه'),
         ('extelaf_notification', 'اطلاع رسانی اختلاف'),
         ('purchase_aware', 'اطلاع رسانی خرید جدید (مدیریت)'),
+        ('bulk_campaign', 'کمپین پیامک انبوه'),
         ('custom', 'پیام سفارشی'),
     ]
 
@@ -180,6 +181,81 @@ class SmsTemplate(models.Model):
             self.status = None
             self.non_bazargah_status = None
         super().save(*args, **kwargs)
+
+class BulkSmsCampaign(models.Model):
+    """
+    مدل کمپین پیامک انبوه برای ارسال پیامک به مجموعه‌ای از شماره‌ها با زمان‌بندی پیشرفته
+    """
+    STATUS_CHOICES = [
+        ('draft', 'پیش نویس'),
+        ('scheduled', 'زمان‌بندی شده'),
+        ('in_progress', 'در حال ارسال'),
+        ('completed', 'تکمیل شده'),
+        ('paused', 'متوقف شده'),
+        ('cancelled', 'لغو شده'),
+    ]
+
+    name = models.CharField(max_length=200, verbose_name="نام کمپین")
+    description = models.TextField(blank=True, null=True, verbose_name="توضیحات")
+    message = models.TextField(max_length=4800, verbose_name="متن پیام")
+    
+    # تنظیمات زمان‌بندی
+    batch_size = models.IntegerField(default=100, verbose_name="تعداد پیامک در هر دسته")
+    batch_interval_minutes = models.IntegerField(default=5, verbose_name="فاصله زمانی بین دسته‌ها (دقیقه)")
+    start_time = jmodels.jDateTimeField(verbose_name="زمان شروع ارسال")
+    
+    # آمار کمپین
+    total_numbers = models.IntegerField(default=0, verbose_name="تعداد کل شماره‌ها")
+    sent_count = models.IntegerField(default=0, verbose_name="تعداد ارسال شده")
+    failed_count = models.IntegerField(default=0, verbose_name="تعداد ناموفق")
+    
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft', verbose_name="وضعیت")
+    created_at = jmodels.jDateTimeField(auto_now_add=True, verbose_name="تاریخ ایجاد")
+    updated_at = jmodels.jDateTimeField(auto_now=True, verbose_name="تاریخ بروزرسانی")
+    created_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="ایجاد شده توسط")
+
+    # فایل اکسل آپلود شده (اختیاری)
+    excel_file = models.FileField(upload_to='bulk_sms_files/', null=True, blank=True, verbose_name="فایل اکسل")
+    
+    class Meta:
+        verbose_name = "کمپین پیامک انبوه"
+        verbose_name_plural = "کمپین‌های پیامک انبوه"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_status_display()})"
+
+    @property
+    def progress_percentage(self):
+        """محاسبه درصد پیشرفت کمپین"""
+        if self.total_numbers == 0:
+            return 0
+        return round((self.sent_count / self.total_numbers) * 100, 2)
+
+    @property
+    def remaining_count(self):
+        """تعداد پیامک‌های باقی‌مانده"""
+        return max(0, self.total_numbers - self.sent_count - self.failed_count)
+
+class BulkSmsNumber(models.Model):
+    """
+    مدل شماره‌های تلفن مربوط به هر کمپین پیامک انبوه
+    """
+    campaign = models.ForeignKey(BulkSmsCampaign, on_delete=models.CASCADE, related_name='phone_numbers', verbose_name="کمپین")
+    phone_number = models.CharField(max_length=11, verbose_name="شماره تلفن")
+    batch_number = models.IntegerField(verbose_name="شماره دسته")
+    scheduled_time = jmodels.jDateTimeField(verbose_name="زمان زمان‌بندی شده")
+    
+    # ارتباط با SMS Queue
+    sms_queue = models.ForeignKey(SmsQueue, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="پیامک در صف")
+    
+    class Meta:
+        verbose_name = "شماره کمپین انبوه"
+        verbose_name_plural = "شماره‌های کمپین انبوه"
+        unique_together = ['campaign', 'phone_number']
+
+    def __str__(self):
+        return f"{self.phone_number} - {self.campaign.name}"
 
 class SmsConfig(models.Model):
     """

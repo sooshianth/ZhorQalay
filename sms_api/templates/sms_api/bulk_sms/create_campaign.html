@@ -1,0 +1,466 @@
+{% extends 'base.html' %}
+{% load custom_filters %}
+
+{% block title %}ایجاد کمپین پیامک انبوه{% endblock %}
+{% block content %}
+
+<style>
+    .form-section {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 15px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .section-title i {
+        margin-left: 10px;
+        color: #007bff;
+    }
+    
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+    }
+    
+    .preview-section {
+        background: #fff;
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        color: #6c757d;
+        min-height: 150px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+    
+    .preview-section.active {
+        border-color: #28a745;
+        background: #f8fff9;
+    }
+    
+    .phone-list {
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 5px;
+        padding: 10px;
+    }
+    
+    .phone-item {
+        padding: 3px 6px;
+        margin: 2px;
+        background: #e3f2fd;
+        border-radius: 3px;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+    
+    .advanced-settings {
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        padding: 20px;
+    }
+    
+    .batch-info {
+        background: #e3f2fd;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 10px;
+    }
+    
+    .message-counter {
+        position: absolute;
+        bottom: 5px;
+        left: 10px;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .char-limit-warning {
+        color: #dc3545;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-plus text-primary me-2"></i>
+                    ایجاد کمپین پیامک انبوه
+                </h2>
+                <a href="{% url 'sms_api:bulk_sms_campaigns' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-right me-1"></i>
+                    بازگشت
+                </a>
+            </div>
+
+            <form method="post" enctype="multipart/form-data" id="campaignForm">
+                {% csrf_token %}
+                
+                <div class="row">
+                    <!-- Left Column -->
+                    <div class="col-lg-8">
+                        <!-- Campaign Info -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-info-circle"></i>
+                                اطلاعات کمپین
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">نام کمپین <span class="text-danger">*</span></label>
+                                        <input type="text" class="form-control" name="name" required 
+                                               placeholder="نام کمپین را وارد کنید">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">زمان شروع</label>
+                                        <input type="datetime-local" class="form-control" name="start_time" 
+                                               id="startTimeInput">
+                                        <small class="text-muted">اگر خالی بگذارید، یک دقیقه بعد شروع می‌شود</small>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">توضیحات</label>
+                                <textarea class="form-control" name="description" rows="2" 
+                                          placeholder="توضیحات اختیاری درباره کمپین"></textarea>
+                            </div>
+                        </div>
+                        
+                        <!-- Phone Numbers -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-phone-alt"></i>
+                                شماره‌های تلفن
+                            </div>
+                            
+                            <ul class="nav nav-tabs mb-3" id="phoneTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="excel-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#excel" type="button" role="tab">
+                                        <i class="fas fa-file-excel me-1"></i>
+                                        آپلود فایل اکسل
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="text-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#text" type="button" role="tab">
+                                        <i class="fas fa-keyboard me-1"></i>
+                                        ورود متنی
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="phoneTabContent">
+                                <!-- Excel Upload Tab -->
+                                <div class="tab-pane fade show active" id="excel" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">فایل اکسل</label>
+                                        <input type="file" class="form-control" name="excel_file" 
+                                               accept=".xlsx,.xls" id="excelFileInput">
+                                        <small class="text-muted">
+                                            فایل اکسل باید شامل ستونی با شماره‌های تلفن باشد. فرمت‌های xlsx و xls پشتیبانی می‌شود.
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" 
+                                            id="previewExcelBtn">
+                                        <i class="fas fa-eye me-1"></i>
+                                        پیش‌نمایش شماره‌ها
+                                    </button>
+                                </div>
+                                
+                                <!-- Text Input Tab -->
+                                <div class="tab-pane fade" id="text" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">شماره‌های تلفن</label>
+                                        <textarea class="form-control" name="text_numbers" rows="6" 
+                                                  id="textNumbersInput"
+                                                  placeholder="شماره‌های تلفن را وارد کنید (هر خط یک شماره یا با کاما جدا کنید):
+09123456789
+09121234567
+09335554444"></textarea>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" 
+                                            id="previewTextBtn">
+                                        <i class="fas fa-eye me-1"></i>
+                                        پیش‌نمایش شماره‌ها
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview Area -->
+                            <div class="mt-3">
+                                <div id="phonePreview" class="preview-section">
+                                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                                    <p class="mb-0">برای مشاهده شماره‌ها، فایل اکسل یا متن را وارد کرده و روی پیش‌نمایش کلیک کنید</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-comment"></i>
+                                متن پیامک
+                            </div>
+                            
+                            <div class="position-relative">
+                                <textarea class="form-control" name="message" rows="5" 
+                                          id="messageInput" required maxlength="4800"
+                                          placeholder="متن پیامک خود را وارد کنید..."></textarea>
+                                <div class="message-counter">
+                                    <span id="charCount">0</span> / 4800 کاراکتر
+                                </div>
+                            </div>
+                            
+                            <small class="text-muted">
+                                حداکثر 4800 کاراکتر مجاز است. هر پیامک معمولاً 70 کاراکتر فارسی یا 160 کاراکتر انگلیسی است.
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Column -->
+                    <div class="col-lg-4">
+                        <!-- Advanced Settings -->
+                        <div class="advanced-settings">
+                            <div class="section-title">
+                                <i class="fas fa-cog"></i>
+                                تنظیمات پیشرفته
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">تعداد پیامک در هر دسته</label>
+                                <input type="number" class="form-control" name="batch_size" 
+                                       value="100" min="1" max="1000" id="batchSizeInput">
+                                <small class="text-muted">تعداد پیامک‌هایی که همزمان ارسال می‌شوند</small>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">فاصله زمانی (دقیقه)</label>
+                                <input type="number" class="form-control" name="batch_interval" 
+                                       value="5" min="1" max="1440" id="batchIntervalInput">
+                                <small class="text-muted">فاصله زمانی بین ارسال هر دسته</small>
+                            </div>
+                            
+                            <div class="batch-info" id="batchInfo">
+                                <h6>پیش‌نمایش زمان‌بندی:</h6>
+                                <p class="mb-1">تعداد شماره‌ها: <span id="totalNumbers">0</span></p>
+                                <p class="mb-1">تعداد دسته‌ها: <span id="totalBatches">0</span></p>
+                                <p class="mb-0">مدت کل ارسال: <span id="totalDuration">0 دقیقه</span></p>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="start_immediately" 
+                                           id="startImmediately">
+                                    <label class="form-check-label" for="startImmediately">
+                                        بلافاصله بعد از ایجاد شروع شود
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Submit Button -->
+                        <div class="mt-3">
+                            <button type="submit" class="btn btn-primary w-100" id="submitBtn">
+                                <i class="fas fa-rocket me-1"></i>
+                                ایجاد کمپین
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let currentPhoneNumbers = [];
+    
+    // Set default start time (1 hour from now)
+    var now = new Date();
+    now.setHours(now.getHours() + 1);
+    var isoString = now.toISOString().slice(0, 16);
+    $('#startTimeInput').val(isoString);
+    
+    // Character counter for message
+    $('#messageInput').on('input', function() {
+        var count = $(this).val().length;
+        $('#charCount').text(count.toLocaleString('fa-IR'));
+        
+        if (count > 4000) {
+            $('#charCount').addClass('char-limit-warning');
+        } else {
+            $('#charCount').removeClass('char-limit-warning');
+        }
+    });
+    
+    // Preview Excel file
+    $('#previewExcelBtn').click(function() {
+        var fileInput = $('#excelFileInput')[0];
+        if (!fileInput.files[0]) {
+            alert('لطفاً ابتدا فایل اکسل را انتخاب کنید.');
+            return;
+        }
+        
+        var formData = new FormData();
+        formData.append('excel_file', fileInput.files[0]);
+        formData.append('csrfmiddlewaretoken', $('[name=csrfmiddlewaretoken]').val());
+        
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
+        
+        $.ajax({
+            url: '{% url "sms_api:bulk_sms_preview_excel" %}',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    showPhonePreview(response.phone_numbers, response.total_count, response.sample_count);
+                    currentPhoneNumbers = response.phone_numbers;
+                    updateBatchInfo();
+                } else {
+                    alert('خطا: ' + response.error);
+                }
+            },
+            error: function() {
+                alert('خطا در پردازش فایل اکسل');
+            },
+            complete: function() {
+                $('#previewExcelBtn').prop('disabled', false).html('<i class="fas fa-eye me-1"></i>پیش‌نمایش شماره‌ها');
+            }
+        });
+    });
+    
+    // Preview text numbers
+    $('#previewTextBtn').click(function() {
+        var textNumbers = $('#textNumbersInput').val().trim();
+        if (!textNumbers) {
+            alert('لطفاً شماره‌های تلفن را وارد کنید.');
+            return;
+        }
+        
+        $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
+        
+        $.ajax({
+            url: '{% url "sms_api:bulk_sms_preview_text" %}',
+            method: 'POST',
+            data: {
+                'text_numbers': textNumbers,
+                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+            },
+            success: function(response) {
+                if (response.success) {
+                    showPhonePreview(response.phone_numbers, response.total_count, response.sample_count);
+                    currentPhoneNumbers = response.phone_numbers;
+                    updateBatchInfo();
+                } else {
+                    alert('خطا: ' + response.error);
+                }
+            },
+            error: function() {
+                alert('خطا در پردازش شماره‌ها');
+            },
+            complete: function() {
+                $('#previewTextBtn').prop('disabled', false).html('<i class="fas fa-eye me-1"></i>پیش‌نمایش شماره‌ها');
+            }
+        });
+    });
+    
+    // Show phone numbers preview
+    function showPhonePreview(phoneNumbers, totalCount, sampleCount) {
+        var preview = $('#phonePreview');
+        preview.addClass('active');
+        
+        var html = '<div class="text-start">';
+        html += '<h6 class="text-success mb-3">';
+        html += '<i class="fas fa-check-circle me-1"></i>';
+        html += totalCount.toLocaleString('fa-IR') + ' شماره تلفن معتبر یافت شد';
+        if (sampleCount < totalCount) {
+            html += ' (نمایش ' + sampleCount.toLocaleString('fa-IR') + ' شماره اول)';
+        }
+        html += '</h6>';
+        
+        html += '<div class="phone-list">';
+        phoneNumbers.forEach(function(phone) {
+            html += '<span class="phone-item">' + phone + '</span>';
+        });
+        html += '</div></div>';
+        
+        preview.html(html);
+    }
+    
+    // Update batch info
+    function updateBatchInfo() {
+        var totalNumbers = currentPhoneNumbers.length;
+        var batchSize = parseInt($('#batchSizeInput').val()) || 100;
+        var batchInterval = parseInt($('#batchIntervalInput').val()) || 5;
+        
+        var totalBatches = Math.ceil(totalNumbers / batchSize);
+        var totalDuration = (totalBatches - 1) * batchInterval;
+        
+        $('#totalNumbers').text(totalNumbers.toLocaleString('fa-IR'));
+        $('#totalBatches').text(totalBatches.toLocaleString('fa-IR'));
+        $('#totalDuration').text(totalDuration.toLocaleString('fa-IR') + ' دقیقه');
+    }
+    
+    // Update batch info when settings change
+    $('#batchSizeInput, #batchIntervalInput').on('input', updateBatchInfo);
+    
+    // Form validation
+    $('#campaignForm').submit(function(e) {
+        var name = $('[name="name"]').val().trim();
+        var message = $('#messageInput').val().trim();
+        
+        if (!name) {
+            alert('لطفاً نام کمپین را وارد کنید.');
+            e.preventDefault();
+            return;
+        }
+        
+        if (!message) {
+            alert('لطفاً متن پیامک را وارد کنید.');
+            e.preventDefault();
+            return;
+        }
+        
+        if (currentPhoneNumbers.length === 0) {
+            alert('لطفاً شماره‌های تلفن را وارد کرده و پیش‌نمایش کنید.');
+            e.preventDefault();
+            return;
+        }
+        
+        // Show loading state
+        $('#submitBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>در حال ایجاد کمپین...');
+        
+        return true;
+    });
+    
+    // Initialize
+    updateBatchInfo();
+});
+</script>
+{% endblock %}

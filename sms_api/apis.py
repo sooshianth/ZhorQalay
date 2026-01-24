@@ -980,6 +980,424 @@ def check_missing_templates():
     
     return missing_templates
 
+def process_excel_file(excel_file):
+    """
+    پردازش فایل اکسل و استخراج شماره‌های تلفن
+    
+    Args:
+        excel_file: فایل اکسل آپلود شده
+        
+    Returns:
+        list: لیست شماره‌های تلفن نرمال شده
+    """
+    try:
+        import pandas as pd
+        logger.info(f"Starting Excel file processing: {excel_file.name}")
+        
+        # خواندن فایل اکسل با مدیریت خطاهای مختلف
+        try:
+            df = pd.read_excel(excel_file, engine='openpyxl')
+        except ImportError:
+            try:
+                df = pd.read_excel(excel_file, engine='xlrd')
+            except ImportError:
+                raise ValueError("پکیج openpyxl یا xlrd برای خواندن فایل اکسل نصب نیست")
+        except pd.errors.EmptyDataError:
+            raise ValueError("فایل اکسل خالی است")
+        except Exception as e:
+            raise ValueError(f"خطا در خواندن فایل اکسل: {str(e)}")
+        
+        logger.info(f"Excel file loaded successfully. Shape: {df.shape}")
+        
+        if df.empty:
+            raise ValueError("فایل اکسل خالی است یا هیچ داده‌ای ندارد")
+        
+        phone_numbers = set()  # استفاده از set برای جلوگیری از تکرار
+        processed_cells = 0
+        valid_numbers_found = 0
+        
+        # جستجو در تمام ستون‌ها برای پیدا کردن شماره‌های تلفن
+        for column_idx, column in enumerate(df.columns):
+            logger.info(f"Processing column {column_idx + 1}/{len(df.columns)}: '{column}'")
+            
+            for row_idx, value in enumerate(df[column].dropna()):
+                processed_cells += 1
+                
+                # تبدیل به رشته
+                str_value = str(value).strip()
+                
+                # بررسی اینکه آیا این مقدار شبیه شماره تلفن است یا نه
+                if is_phone_number_like(str_value):
+                    normalized = normalize_phone_number(str_value)
+                    if normalized:
+                        phone_numbers.add(normalized)
+                        valid_numbers_found += 1
+                        logger.debug(f"Found valid number at row {row_idx + 1}, column '{column}': {str_value} -> {normalized}")
+        
+        logger.info(f"Excel processing complete. Processed {processed_cells} cells, found {valid_numbers_found} valid numbers, {len(phone_numbers)} unique numbers")
+        
+        if not phone_numbers:
+            raise ValueError("هیچ شماره تلفن معتبری در فایل اکسل یافت نشد. لطفاً مطمئن شوید که فایل حاوی شماره‌های تلفن معتبر ایرانی است")
+        
+        return sorted(list(phone_numbers))
+        
+    except ImportError as e:
+        logger.error(f"Import error in process_excel_file: {str(e)}")
+        raise ValueError("پکیج pandas برای پردازش فایل اکسل نصب نیست. لطفاً پکیج را نصب کنید")
+    except ValueError as e:
+        logger.error(f"ValueError in process_excel_file: {str(e)}")
+        raise e
+    except Exception as e:
+        logger.exception(f"Unexpected error processing Excel file: {str(e)}")
+        raise ValueError(f"خطای غیرمنتظره در پردازش فایل اکسل: {str(e)}")
+
+def is_phone_number_like(value):
+    """
+    بررسی اینکه آیا یک رشته شبیه شماره تلفن است یا نه
+    
+    Args:
+        value (str): رشته برای بررسی
+        
+    Returns:
+        bool: True اگر شبیه شماره تلفن باشد
+    """
+    if not value:
+        return False
+    
+    try:
+        str_value = str(value).strip()
+        
+        # بررسی خالی نبودن پس از تبدیل به رشته
+        if not str_value:
+            return False
+        
+        # حذف کاراکترهای غیرعددی (به جز + در ابتدا)
+        clean_value = ''.join(c for c in str_value if c.isdigit() or c == '+')
+        
+        # بررسی حداقل طول
+        if len(clean_value) < 10:
+            return False
+        
+        # بررسی حداکثر طول (برای جلوگیری از شناسه‌های طولانی)
+        if len(clean_value) > 15:
+            return False
+        
+        # بررسی اینکه حداقل 70% اعداد باشد - با جلوگیری از division by zero
+        str_len = len(str_value)
+        if str_len == 0:
+            return False
+        
+        digit_count = sum(1 for c in str_value if c.isdigit())
+        digit_ratio = digit_count / str_len
+        
+        return digit_ratio >= 0.7
+        
+    except Exception as e:
+        logger.error(f"Error in is_phone_number_like with value '{value}': {str(e)}")
+        return False
+
+def parse_phone_numbers_from_text(text):
+    """
+    استخراج شماره‌های تلفن از متن
+    
+    Args:
+        text (str): متن شامل شماره‌های تلفن
+        
+    Returns:
+        list: لیست شماره‌های تلفن نرمال شده
+    """
+    if not text:
+        logger.warning("parse_phone_numbers_from_text: Empty text provided")
+        return []
+    
+    logger.info(f"Starting text parsing. Text length: {len(text)} characters")
+    
+    try:
+        # جدا کردن بر اساس خط جدید، کاما، فاصله
+        separators = ['\n', ',', ' ', '\t', ';', '\r']
+        numbers_text = text.strip()
+        
+        for sep in separators:
+            numbers_text = numbers_text.replace(sep, '|')
+        
+        # استخراج شماره‌ها
+        potential_numbers = [num.strip() for num in numbers_text.split('|') if num.strip()]
+        
+        logger.info(f"Found {len(potential_numbers)} potential number candidates")
+        
+        phone_numbers = set()
+        valid_count = 0
+        invalid_count = 0
+        
+        for idx, num in enumerate(potential_numbers):
+            if is_phone_number_like(num):
+                normalized = normalize_phone_number(num)
+                if normalized:
+                    phone_numbers.add(normalized)
+                    valid_count += 1
+                    logger.debug(f"Valid number {valid_count}: {num} -> {normalized}")
+                else:
+                    invalid_count += 1
+                    logger.debug(f"Invalid number after normalization: {num}")
+            else:
+                invalid_count += 1
+                logger.debug(f"Not phone-like: {num}")
+        
+        logger.info(f"Text parsing complete. Valid: {valid_count}, Invalid: {invalid_count}, Unique: {len(phone_numbers)}")
+        
+        if not phone_numbers:
+            logger.warning("No valid phone numbers found in text")
+        
+        return sorted(list(phone_numbers))
+        
+    except Exception as e:
+        logger.exception(f"Error parsing phone numbers from text: {str(e)}")
+        raise ValueError(f"خطا در استخراج شماره‌های تلفن از متن: {str(e)}")
+
+def create_bulk_sms_campaign(name, message, phone_numbers, batch_size=100, 
+                           batch_interval_minutes=5, start_time=None, created_by=None):
+    """
+    ایجاد کمپین پیامک انبوه با زمان‌بندی پیشرفته
+    
+    Args:
+        name (str): نام کمپین
+        message (str): متن پیام
+        phone_numbers (list): لیست شماره‌های تلفن
+        batch_size (int): تعداد پیامک در هر دسته
+        batch_interval_minutes (int): فاصله زمانی بین دسته‌ها (دقیقه)
+        start_time (datetime): زمان شروع ارسال
+        created_by (User): کاربر ایجادکننده
+        
+    Returns:
+        BulkSmsCampaign: آبجکت کمپین ایجاد شده
+    """
+    from .models import BulkSmsCampaign, BulkSmsNumber
+    from datetime import timedelta
+    
+    if not start_time:
+        start_time = timezone.now() + timedelta(minutes=1)  # شروع از 1 دقیقه بعد
+    
+    # نرمال‌سازی شماره‌ها و حذف تکرارها
+    normalized_numbers = normalize_phone_numbers_list(phone_numbers)
+    
+    if not normalized_numbers:
+        raise ValueError("هیچ شماره تلفن معتبری یافت نشد")
+    
+    # ایجاد کمپین
+    campaign = BulkSmsCampaign.objects.create(
+        name=name,
+        message=message,
+        batch_size=batch_size,
+        batch_interval_minutes=batch_interval_minutes,
+        start_time=start_time,
+        total_numbers=len(normalized_numbers),
+        status='scheduled',
+        created_by=created_by
+    )
+    
+    # تقسیم شماره‌ها به دسته‌ها و زمان‌بندی
+    batch_numbers = []
+    for i, phone_number in enumerate(normalized_numbers):
+        batch_number = i // batch_size + 1
+        
+        # محاسبه زمان ارسال برای این دسته
+        batch_delay = (batch_number - 1) * batch_interval_minutes
+        scheduled_time = start_time + timedelta(minutes=batch_delay)
+        
+        batch_numbers.append(BulkSmsNumber(
+            campaign=campaign,
+            phone_number=phone_number,
+            batch_number=batch_number,
+            scheduled_time=scheduled_time
+        ))
+    
+    # ذخیره bulk شماره‌ها
+    BulkSmsNumber.objects.bulk_create(batch_numbers)
+    
+    logger.info(f"Bulk SMS campaign '{name}' created with {len(normalized_numbers)} numbers in {max(bn.batch_number for bn in batch_numbers)} batches")
+    
+    return campaign
+
+def schedule_bulk_sms_campaign(campaign_id):
+    """
+    قرار دادن پیامک‌های یک کمپین در صف ارسال
+    
+    Args:
+        campaign_id (int): شناسه کمپین
+        
+    Returns:
+        dict: گزارش عملیات
+    """
+    from .models import BulkSmsCampaign, BulkSmsNumber
+    
+    try:
+        campaign = BulkSmsCampaign.objects.get(id=campaign_id)
+        
+        if campaign.status not in ['draft', 'scheduled']:
+            raise ValueError(f"کمپین در وضعیت {campaign.get_status_display()} قابل زمان‌بندی نیست")
+        
+        # دریافت شماره‌هایی که هنوز در صف قرار نگرفته‌اند
+        pending_numbers = BulkSmsNumber.objects.filter(
+            campaign=campaign,
+            sms_queue__isnull=True
+        )
+        
+        queued_count = 0
+        failed_count = 0
+        
+        for bulk_number in pending_numbers:
+            try:
+                # قرار دادن در صف SMS
+                sms_queue = queue_sms(
+                    number=bulk_number.phone_number,
+                    message=campaign.message,
+                    notification_type='bulk_campaign',
+                    scheduled_for=bulk_number.scheduled_time
+                )
+                
+                # بروزرسانی ارتباط
+                bulk_number.sms_queue = sms_queue
+                bulk_number.save()
+                
+                queued_count += 1
+                
+            except Exception as e:
+                logger.error(f"Failed to queue SMS for {bulk_number.phone_number}: {str(e)}")
+                failed_count += 1
+        
+        # بروزرسانی وضعیت کمپین
+        if queued_count > 0:
+            campaign.status = 'scheduled'
+            campaign.save()
+        
+        logger.info(f"Campaign {campaign.name}: {queued_count} SMS queued, {failed_count} failed")
+        
+        return {
+            'success': True,
+            'queued_count': queued_count,
+            'failed_count': failed_count,
+            'total_numbers': pending_numbers.count()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error scheduling bulk SMS campaign {campaign_id}: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+def pause_bulk_sms_campaign(campaign_id):
+    """
+    متوقف کردن کمپین پیامک انبوه
+    
+    Args:
+        campaign_id (int): شناسه کمپین
+        
+    Returns:
+        bool: موفقیت عملیات
+    """
+    from .models import BulkSmsCampaign
+    
+    try:
+        campaign = BulkSmsCampaign.objects.get(id=campaign_id)
+        
+        # متوقف کردن پیامک‌های pending در صف
+        pending_sms = SmsQueue.objects.filter(
+            id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
+            status='pending'
+        )
+        
+        suspended_count = pending_sms.update(is_suspended=True, status='suspended')
+        
+        # بروزرسانی وضعیت کمپین
+        campaign.status = 'paused'
+        campaign.save()
+        
+        logger.info(f"Campaign {campaign.name} paused. {suspended_count} SMS suspended.")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error pausing campaign {campaign_id}: {str(e)}")
+        return False
+
+def resume_bulk_sms_campaign(campaign_id):
+    """
+    ادامه کمپین پیامک انبوه متوقف شده
+    
+    Args:
+        campaign_id (int): شناسه کمپین
+        
+    Returns:
+        bool: موفقیت عملیات
+    """
+    from .models import BulkSmsCampaign
+    
+    try:
+        campaign = BulkSmsCampaign.objects.get(id=campaign_id)
+        
+        if campaign.status != 'paused':
+            raise ValueError("فقط کمپین‌های متوقف شده قابل ادامه هستند")
+        
+        # ادامه پیامک‌های suspended در صف
+        suspended_sms = SmsQueue.objects.filter(
+            id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
+            status='suspended',
+            is_suspended=True
+        )
+        
+        resumed_count = suspended_sms.update(is_suspended=False, status='pending')
+        
+        # بروزرسانی وضعیت کمپین
+        campaign.status = 'scheduled'
+        campaign.save()
+        
+        logger.info(f"Campaign {campaign.name} resumed. {resumed_count} SMS resumed.")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error resuming campaign {campaign_id}: {str(e)}")
+        return False
+
+def get_campaign_statistics(campaign_id):
+    """
+    دریافت آمار کمپین پیامک انبوه
+    
+    Args:
+        campaign_id (int): شناسه کمپین
+        
+    Returns:
+        dict: آمار کمپین
+    """
+    from .models import BulkSmsCampaign
+    
+    try:
+        campaign = BulkSmsCampaign.objects.get(id=campaign_id)
+        
+        # شمارش وضعیت‌های مختلف در صف
+        sms_queue_ids = campaign.phone_numbers.values_list('sms_queue_id', flat=True)
+        
+        stats = {
+            'total': campaign.total_numbers,
+            'pending': SmsQueue.objects.filter(id__in=sms_queue_ids, status='pending').count(),
+            'sent': SmsQueue.objects.filter(id__in=sms_queue_ids, status='sent').count(),
+            'failed': SmsQueue.objects.filter(id__in=sms_queue_ids, status='failed').count(),
+            'suspended': SmsQueue.objects.filter(id__in=sms_queue_ids, status='suspended').count(),
+            'progress_percentage': campaign.progress_percentage,
+            'status': campaign.status,
+            'batches_total': campaign.phone_numbers.values('batch_number').distinct().count() if campaign.phone_numbers.exists() else 0
+        }
+        
+        # بروزرسانی آمار کمپین
+        campaign.sent_count = stats['sent']
+        campaign.failed_count = stats['failed']
+        campaign.save(update_fields=['sent_count', 'failed_count'])
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error getting campaign statistics {campaign_id}: {str(e)}")
+        return None
+
 def create_default_templates(replace_existing=False):
     """
     Create default templates for all purchase statuses if they don't exist
