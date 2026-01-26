@@ -129,96 +129,21 @@
                                     <div class="mb-3">
                                         <label class="form-label">نام کمپین <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" name="name" required 
+                                               id="campaignNameInput" value="{{ suggested_name }}"
                                                placeholder="نام کمپین را وارد کنید">
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-3">
                                         <label class="form-label">زمان شروع</label>
-                                        <input type="datetime-local" class="form-control" name="start_time" 
-                                               id="startTimeInput">
+                                        <input type="text" class="form-control" name="start_time" 
+                                               id="startTimeInput" autocomplete="off" readonly>
                                         <small class="text-muted">اگر خالی بگذارید، یک دقیقه بعد شروع می‌شود</small>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div class="mb-3">
-                                <label class="form-label">توضیحات</label>
-                                <textarea class="form-control" name="description" rows="2" 
-                                          placeholder="توضیحات اختیاری درباره کمپین"></textarea>
-                            </div>
                         </div>
                         
-                        <!-- Phone Numbers -->
-                        <div class="form-section">
-                            <div class="section-title">
-                                <i class="fas fa-phone-alt"></i>
-                                شماره‌های تلفن
-                            </div>
-                            
-                            <ul class="nav nav-tabs mb-3" id="phoneTab" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="excel-tab" data-bs-toggle="tab" 
-                                            data-bs-target="#excel" type="button" role="tab">
-                                        <i class="fas fa-file-excel me-1"></i>
-                                        آپلود فایل اکسل
-                                    </button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="text-tab" data-bs-toggle="tab" 
-                                            data-bs-target="#text" type="button" role="tab">
-                                        <i class="fas fa-keyboard me-1"></i>
-                                        ورود متنی
-                                    </button>
-                                </li>
-                            </ul>
-                            
-                            <div class="tab-content" id="phoneTabContent">
-                                <!-- Excel Upload Tab -->
-                                <div class="tab-pane fade show active" id="excel" role="tabpanel">
-                                    <div class="mb-3">
-                                        <label class="form-label">فایل اکسل</label>
-                                        <input type="file" class="form-control" name="excel_file" 
-                                               accept=".xlsx,.xls" id="excelFileInput">
-                                        <small class="text-muted">
-                                            فایل اکسل باید شامل ستونی با شماره‌های تلفن باشد. فرمت‌های xlsx و xls پشتیبانی می‌شود.
-                                        </small>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" 
-                                            id="previewExcelBtn">
-                                        <i class="fas fa-eye me-1"></i>
-                                        پیش‌نمایش شماره‌ها
-                                    </button>
-                                </div>
-                                
-                                <!-- Text Input Tab -->
-                                <div class="tab-pane fade" id="text" role="tabpanel">
-                                    <div class="mb-3">
-                                        <label class="form-label">شماره‌های تلفن</label>
-                                        <textarea class="form-control" name="text_numbers" rows="6" 
-                                                  id="textNumbersInput"
-                                                  placeholder="شماره‌های تلفن را وارد کنید (هر خط یک شماره یا با کاما جدا کنید):
-09123456789
-09121234567
-09335554444"></textarea>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-primary btn-sm" 
-                                            id="previewTextBtn">
-                                        <i class="fas fa-eye me-1"></i>
-                                        پیش‌نمایش شماره‌ها
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <!-- Preview Area -->
-                            <div class="mt-3">
-                                <div id="phonePreview" class="preview-section">
-                                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
-                                    <p class="mb-0">برای مشاهده شماره‌ها، فایل اکسل یا متن را وارد کرده و روی پیش‌نمایش کلیک کنید</p>
-                                </div>
-                            </div>
-                        </div>
-
                         <!-- Message -->
                         <div class="form-section">
                             <div class="section-title">
@@ -238,6 +163,89 @@
                             <small class="text-muted">
                                 حداکثر 4800 کاراکتر مجاز است. هر پیامک معمولاً 70 کاراکتر فارسی یا 160 کاراکتر انگلیسی است.
                             </small>
+                        </div>
+                        
+                        <!-- Phone Numbers -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-phone-alt"></i>
+                                شماره‌های تلفن
+                            </div>
+                            
+                            <ul class="nav nav-tabs mb-3" id="phoneTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="text-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#text" type="button" role="tab">
+                                        <i class="fas fa-keyboard me-1"></i>
+                                        ورود متنی
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="excel-tab" data-bs-toggle="tab" 
+                                            data-bs-target="#excel" type="button" role="tab">
+                                        <i class="fas fa-file-excel me-1"></i>
+                                        آپلود فایل اکسل
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content" id="phoneTabContent">
+                                <!-- Text Input Tab -->
+                                <div class="tab-pane fade show active" id="text" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">شماره‌های تلفن</label>
+                                        <textarea class="form-control" name="text_numbers" rows="6" 
+                                                  id="textNumbersInput"
+                                                  placeholder="شماره‌های تلفن را وارد کنید (هر خط یک شماره یا با کاما جدا کنید):
+09123456789
+09121234567
+09335554444"></textarea>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" 
+                                            id="previewTextBtn">
+                                        <i class="fas fa-eye me-1"></i>
+                                        پیش‌نمایش شماره‌ها
+                                    </button>
+                                </div>
+                                
+                                <!-- Excel Upload Tab -->
+                                <div class="tab-pane fade" id="excel" role="tabpanel">
+                                    <div class="mb-3">
+                                        <label class="form-label">فایل اکسل</label>
+                                        <input type="file" class="form-control" name="excel_file" 
+                                               accept=".xlsx,.xls" id="excelFileInput">
+                                        <small class="text-muted">
+                                            فایل اکسل باید شامل ستونی با شماره‌های تلفن باشد. فرمت‌های xlsx و xls پشتیبانی می‌شود.
+                                        </small>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" 
+                                            id="previewExcelBtn">
+                                        <i class="fas fa-eye me-1"></i>
+                                        پیش‌نمایش شماره‌ها
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Preview Area -->
+                            <div class="mt-3">
+                                <div id="phonePreview" class="preview-section">
+                                    <i class="fas fa-mobile-alt fa-2x mb-2"></i>
+                                    <p class="mb-0">برای مشاهده شماره‌ها، فایل اکسل یا متن را وارد کرده و روی پیش‌نمایش کلیک کنید</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Description (Optional) -->
+                        <div class="form-section">
+                            <div class="section-title">
+                                <i class="fas fa-file-alt"></i>
+                                توضیحات (اختیاری)
+                            </div>
+                            
+                            <div class="mb-3">
+                                <textarea class="form-control" name="description" rows="2" 
+                                          placeholder="توضیحات اختیاری درباره کمپین..."></textarea>
+                            </div>
                         </div>
                     </div>
                     
@@ -299,11 +307,51 @@
 document.addEventListener('DOMContentLoaded', function() {
     let currentPhoneNumbers = [];
     
-    // Set default start time (1 hour from now)
-    var now = new Date();
-    now.setHours(now.getHours() + 1);
-    var isoString = now.toISOString().slice(0, 16);
-    $('#startTimeInput').val(isoString);
+    // دریافت CSRF token از input hidden فرم
+    function getCSRFToken() {
+        const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+        return tokenInput ? tokenInput.value : '';
+    }
+    
+    // راه‌اندازی تقویم فارسی برای زمان شروع
+    $('#startTimeInput').persianDatepicker({
+        format: 'YYYY/MM/DD HH:mm',
+        observer: true,
+        timePicker: {
+            enabled: true,
+            meridiem: {
+                enabled: false
+            }
+        },
+        initialValue: true,
+        initialValueType: 'persian',
+        autoClose: false,
+        calendar: {
+            persian: {
+                locale: 'fa',
+                showHint: true,
+                leapYearMode: 'algorithmic'
+            }
+        },
+        toolbox: {
+            enabled: true,
+            calendarSwitch: {
+                enabled: false
+            },
+            todayButton: {
+                enabled: true,
+                text: {
+                    fa: 'امروز'
+                }
+            },
+            submitButton: {
+                enabled: true,
+                text: {
+                    fa: 'تایید'
+                }
+            }
+        }
+    });
     
     // Character counter for message
     $('#messageInput').on('input', function() {
@@ -325,15 +373,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        var csrfToken = getCSRFToken();
         var formData = new FormData();
         formData.append('excel_file', fileInput.files[0]);
-        formData.append('csrfmiddlewaretoken', $('[name=csrfmiddlewaretoken]').val());
+        formData.append('csrfmiddlewaretoken', csrfToken);
         
         $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
         
         $.ajax({
             url: '{% url "sms_api:bulk_sms_preview_excel" %}',
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
             data: formData,
             processData: false,
             contentType: false,
@@ -346,8 +398,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('خطا: ' + response.error);
                 }
             },
-            error: function() {
-                alert('خطا در پردازش فایل اکسل');
+            error: function(xhr) {
+                if (xhr.status === 403) {
+                    alert('خطا: دسترسی غیرمجاز (403). لطفاً صفحه را رفرش کنید.');
+                } else {
+                    alert('خطا در پردازش فایل اکسل');
+                }
             },
             complete: function() {
                 $('#previewExcelBtn').prop('disabled', false).html('<i class="fas fa-eye me-1"></i>پیش‌نمایش شماره‌ها');
@@ -365,12 +421,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
         
+        var csrfToken = getCSRFToken();
+        
         $.ajax({
             url: '{% url "sms_api:bulk_sms_preview_text" %}',
             method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken
+            },
             data: {
                 'text_numbers': textNumbers,
-                'csrfmiddlewaretoken': $('[name=csrfmiddlewaretoken]').val()
+                'csrfmiddlewaretoken': csrfToken
             },
             success: function(response) {
                 if (response.success) {
@@ -381,8 +442,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('خطا: ' + response.error);
                 }
             },
-            error: function() {
-                alert('خطا در پردازش شماره‌ها');
+            error: function(xhr) {
+                if (xhr.status === 403) {
+                    alert('خطا: دسترسی غیرمجاز (403). لطفاً صفحه را رفرش کنید.');
+                } else {
+                    alert('خطا در پردازش شماره‌ها');
+                }
             },
             complete: function() {
                 $('#previewTextBtn').prop('disabled', false).html('<i class="fas fa-eye me-1"></i>پیش‌نمایش شماره‌ها');
@@ -461,6 +526,19 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     updateBatchInfo();
+    
+    // تبدیل اعداد فارسی به انگلیسی در تقویم
+    $(document).on('click', '#startTimeInput', function() {
+        setTimeout(function() {
+            $('.pds-c-day-cell').each(function() {
+                const persianNumbers = ['۱','۲','۳','۴','۵','۶','۷','۸','۹','۰'];
+                const englishNumbers = $(this).text().split('').map(char => 
+                    persianNumbers.indexOf(char) > -1 ? persianNumbers.indexOf(char) : char
+                ).join('');
+                $(this).text(englishNumbers);
+            });
+        }, 100);
+    });
 });
 </script>
 {% endblock %}

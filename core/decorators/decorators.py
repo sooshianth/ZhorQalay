@@ -210,6 +210,15 @@ def role_required(*roles, redirect_url='/', message='دسترسی محدود ا�
                 return view_func(request, *args, **kwargs)
             else:
                 error_message = message or 'شما دسترسی لازم برای این صفحه را ندارید'
+                
+                # برای AJAX request ها، JsonResponse برگردان
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    from django.http import JsonResponse
+                    return JsonResponse({
+                        'success': False,
+                        'error': error_message
+                    }, status=403)
+                
                 messages.error(request, error_message)
                 return redirect(redirect_url)
                 

@@ -4,6 +4,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.utils import timezone
 from .models import SmsQueue, SmsLog, SmsTemplate
 import datetime
@@ -27,6 +28,26 @@ from core.PurchaseModel import ShenaseTakhsis
 from major.models.NonBazargahPurchase import NonBazargahPurchase
 
 logger = logging.getLogger("sms_api_views")
+
+def persian_digits_to_english(persian_text):
+    """تبدیل اعداد فارسی به انگلیسی در یک رشته."""
+    persian_digits = "۰۱۲۳۴۵۶۷۸۹"
+    english_digits = "0123456789"
+    translation_table = str.maketrans(persian_digits, english_digits)
+    return persian_text.translate(translation_table)
+
+def jalali_to_gregorian(jalali_datetime_str):
+    """تبدیل رشته جلالی (با اعداد فارسی) به DateTime گرگوریان."""
+    try:
+        from persiantools.jdatetime import JalaliDateTime
+        
+        # تبدیل اعداد فارسی به انگلیسی
+        jalali_datetime_str_en = persian_digits_to_english(jalali_datetime_str)
+        
+        # تلاش برای تبدیل با فرمت صحیح
+        return JalaliDateTime.strptime(jalali_datetime_str_en, "%Y/%m/%d %H:%M").to_gregorian()
+    except Exception as e:
+        raise ValueError(f"فرمت تاریخ نامعتبر است: {jalali_datetime_str} - خطای اصلی: {str(e)}")
 
 def mask_phone_number(phone_number):
     """
@@ -2072,6 +2093,7 @@ def bulk_sms_campaigns(request):
     
     return render(request, 'sms_api/bulk_sms/campaigns_list.html', context)
 
+@ensure_csrf_cookie
 @login_required
 @role_required('admin')
 def bulk_sms_create(request):
@@ -2092,11 +2114,14 @@ def bulk_sms_create(request):
             batch_interval = int(request.POST.get('batch_interval', 5))
             
             # پردازش زمان شروع
-            start_time_str = request.POST.get('start_time')
+            start_time_str = request.POST.get('start_time', '').strip()
             if start_time_str:
-                start_time = parse_datetime(start_time_str)
-                if not start_time:
-                    raise ValueError("فرمت زمان شروع نامعتبر است")
+                try:
+                    # تبدیل تاریخ فارسی به میلادی
+                    start_time = jalali_to_gregorian(start_time_str)
+                except ValueError as e:
+                    messages.error(request, f"خطا در تاریخ شروع: {str(e)}")
+                    return render(request, 'sms_api/bulk_sms/create_campaign.html')
             else:
                 start_time = timezone.now() + timedelta(minutes=1)
             
@@ -2158,7 +2183,27 @@ def bulk_sms_create(request):
             messages.error(request, f'خطا در ایجاد کمپین: {str(e)}')
             logger.exception(f"Error creating bulk SMS campaign: {str(e)}")
     
-    return render(request, 'sms_api/bulk_sms/create_campaign.html')
+    # تولید نام پیشنهادی برای کمپین
+    from .models import BulkSmsCampaign
+    last_campaign = BulkSmsCampaign.objects.all().order_by('-id').first()
+    if last_campaign:
+        # استخراج شماره از نام آخرین کمپین اگر به فرمت CP### باشد
+        import re
+        match = re.search(r'CP(\d+)', last_campaign.name)
+        if match:
+            last_number = int(match.group(1))
+            suggested_name = f"CP{last_number + 1:03d}"
+        else:
+            # اگر فرمت نداشت، از ID استفاده کن
+            suggested_name = f"CP{last_campaign.id + 1:03d}"
+    else:
+        suggested_name = "CP001"
+    
+    context = {
+        'suggested_name': suggested_name
+    }
+    
+    return render(request, 'sms_api/bulk_sms/create_campaign.html', context)
 
 @login_required 
 @role_required('admin')
@@ -2169,6 +2214,17 @@ def bulk_sms_detail(request, campaign_id):
     from django.core.paginator import Paginator
     
     campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
+    
+    # اگر درخواست برای دریافت همه شماره‌ها است
+    if request.GET.get('get_all_phones') == '1':
+        phone_numbers = BulkSmsNumber.objects.filter(campaign=campaign).order_by('batch_number', 'phone_number')
+        phones_list = [phone.phone_number for phone in phone_numbers]
+        return JsonResponse({
+            'success': True,
+            'phone_numbers': phones_list,
+            'total': len(phones_list)
+        })
+    
     stats = get_campaign_statistics(campaign_id)
     
     # لیست شماره‌ها با pagination
@@ -2220,15 +2276,29 @@ def bulk_sms_schedule(request, campaign_id):
 @role_required('admin')  
 def bulk_sms_pause(request, campaign_id):
     """متوقف کردن کمپین"""
+    from .models import BulkSmsCampaign
     from .apis import pause_bulk_sms_campaign
     
     if request.method == 'POST':
-        success = pause_bulk_sms_campaign(campaign_id)
-        
-        if success:
-            messages.success(request, 'کمپین با موفقیت متوقف شد.')
-        else:
-            messages.error(request, 'خطا در متوقف کردن کمپین.')
+        try:
+            campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
+            
+            # حذف پیامک‌های pending از صف
+            deleted_count = SmsQueue.objects.filter(
+                id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
+                status='pending'
+            ).delete()[0]
+            
+            # تغییر وضعیت کمپین
+            success = pause_bulk_sms_campaign(campaign_id)
+            
+            if success:
+                messages.success(request, f'کمپین متوقف شد و {deleted_count} پیامک از صف حذف شد.')
+            else:
+                messages.error(request, 'خطا در متوقف کردن کمپین.')
+        except Exception as e:
+            logger.exception(f"Error pausing campaign: {str(e)}")
+            messages.error(request, f'خطا در متوقف کردن کمپین: {str(e)}')
     
     return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
 
@@ -2236,44 +2306,64 @@ def bulk_sms_pause(request, campaign_id):
 @role_required('admin')
 def bulk_sms_resume(request, campaign_id):
     """ادامه کمپین متوقف شده"""
-    from .apis import resume_bulk_sms_campaign
+    from .models import BulkSmsCampaign
+    from .apis import resume_bulk_sms_campaign, schedule_bulk_sms_campaign
     
     if request.method == 'POST':
-        success = resume_bulk_sms_campaign(campaign_id)
-        
-        if success:
-            messages.success(request, 'کمپین با موفقیت ادامه یافت.')
-        else:
-            messages.error(request, 'خطا در ادامه کمپین.')
+        try:
+            campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
+            
+            # تغییر وضعیت کمپین
+            success = resume_bulk_sms_campaign(campaign_id)
+            
+            if success:
+                # زمان‌بندی مجدد پیامک‌ها
+                result = schedule_bulk_sms_campaign(campaign_id)
+                
+                if result['success']:
+                    messages.success(request, f'کمپین ادامه یافت و {result["queued_count"]} پیامک در صف قرار گرفت.')
+                else:
+                    messages.warning(request, f'کمپین ادامه یافت ولی خطا در زمان‌بندی: {result.get("error", "نامشخص")}')
+            else:
+                messages.error(request, 'خطا در ادامه کمپین.')
+        except Exception as e:
+            logger.exception(f"Error resuming campaign: {str(e)}")
+            messages.error(request, f'خطا در ادامه کمپین: {str(e)}')
     
     return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
 
 @login_required
 @role_required('admin')
 def bulk_sms_delete(request, campaign_id):
-    """حذف کمپین"""
+    """حذف/لغو کمپین"""
     from .models import BulkSmsCampaign
     
     campaign = get_object_or_404(BulkSmsCampaign, id=campaign_id)
     
     if request.method == 'POST':
-        # حذف پیامک‌های مربوطه از صف (اگر هنوز ارسال نشده‌اند)
-        SmsQueue.objects.filter(
-            id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
-            status='pending'
-        ).delete()
-        
-        campaign_name = campaign.name
-        campaign.delete()
-        
-        messages.success(request, f'کمپین "{campaign_name}" با موفقیت حذف شد.')
-        return redirect('sms_api:bulk_sms_campaigns')
+        try:
+            # حذف تمام پیامک‌های مربوطه از صف
+            deleted_sms = SmsQueue.objects.filter(
+                id__in=campaign.phone_numbers.values_list('sms_queue_id', flat=True),
+                status='pending'
+            ).delete()[0]
+            
+            campaign_name = campaign.name
+            campaign.delete()
+            
+            messages.success(request, f'کمپین "{campaign_name}" لغو و حذف شد. {deleted_sms} پیامک از صف حذف شد.')
+            return redirect('sms_api:bulk_sms_campaigns')
+        except Exception as e:
+            logger.exception(f"Error deleting campaign: {str(e)}")
+            messages.error(request, f'خطا در حذف کمپین: {str(e)}')
+            return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
     
-    context = {'campaign': campaign}
-    return render(request, 'sms_api/bulk_sms/delete_campaign.html', context)
+    # اگر GET است، redirect به صفحه جزئیات
+    return redirect('sms_api:bulk_sms_detail', campaign_id=campaign_id)
 
+@csrf_exempt
+@require_POST
 @login_required
-@role_required('admin')  
 def bulk_sms_preview_excel(request):
     """پیش‌نمایش فایل اکسل"""
     logger.info("bulk_sms_preview_excel called")
@@ -2337,8 +2427,9 @@ def bulk_sms_preview_excel(request):
             'error': f'خطای غیرمنتظره در پردازش فایل: {str(e)}'
         })
 
+@csrf_exempt
+@require_POST
 @login_required
-@role_required('admin')
 def bulk_sms_preview_text(request):
     """پیش‌نمایش شماره‌های متنی"""
     logger.info("bulk_sms_preview_text called")

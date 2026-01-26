@@ -131,31 +131,48 @@
                         بازگشت
                     </a>
                     
-                    {% if campaign.status == 'draft' %}
-                    <form method="post" action="{% url 'sms_api:bulk_sms_schedule' campaign.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-success" 
-                                onclick="return confirm('آیا از شروع این کمپین اطمینان دارید؟')">
-                            <i class="fas fa-play me-1"></i>
-                            شروع کمپین
-                        </button>
-                    </form>
-                    {% elif campaign.status == 'scheduled' or campaign.status == 'in_progress' %}
-                    <form method="post" action="{% url 'sms_api:bulk_sms_pause' campaign.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-warning">
-                            <i class="fas fa-pause me-1"></i>
-                            توقف کمپین
-                        </button>
-                    </form>
+                    {% if campaign.status == 'draft' or campaign.status == 'scheduled' %}
+                        <!-- برای draft و scheduled دکمه شروع -->
+                        {% if campaign.status == 'draft' %}
+                        <form method="post" action="{% url 'sms_api:bulk_sms_schedule' campaign.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success" 
+                                    onclick="return confirm('آیا از شروع این کمپین اطمینان دارید؟')">
+                                <i class="fas fa-play me-1"></i>
+                                شروع کمپین
+                            </button>
+                        </form>
+                        {% endif %}
+                        
+                        <!-- دکمه لغو برای کمپین‌های شروع نشده -->
+                        <form method="post" action="{% url 'sms_api:bulk_sms_delete' campaign.id %}" class="d-inline" id="cancelCampaignForm">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger" 
+                                    onclick="return confirm('آیا از لغو و حذف این کمپین اطمینان دارید؟ این عمل قابل بازگشت نیست.')">
+                                <i class="fas fa-ban me-1"></i>
+                                لغو کمپین
+                            </button>
+                        </form>
+                    
+                    {% elif campaign.status == 'in_progress' %}
+                        <!-- دکمه توقف برای کمپین در حال اجرا -->
+                        <form method="post" action="{% url 'sms_api:bulk_sms_pause' campaign.id %}" class="d-inline" id="pauseCampaignForm">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-pause me-1"></i>
+                                توقف کمپین
+                            </button>
+                        </form>
+                    
                     {% elif campaign.status == 'paused' %}
-                    <form method="post" action="{% url 'sms_api:bulk_sms_resume' campaign.id %}" class="d-inline">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-info">
-                            <i class="fas fa-play me-1"></i>
-                            ادامه کمپین
-                        </button>
-                    </form>
+                        <!-- دکمه ادامه برای کمپین متوقف شده -->
+                        <form method="post" action="{% url 'sms_api:bulk_sms_resume' campaign.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-info">
+                                <i class="fas fa-play me-1"></i>
+                                ادامه کمپین
+                            </button>
+                        </form>
                     {% endif %}
                     
                     <div class="dropdown d-inline">
@@ -172,15 +189,6 @@
                                     مشاهده متن پیامک
                                 </a>
                             </li>
-                            {% if campaign.status == 'draft' %}
-                            <li>
-                                <a class="dropdown-item text-danger" 
-                                   href="{% url 'sms_api:bulk_sms_delete' campaign.id %}">
-                                    <i class="fas fa-trash me-2"></i>
-                                    حذف کمپین
-                                </a>
-                            </li>
-                            {% endif %}
                         </ul>
                     </div>
                 </div>
@@ -353,9 +361,15 @@
                         <i class="fas fa-phone-alt me-2"></i>
                         لیست شماره‌های تلفن
                     </h5>
-                    <small class="text-muted">
-                        صفحه {{ page_obj.number|to_persian_digits }} از {{ page_obj.paginator.num_pages|to_persian_digits }}
-                    </small>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="copyPhoneNumbersBtn">
+                            <i class="fas fa-copy me-1"></i>
+                            کپی همه شماره‌ها
+                        </button>
+                        <small class="text-muted ms-2">
+                            صفحه {{ page_obj.number|to_persian_digits }} از {{ page_obj.paginator.num_pages|to_persian_digits }}
+                        </small>
+                    </div>
                 </div>
                 
                 <div class="table-responsive">
@@ -483,18 +497,62 @@ $(document).ready(function() {
         }, 30000); // Refresh every 30 seconds
     }
     
-    // Add loading state to action buttons
-    $('form[method="post"] button').click(function() {
+    // Copy all phone numbers
+    $('#copyPhoneNumbersBtn').click(function() {
         var btn = $(this);
         btn.prop('disabled', true);
+        btn.html('<i class="fas fa-spinner fa-spin me-1"></i>در حال دریافت...');
         
-        var originalText = btn.html();
-        btn.html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
+        // دریافت همه شماره‌ها از سرور
+        $.ajax({
+            url: '{% url "sms_api:bulk_sms_detail" campaign.id %}?get_all_phones=1',
+            method: 'GET',
+            success: function(response) {
+                if (response.success && response.phone_numbers) {
+                    // تبدیل لیست به متن با خطوط جدا
+                    var phoneText = response.phone_numbers.join('\n');
+                    
+                    // کپی کردن به کلیپ‌بورد
+                    navigator.clipboard.writeText(phoneText).then(function() {
+                        // نمایش پیغام موفقیت
+                        btn.html('<i class="fas fa-check me-1"></i>کپی شد!');
+                        btn.removeClass('btn-outline-primary').addClass('btn-success');
+                        
+                        setTimeout(function() {
+                            btn.html('<i class="fas fa-copy me-1"></i>کپی همه شماره‌ها');
+                            btn.removeClass('btn-success').addClass('btn-outline-primary');
+                            btn.prop('disabled', false);
+                        }, 2000);
+                    }).catch(function(err) {
+                        alert('خطا در کپی کردن: ' + err);
+                        btn.html('<i class="fas fa-copy me-1"></i>کپی همه شماره‌ها');
+                        btn.prop('disabled', false);
+                    });
+                } else {
+                    alert('خطا در دریافت شماره‌ها');
+                    btn.html('<i class="fas fa-copy me-1"></i>کپی همه شماره‌ها');
+                    btn.prop('disabled', false);
+                }
+            },
+            error: function() {
+                alert('خطا در ارتباط با سرور');
+                btn.html('<i class="fas fa-copy me-1"></i>کپی همه شماره‌ها');
+                btn.prop('disabled', false);
+            }
+        });
+    });
+    
+    // Add loading state to action buttons
+    $('form[method="post"] button').click(function(e) {
+        var btn = $(this);
+        var form = btn.closest('form');
         
-        setTimeout(function() {
-            btn.prop('disabled', false);
-            btn.html(originalText);
-        }, 5000);
+        // برای فرم‌های خاص، از submit جلوگیری نکن
+        if (form.attr('id') === 'pauseCampaignForm' || form.attr('id') === 'cancelCampaignForm') {
+            btn.prop('disabled', true);
+            var originalText = btn.html();
+            btn.html('<i class="fas fa-spinner fa-spin me-1"></i>در حال پردازش...');
+        }
     });
 });
 </script>
