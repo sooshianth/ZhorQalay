@@ -502,6 +502,9 @@
                             <th class="column-barbary" data-column-type="text">باربری</th>
                             {% endif %}
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
+                            {% if user_role == 'admin' or user_role == 'financial_manager' %}
+                            <th class="column-company_price" data-column-type="number">فی خرید</th>
+                            {% endif %}
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
                             <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
                             <th class="column-description" data-column-type="text">توضیحات</th>
@@ -522,6 +525,9 @@
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
                                 {% endif %}
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
+                                {% if user_role == 'admin' or user_role == 'financial_manager' %}
+                                <td class="column-company_price" data-value="{{ product.company_price }}">{{ product.company_price }}</td>
+                                {% endif %}
                                 <td class="column-port">{{ product.port }}</td>
                                 <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
                                 <td class="column-description">{{ product.description }}</td>
@@ -534,7 +540,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="{% if hide_supplier_info %}10{% else %}11{% endif %}" style="text-align: center; padding: 3rem;">
+                                <td colspan="{% if user_role == 'admin' or user_role == 'financial_manager' %}{% if hide_supplier_info %}10{% else %}12{% endif %}{% else %}{% if hide_supplier_info %}9{% else %}11{% endif %}{% endif %}" style="text-align: center; padding: 3rem;">
                                     <div style="display: flex; flex-direction: column; align-items: center;">
                                         <i class="fas fa-box-open" style="font-size: 2.5rem; margin-bottom: 1rem; color: #ccc;"></i>
                                         <p style="color: #666;">هیچ محصول فعالی یافت نشد</p>
@@ -595,6 +601,9 @@
                             <th class="column-barbary" data-column-type="text">باربری</th>
                             {% endif %}
                             <th class="column-customer_price" data-column-type="number">قیمت فروش</th>
+                            {% if user_role == 'admin' or user_role == 'financial_manager' %}
+                            <th class="column-company_price" data-column-type="number">فی خرید</th>
+                            {% endif %}
                             <th class="column-port" data-column-type="text">محل بارگیری</th>
                             <th class="column-loading_time" data-column-type="date">زمان بارگیری</th>
                             <th class="column-description" data-column-type="text">توضیحات</th>
@@ -615,6 +624,9 @@
                                 <td class="column-barbary">{{ product.barbary.name|default:"-" }}</td>
                                 {% endif %}
                                 <td class="column-customer_price" data-value="{{ product.customer_price }}">{{ product.customer_price }}</td>
+                                {% if user_role == 'admin' or user_role == 'financial_manager' %}
+                                <td class="column-company_price" data-value="{{ product.company_price }}">{{ product.company_price }}</td>
+                                {% endif %}
                                 <td class="column-port">{{ product.port }}</td>
                                 <td class="column-loading_time" data-value="{{ product.loading_time }}">{{ product.loading_time }}</td>
                                 <td class="column-description">{{ product.description }}</td>
@@ -627,7 +639,7 @@
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="{% if hide_supplier_info %}10{% else %}11{% endif %}" style="text-align: center; padding: 3rem;">
+                                <td colspan="{% if user_role == 'admin' or user_role == 'financial_manager' %}{% if hide_supplier_info %}10{% else %}12{% endif %}{% else %}{% if hide_supplier_info %}9{% else %}11{% endif %}{% endif %}" style="text-align: center; padding: 3rem;">
                                     <p style="color: #666;">هیچ محصول غیرفعالی یافت نشد</p>
                                 </td>
                             </tr>
