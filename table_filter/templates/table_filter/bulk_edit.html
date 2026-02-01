@@ -8,7 +8,7 @@
 {% block head_styles %}
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link rel="stylesheet" href="{% static 'table_filter/css/bulk_edit.css' %}">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="{% static 'vendor/select2-4.1.0/css/select2.min.css' %}" rel="stylesheet" />
     <style>
         :root {
             --primary-color: #065F46;
@@ -704,8 +704,8 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{% static 'vendor/jquery-3.6.0/jquery.min.js' %}"></script>
+<script src="{% static 'vendor/select2-4.1.0/js/select2.min.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // فعال‌سازی select2 برای همه select ها

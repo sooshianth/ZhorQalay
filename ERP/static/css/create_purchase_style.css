@@ -1,9 +1,15 @@
 /* استایل‌های مخصوص فرم ایجاد خرید */
 
-@import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700&display=swap');
+/* Using local Vazir font instead of Google Fonts Vazirmatn */
+@font-face {
+    font-family: 'Vazir';
+    src: url('../vendor/vazir-font-30.1.0/Vazir.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+}
 
 body {
-    font-family: 'Vazirmatn', sans-serif;
+    font-family: 'Vazir', sans-serif;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     min-height: 100vh;
 }

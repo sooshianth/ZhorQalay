@@ -76,6 +76,10 @@ app.conf.beat_schedule = {
         'task': 'core.tasks.tasks.check_purchases_for_support_tasks',
         'schedule': crontab(minute='*/30'),  # هر 30 دقیقه
     },
+    'cleanup-old-api-logs': {
+        'task': 'bki_api.tasks.cleanup_old_api_logs',
+        'schedule': crontab(minute=0, hour='*/2'),  # هر 30 دقیقه
+    },
 }
 
 app.autodiscover_tasks()

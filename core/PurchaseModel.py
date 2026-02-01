@@ -70,7 +70,7 @@ class Purchase(BasePurchase):
     
     # فیلدهای آدرس و تحویل
     unique_delivery_id = models.CharField("شناسه یکتا تحویل", max_length=50, blank=True, null=True, unique=True)
-    unique_buyer_id = models.CharField("شناسه یکتا خریدار", max_length=50, blank=True, null=True, unique=True)
+    unique_buyer_id = models.CharField("شناسه یکتا خریدار", max_length=50, blank=True, null=True)
     
     is_weight_costed = models.BooleanField("آیا وزن خرید از وزن موجود محصول کاسته شده است؟", default=False)
     is_ap_af = models.BooleanField("آیا مبلغ خرید اتوکامپلیت شده است؟", default=False)

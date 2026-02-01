@@ -1,8 +1,9 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load custom_filters %}
 
 {% block extra_css %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.4.8/dist/sweetalert2.all.min.js"></script>
+<script src="{% static 'vendor/sweetalert2-11.10.5/sweetalert2.all.min.js' %}"></script>
 {% endblock %}
 
 {% block content %}

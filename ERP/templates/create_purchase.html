@@ -6,7 +6,7 @@
 {% block head_styles %}
     {{ block.super }}
     <!-- Select2 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="{% static 'vendor/select2-4.1.0/css/select2.min.css' %}" rel="stylesheet" />
     <!-- Custom CSS -->
     <link href="{% static 'css/create_purchase_style.css' %}" rel="stylesheet">
     
@@ -570,7 +570,7 @@
 
 {% block extra_scripts %}
     <!-- Select2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{% static 'vendor/select2-4.1.0/js/select2.min.js' %}"></script>
 
     <script>
         $(document).ready(function() {

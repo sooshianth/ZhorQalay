@@ -6,6 +6,9 @@ from celery import shared_task
 from jdatetime import datetime as jdatetime
 from config.celery import app
 from .bki_kharid_list_by_date import get_purchases_last_24_hours, get_purchases_last_week, get_purchases_last_month, get_purchases_all_time
+from django.utils import timezone
+from datetime import timedelta
+from .models import BKIApiLog
 
 @shared_task
 def update_purchases_last_24_hours():
@@ -74,3 +77,10 @@ def update_purchases_all_time():
         "errors": result[5],
         "period": "all_time"
     }
+
+@shared_task
+def cleanup_old_api_logs():
+    cutoff = timezone.now() - timedelta(hours=24)
+    BKIApiLog.objects.filter(
+        created_at__lt=cutoff
+    ).delete()

@@ -103,6 +103,7 @@ class CargoProduct(Product):
     weight = models.PositiveIntegerField(_('وزن موجود'), default=100000000, null=True, blank=True)
     last_modified = jmodels.jDateTimeField(_('تاریخ آخرین ویرایش'), auto_now=True)
     barbary = models.ForeignKey(Barbary, on_delete=models.CASCADE, null=True, blank=True)
+    type = models.CharField(_('نوع'), max_length=200, null=True)
 
     class Meta:
         verbose_name = _('محصول')

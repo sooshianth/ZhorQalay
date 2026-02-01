@@ -477,24 +477,24 @@ html[dir="rtl"] .step-item:not(:last-child):after {
     font-size: 0.9rem;
 }
 
-/* Add Vazirmatn font for Persian language */
+/* Using Vazir font (local) instead of Vazirmatn */
 @font-face {
-    font-family: 'Vazirmatn';
-    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');
+    font-family: 'Vazir';
+    src: url('../vendor/vazir-font-30.1.0/Vazir.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
-    font-family: 'Vazirmatn';
-    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');
+    font-family: 'Vazir';
+    src: url('../vendor/vazir-font-30.1.0/Vazir-Bold.woff2') format('woff2');
     font-weight: bold;
     font-style: normal;
 }
 
 @font-face {
-    font-family: 'Vazirmatn';
-    src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Medium.woff2') format('woff2');
+    font-family: 'Vazir';
+    src: url('../vendor/vazir-font-30.1.0/Vazir-Medium.woff2') format('woff2');
     font-weight: 500;
     font-style: normal;
 } 

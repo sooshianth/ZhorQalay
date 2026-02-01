@@ -4,7 +4,7 @@
 {% block title %}{{ page_title }}{% endblock %}
 
 {% block extra_css %}
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="{% static 'vendor/bootstrap-5.3.2/css/bootstrap.min.css' %}" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css_files/bulk_purchase_edit.css' %}">
 <style>
     /* استایل‌های اضافی برای رفع تداخل */
@@ -557,10 +557,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.17.0/dist/xlsx.full.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="{% static 'vendor/bootstrap-5.3.2/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'vendor/xlsx-0.17.0/xlsx.full.min.js' %}"></script>
+<script src="{% static 'vendor/sweetalert2-11.10.5/sweetalert2.all.min.js' %}"></script>
+<script src="{% static 'vendor/jquery-3.6.0/jquery.min.js' %}"></script>
 <script>
     // فعال کردن دیباگ
     window.addEventListener('load', function() {

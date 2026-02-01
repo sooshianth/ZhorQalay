@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}تایید/رد ساعات کاری{% endblock %}
 
@@ -92,7 +93,7 @@
     </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="{% static 'vendor/jquery-3.6.0/jquery.min.js' %}"></script>
 <script>
 $(document).ready(function() {
     // مدیریت تغییر نوع عملیات

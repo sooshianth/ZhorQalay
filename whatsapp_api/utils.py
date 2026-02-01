@@ -2,7 +2,7 @@ from django.template.loader import render_to_string
 from django.db import models
 from django.db.models import F
 from django.utils import timezone
-import pywhatkit as kit
+# import pywhatkit as kit
 from core._models import CargoProduct, Customer
 from .models import WhatsappNumber, WhatsappLog, WhatsappTemplate
 from selenium import webdriver

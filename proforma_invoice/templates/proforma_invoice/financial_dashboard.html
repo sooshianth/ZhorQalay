@@ -3,7 +3,7 @@
 
 {% block head_styles %}
 {{ block.super }}
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css">
+<link rel="stylesheet" href="{% static 'vendor/select2-4.1.0/css/select2.min.css' %}">
 <style>
     :root {
         --primary-color: #065F46;
@@ -383,7 +383,7 @@
     {% endif %}
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+<script src="{% static 'vendor/select2-4.1.0/js/select2.min.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('customerSearch');

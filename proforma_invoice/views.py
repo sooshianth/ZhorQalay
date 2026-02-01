@@ -247,23 +247,28 @@ def proforma_download_pdf(request, proforma_id):
         # کانفیگ فونت برای فارسی
         font_config = FontConfiguration()
         
+        # مسیر فایل فونت محلی
+        from django.conf import settings
+        import os
+        font_dir = os.path.join(settings.BASE_DIR, 'core', 'static', 'vendor', 'vazir-font-30.1.0')
+        
         # CSS برای فونت وزیر
-        css = CSS(string='''
-            @font-face {
+        css = CSS(string=f'''
+            @font-face {{
                 font-family: 'Vazir';
-                src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Regular.ttf') format('truetype');
+                src: url('file://{font_dir}/Vazir-Regular.ttf') format('truetype');
                 font-weight: normal;
                 font-style: normal;
-            }
-            @font-face {
+            }}
+            @font-face {{
                 font-family: 'Vazir';
-                src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Bold.ttf') format('truetype');
+                src: url('file://{font_dir}/Vazir-Bold.ttf') format('truetype');
                 font-weight: bold;
                 font-style: normal;
-            }
-            body {
+            }}
+            body {{
                 font-family: 'Vazir', sans-serif;
-            }
+            }}
         ''', font_config=font_config)
         
         # تولید PDF
@@ -524,23 +529,28 @@ def api_poll_pending_deliveries(request):
                 # کانفیگ فونت برای فارسی
                 font_config = FontConfiguration()
                 
+                # مسیر فایل فونت محلی
+                from django.conf import settings
+                import os
+                font_dir = os.path.join(settings.BASE_DIR, 'core', 'static', 'vendor', 'vazir-font-30.1.0')
+                
                 # CSS برای فونت وزیر
-                css = CSS(string='''
-                    @font-face {
+                css = CSS(string=f'''
+                    @font-face {{
                         font-family: 'Vazir';
-                        src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Regular.ttf') format('truetype');
+                        src: url('file://{font_dir}/Vazir-Regular.ttf') format('truetype');
                         font-weight: normal;
                         font-style: normal;
-                    }
-                    @font-face {
+                    }}
+                    @font-face {{
                         font-family: 'Vazir';
-                        src: url('https://cdn.jsdelivr.net/gh/rastikerdar/vazir-font@v30.1.0/dist/Vazir-Bold.ttf') format('truetype');
+                        src: url('file://{font_dir}/Vazir-Bold.ttf') format('truetype');
                         font-weight: bold;
                         font-style: normal;
-                    }
-                    body {
+                    }}
+                    body {{
                         font-family: 'Vazir', sans-serif;
-                    }
+                    }}
                 ''', font_config=font_config)
                 
                 # تولید PDF
