@@ -259,7 +259,7 @@
                     </div>
                     
                     <div class="submenu-container collapsed" id="messaging-support">
-                        {% if request.user.is_superuser%}
+                        {% if request.user.is_superuser or request.user.is_staff%}
                         <li><a href="{% url 'support_agent_profile' %}"><i class="fas fa-user icon-profile"></i> پروفایل من</a></li>
                         <li><a href="{% url 'sms-dashboard' %}"><i class="fas fa-sms icon-sms"></i> داشبورد پیامک</a></li>
                         <li><a href="{% url 'whatsapp-dashboard' %}"><i class="fab fa-whatsapp icon-sms"></i>داشبورد واتساپ</a></li>
