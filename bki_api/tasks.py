@@ -8,7 +8,7 @@ from config.celery import app
 from .bki_kharid_list_by_date import get_purchases_last_24_hours, get_purchases_last_week, get_purchases_last_month, get_purchases_all_time
 from django.utils import timezone
 from datetime import timedelta
-from .models import BKIApiLog
+from bki_barnameh.models.ApiLogModel import BKIApiLog
 
 @shared_task
 def update_purchases_last_24_hours():
