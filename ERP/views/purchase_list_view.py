@@ -1086,6 +1086,64 @@ def export_to_excel(request):
         logger.warning(f"Error in export_to_excel: {str(e)}, {traceback.format_exc()}")
         return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل:'}, status=500)
 
+
+@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@login_required
+def export_to_excel_for_importer(request):
+    """
+    خروجی اکسل واردکننده: همان خروجی اکسل عادی است، با این تفاوت که بعد از گرفتن خروجی،
+    وضعیت خریدهای انتخاب‌شده به «ارسال آدرس به واردکننده» (ADDRESS_SENT) تغییر می‌کند.
+    """
+    logger.warning(f"خروجی اکسل واردکننده توسط {request.user.username} با متد {request.method} و آی‌پی {get_client_ip(request)} آغاز شد")
+    if request.method == 'POST':
+        purchase_ids = request.POST.get('ids', '').split(',')
+        selected_columns = request.POST.get('columns', '')
+    else:
+        purchase_ids = request.GET.get('ids', '').split(',')
+        selected_columns = request.GET.get('columns', '')
+    logger.warning(f"raw select columns for user {request.user.username}: {selected_columns}")
+
+    user_role = determine_user_role(request.user)
+    allowed_columns = get_allowed_columns(user_role)
+
+    if selected_columns:
+        selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
+        selected_columns = selected_columns.split(',')
+        selected_columns = [col.strip() for col in selected_columns if col.strip() and col.strip() != 'actions']
+        selected_columns = [col for col in selected_columns if col in allowed_columns]
+        if not selected_columns:
+            selected_columns = allowed_columns
+    else:
+        selected_columns = get_default_columns(user_role)
+
+    purchase_ids = [pid.strip() for pid in purchase_ids if pid.strip()]
+
+    if not purchase_ids:
+        logger.warning("ERROR: No purchase IDs to export excel for importer!")
+        return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
+
+    try:
+        response = _export_regular_excel(purchase_ids, selected_columns)
+        # در خروجی اکسل عادی تنها پاسخ 200 = فایل اکسل است (خطاها 400/500 با JsonResponse برمی‌گردند)
+        if response.status_code == 200:
+            updated = 0
+            for pid in purchase_ids:
+                try:
+                    purchase = Purchase.objects.get(id=pid)
+                    purchase.change_state('ADDRESS_SENT', request.user, notes='خروجی اکسل واردکننده')
+                    updated += 1
+                except Purchase.DoesNotExist:
+                    logger.warning(f"خرید با id={pid} یافت نشد، نادیده گرفته شد")
+                except Exception as e:
+                    logger.warning(f"خطا در تغییر وضعیت خرید {pid} به ارسال به واردکننده: {e}", exc_info=True)
+            logger.warning(f"وضعیت {updated} خرید به ارسال آدرس به واردکننده (ADDRESS_SENT) تغییر داده شد")
+        return response
+    except Exception as e:
+        import traceback
+        logger.warning(f"Error in export_to_excel_for_importer: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': 'خطا در ایجاد فایل اکسل'}, status=500)
+
+
 def _export_regular_excel(purchase_ids, selected_columns):
     """پردازش معمولی برای تعداد کم خرید"""
     purchases = Purchase.objects.filter(id__in=purchase_ids).select_related(

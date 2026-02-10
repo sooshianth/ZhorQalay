@@ -132,6 +132,7 @@
          data-history-api-url="{% url 'table_filter:edit_history_api' %}"
          data-restore-value-api-url="{% url 'table_filter:restore_value_api' %}"
          data-export-purchases-url="{% url 'export_purchases' %}"
+         data-export-purchases-for-importer-url="{% url 'export_purchases_for_importer' %}"
          data-purchase-aggregated-stats-url="{% url 'purchase_aggregated_stats' %}"
          data-per-page="{% if search_params.per_page %}{{ search_params.per_page }}{% else %}100{% endif %}"
          data-current-columns="{% for col in selected_columns %}{{ col }}{% if not forloop.last %},{% endif %}{% endfor %}"
@@ -155,6 +156,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.PurchaseListConfig = {
         updateColumnsUrl: configEl.dataset.updateColumnsUrl,
         exportPurchasesUrl: configEl.dataset.exportPurchasesUrl,
+        exportPurchasesForImporterUrl: configEl.dataset.exportPurchasesForImporterUrl,
         purchaseAggregatedStatsUrl: configEl.dataset.purchaseAggregatedStatsUrl,
         hideSensitiveInfo: configEl.dataset.hideSensitiveInfo === 'true',
         perPage: parseInt(configEl.dataset.perPage) || 100,
@@ -269,6 +271,11 @@ document.addEventListener('DOMContentLoaded', function() {
     <!-- دکمه خروجی اکسل (در ابتدا غیرفعال) -->
     <button id="exportBtn" class="btn btn-success shadow-sm" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
+    </button>
+    
+    <!-- دکمه خروجی اکسل واردکننده (همان خروجی اکسل + تغییر وضعیت به ارسال به واردکننده) -->
+    <button id="exportForImporterBtn" class="btn btn-info shadow-sm text-white" disabled title="خروجی اکسل همانند خروجی عادی؛ پس از دانلود وضعیت خریدها به «ارسال آدرس به واردکننده» تغییر می‌کند">
+        <i class="fas fa-file-export me-2"></i> خروجی اکسل واردکننده
     </button>
     
     <!-- دکمه خروجی اکسل کامل -->
@@ -2130,6 +2137,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // تعریف global تابع updateExportButton
 window.updateExportButton = function() {
     const exportBtn = document.getElementById('exportBtn');
+    const exportForImporterBtn = document.getElementById('exportForImporterBtn');
     if (!exportBtn) {
         console.log('❌ دکمه خروجی اکسل یافت نشد');
         return;
@@ -2147,10 +2155,8 @@ window.updateExportButton = function() {
     
     console.log(`📊 تعداد خریدهای انتخاب شده: ${selectedCount}`);
     
-    // تنظیم وضعیت دکمه
+    // تنظیم وضعیت دکمه خروجی اکسل
     exportBtn.disabled = selectedCount === 0;
-    
-    // تغییر متن دکمه
     if (selectedCount > 0) {
         exportBtn.innerHTML = `<i class="fas fa-file-excel me-2"></i>خروجی اکسل (${selectedCount} مورد)`;
         exportBtn.classList.remove('btn-secondary');
@@ -2159,6 +2165,16 @@ window.updateExportButton = function() {
         exportBtn.innerHTML = '<i class="fas fa-file-excel me-2"></i>خروجی اکسل';
         exportBtn.classList.remove('btn-success');
         exportBtn.classList.add('btn-secondary');
+    }
+    
+    // تنظیم وضعیت دکمه خروجی اکسل واردکننده
+    if (exportForImporterBtn) {
+        exportForImporterBtn.disabled = selectedCount === 0;
+        if (selectedCount > 0) {
+            exportForImporterBtn.innerHTML = `<i class="fas fa-file-export me-2"></i>خروجی اکسل واردکننده (${selectedCount} مورد)`;
+        } else {
+            exportForImporterBtn.innerHTML = '<i class="fas fa-file-export me-2"></i>خروجی اکسل واردکننده';
+        }
     }
     
     console.log(`🔘 وضعیت دکمه - disabled: ${exportBtn.disabled}, text: ${exportBtn.textContent}`);
@@ -2287,6 +2303,73 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.updateExportButton(); // بروزرسانی دکمه براساس انتخاب‌ها
                 });
             });
+            
+            // دکمه خروجی اکسل واردکننده (همان اکسل + تغییر وضعیت به ارسال به واردکننده)
+            const exportForImporterBtn = document.getElementById('exportForImporterBtn');
+            if (exportForImporterBtn) {
+                exportForImporterBtn.addEventListener('click', function() {
+                    let selectedIds = [];
+                    if (window.purchaseAggregatedStats && window.purchaseAggregatedStats.selectedPurchases) {
+                        selectedIds = Array.from(window.purchaseAggregatedStats.selectedPurchases);
+                    } else {
+                        const selectedRows = document.querySelectorAll('.row-checkbox:checked');
+                        selectedIds = Array.from(selectedRows).map(checkbox => checkbox.getAttribute('data-id'));
+                    }
+                    if (selectedIds.length === 0) {
+                        alert('هیچ خریدی انتخاب نشده است!');
+                        return;
+                    }
+                    const currentColumns = window.PurchaseListConfig?.currentColumns || '';
+                    const columnsParam = currentColumns || 'date,customer,invoice_id,sales_agent,purchase_number,weight,cargo,status';
+                    const originalText = exportForImporterBtn.innerHTML;
+                    exportForImporterBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد فایل...';
+                    exportForImporterBtn.disabled = true;
+                    const exportUrl = window.PurchaseListConfig?.exportPurchasesForImporterUrl || '/erp/purchases/export-for-importer/';
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || getCookie('csrftoken');
+                    const formData = new FormData();
+                    formData.append('csrfmiddlewaretoken', csrfToken);
+                    formData.append('ids', selectedIds.join(','));
+                    formData.append('columns', columnsParam);
+                    fetch(exportUrl, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(response => {
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const contentType = response.headers.get('content-type');
+                        if (contentType && contentType.includes('application/json')) {
+                            return response.json().then(data => { throw new Error(data.message || 'خطا در ایجاد فایل'); });
+                        }
+                        return response.blob();
+                    })
+                    .then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = url;
+                        downloadLink.download = `purchases_export_importer_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+                        downloadLink.style.display = 'none';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        window.URL.revokeObjectURL(url);
+                        alert('فایل دانلود شد. وضعیت خریدهای انتخاب‌شده به «ارسال آدرس به واردکننده» تغییر کرد. در صورت نیاز صفحه را رفرش کنید.');
+                    })
+                    .catch(error => {
+                        console.error('❌ خطا در خروجی اکسل واردکننده:', error);
+                        alert(`خطا در ایجاد فایل اکسل: ${error.message}`);
+                    })
+                    .finally(() => {
+                        exportForImporterBtn.innerHTML = originalText;
+                        exportForImporterBtn.disabled = false;
+                        window.updateExportButton();
+                    });
+                });
+            }
             
             // فراخوانی اولیه برای تنظیم وضعیت دکمه
             window.updateExportButton();

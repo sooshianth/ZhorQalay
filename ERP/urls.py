@@ -32,6 +32,7 @@ urlpatterns = [
     path('purchase/reset_column_order/', purchase_list_view.reset_column_order, name='reset_column_order'),
     path('purchases/clear-cache/', purchase_list_view.clear_column_cache, name='clear_column_cache'),
     path('purchases/export/', purchase_list_view.export_to_excel, name='export_purchases'),
+    path('purchases/export-for-importer/', purchase_list_view.export_to_excel_for_importer, name='export_purchases_for_importer'),
     path('purchases/export-full/', purchase_list_view.export_full_purchase_excel, name='export_full_purchases'),
 
     path('purchases/aggregated-stats/', purchase_list_view.get_purchase_aggregated_stats, name='purchase_aggregated_stats'),
