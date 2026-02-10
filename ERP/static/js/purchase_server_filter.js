@@ -11,6 +11,9 @@ class PurchaseServerFilter {
             return;
         }
         
+        if (!window.__purchaseServerFilterInstances) window.__purchaseServerFilterInstances = [];
+        window.__purchaseServerFilterInstances.push(this);
+        
         // تشخیص بخش بر اساس نام جدول
         if (tableSelector.includes('pending') || tableSelector.includes('Pending')) {
             this.section = 'pending';
@@ -150,33 +153,32 @@ class PurchaseServerFilter {
             
             let searchTimeout;
             
-            // event listener برای تایپ در جستجوی سریع
+            // جستجوی لحظه‌ای: با تایپ، همه جداول فیلتر می‌شوند
             globalSearchInput.addEventListener('input', (e) => {
-                // پاک کردن timeout قبلی
                 clearTimeout(searchTimeout);
-                
-                // تنظیم timeout جدید برای جلوگیری از درخواست‌های زیاد
                 searchTimeout = setTimeout(() => {
-                    // بازگشت به صفحه اول وقتی جستجو تغییر میکنه
-                    this.currentPage = 1;
-                    // پاک کردن cache ستون‌ها چون نتایج تغییر کرده
-                    this.columnValuesCache = {};
-                    // اعمال فیلتر
-                    this.applyFilters();
-                }, 500); // 500ms تاخیر
+                    window.applyPurchaseListGlobalSearch();
+                }, 400);
             });
             
-            // event listener برای کلید Enter
             globalSearchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
                     clearTimeout(searchTimeout);
-                    this.currentPage = 1;
-                    this.columnValuesCache = {};
-                    this.applyFilters();
+                    window.applyPurchaseListGlobalSearch();
                 }
             });
         }
+    }
+    
+    /** اعمال جستجوی سراسری روی همه جداول (صفحه اول + پاک کردن cache) */
+    static applyGlobalSearchToAllTables() {
+        const instances = window.__purchaseServerFilterInstances || [];
+        instances.forEach(inst => {
+            inst.currentPage = 1;
+            inst.columnValuesCache = {};
+            inst.applyFilters();
+        });
     }
     
     setupFilterButtons() {
@@ -1589,6 +1591,13 @@ function formatJalaliDateString(gregorianStr) {
     return `${jy}/${jm.toString().padStart(2, '0')}/${jd.toString().padStart(2, '0')}`;
 }
 
+/** تابع سراسری برای اعمال جستجوی لحظه‌ای روی همه جداول خرید */
+window.applyPurchaseListGlobalSearch = function() {
+    if (typeof PurchaseServerFilter !== 'undefined' && PurchaseServerFilter.applyGlobalSearchToAllTables) {
+        PurchaseServerFilter.applyGlobalSearchToAllTables();
+    }
+};
+
 // راه‌اندازی خودکار
 document.addEventListener('DOMContentLoaded', function() {
     // راه‌اندازی فیلتر برای هر جدول به صورت جداگانه
@@ -1604,4 +1613,20 @@ document.addEventListener('DOMContentLoaded', function() {
             new PurchaseServerFilter(tableSelector);
         }
     });
+    
+    // جلوگیری از ارسال فرم جستجو و اعمال لحظه‌ای
+    const searchForm = document.getElementById('searchForm') || document.querySelector('.purchase-global-search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (window.applyPurchaseListGlobalSearch) window.applyPurchaseListGlobalSearch();
+            return false;
+        });
+    }
+    const applySearchBtn = document.getElementById('applySearchBtn');
+    if (applySearchBtn) {
+        applySearchBtn.addEventListener('click', function() {
+            if (window.applyPurchaseListGlobalSearch) window.applyPurchaseListGlobalSearch();
+        });
+    }
 }); 

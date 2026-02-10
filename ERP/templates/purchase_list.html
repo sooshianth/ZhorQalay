@@ -32,6 +32,101 @@
     .global-selection-info {
         transition: all 0.3s ease;
     }
+    /* استایل هدر و دکمه‌ها و جستجو مشابه لیست بارنامه‌ها */
+    .page-header {
+        background: linear-gradient(135deg, #065F46 0%, #047857 100%);
+        padding: 2rem;
+        border-radius: 1.5rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+    }
+    .page-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 100%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        transform: rotate(45deg);
+    }
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        text-align: right;
+    }
+    .page-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.9;
+        font-size: 1rem;
+        position: relative;
+        z-index: 1;
+        text-align: right;
+    }
+    .purchase-list-actions.d-flex.gap-3 {
+        gap: 15px !important;
+    }
+    .purchase-list-actions .btn {
+        padding: 8px 16px;
+        font-size: 0.9rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+    }
+    .purchase-list-actions .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    .search-container {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 2px solid #22c55e;
+        border-radius: 12px;
+        padding: 15px;
+        box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+        margin-bottom: 20px;
+    }
+    .search-container .d-flex h3 {
+        color: #16a34a !important;
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+    }
+    .search-container .form-control {
+        border: 2px solid #bbf7d0;
+        border-radius: 8px;
+        padding: 8px 40px 8px 12px;
+        font-size: 0.85rem;
+        transition: all 0.3s ease;
+        background-color: white;
+    }
+    .search-container .form-control:focus {
+        border-color: #22c55e;
+        box-shadow: 0 0 0 0.2rem rgba(34, 197, 94, 0.25);
+        background-color: #fefffe;
+    }
+    .search-container .form-control::placeholder {
+        color: #6b7280;
+        font-size: 0.8rem;
+    }
+    .search-container .search-icon i {
+        color: #22c55e !important;
+        font-size: 0.9rem;
+    }
+    .search-container .small {
+        font-size: 0.75rem !important;
+        color: #16a34a !important;
+        margin-top: 8px !important;
+    }
+    .search-container .small i {
+        color: #fbbf24 !important;
+        font-size: 0.8rem;
+    }
     </style>
     {% bulk_edit_scripts %}
     {% edit_history_scripts %}
@@ -237,20 +332,21 @@ document.addEventListener('DOMContentLoaded', function() {
 <link rel="stylesheet" href="{% static 'vendor/bootstrap-5.3.2/css/bootstrap.min.css' %}">
 <link rel="stylesheet" href="{% static 'vendor/fontawesome-6.4.2/css/all.min.css' %}">
 
-<div class="container py-4">
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="mb-0 section-title">لیست خریدها</h1>
-    
-    <!-- دکمه ایجاد خرید جدید - فقط برای ادمین و مدیران -->
+<div class="container-fluid" style="padding: 20px;">
+    <!-- هدر صفحه (مشابه لیست بارنامه‌ها) -->
+    <div class="page-header">
+        <h1><i class="fas fa-shopping-cart me-3"></i> لیست خریدها</h1>
+        <p>مدیریت و پیگیری خریدهای بازارگاه</p>
+    </div>
+
+    <!-- دکمه‌های مدیریت -->
+    <div class="mb-4 purchase-list-actions">
+        <div class="d-flex gap-3 flex-wrap text-start">
     {% if request.user.is_superuser or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
-    <a href="{% url 'create_purchase' %}" class="btn btn-success btn-lg shadow-sm">
-        <i class="fas fa-plus-circle me-2"></i>
-        ایجاد خرید جدید
+    <a href="{% url 'create_purchase' %}" class="btn btn-success shadow-sm">
+        <i class="fas fa-plus-circle me-2"></i>ایجاد خرید جدید
     </a>
     {% endif %}
-</div>
-
-<div class="text-start mb-4 d-flex gap-3 flex-wrap">
     <!-- دکمه مدیریت ستون‌ها - فقط برای نقش‌های غیر محدود -->
     {% if not is_restricted_user and request.user.is_superuser or user_role == 'logistics_manager' or user_role == 'financial_manager' %}
     <button class="btn btn-info text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#columnsModal">
@@ -272,12 +368,14 @@ document.addEventListener('DOMContentLoaded', function() {
     <button id="exportBtn" class="btn btn-success shadow-sm" disabled>
         <i class="fas fa-file-excel me-2"></i> خروجی اکسل
     </button>
-    
-    <!-- دکمه خروجی اکسل واردکننده (همان خروجی اکسل + تغییر وضعیت به ارسال به واردکننده) -->
+    {% endif %}
+    {% if user_role == 'admin' or user_role == 'logistics_manager' %}
+    <!-- دکمه خروجی اکسل واردکننده (فقط ادمین و لجستیک) -->
     <button id="exportForImporterBtn" class="btn btn-info shadow-sm text-white" disabled title="خروجی اکسل همانند خروجی عادی؛ پس از دانلود وضعیت خریدها به «ارسال آدرس به واردکننده» تغییر می‌کند">
         <i class="fas fa-file-export me-2"></i> خروجی اکسل واردکننده
     </button>
-    
+    {% endif %}
+    {% if user_role == 'admin' or user_role == 'financial_manager' or user_role == 'logistics_manager' %}
     <!-- دکمه خروجی اکسل کامل -->
     <button id="fullExportBtn" class="btn btn-primary shadow-sm" data-bs-toggle="modal" data-bs-target="#fullExportModal">
         <i class="fas fa-download me-2"></i> خروجی اکسل کامل
@@ -291,7 +389,8 @@ document.addEventListener('DOMContentLoaded', function() {
         <i class="fas fa-id-card me-2"></i> لیست شناسه‌های تخصیص
     </a>
     {% endif %}
-</div>
+        </div>
+    </div>
 
 <!-- مدال مدیریت ستون‌ها -->
 <div class="modal fade" id="columnsModal" tabindex="-1" aria-hidden="true">
@@ -356,25 +455,38 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- نوار جستجوی اصلی -->
-<div class="search-panel mb-4 shadow-sm">
-    <form id="searchForm" method="GET" action="">
-        <div class="row">
+<!-- جستجوی هوشمند لحظه‌ای (بدون نیاز به دکمه جستجو) -->
+<div class="search-container">
+    <form id="searchForm" method="GET" action="" class="purchase-global-search-form">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="fas fa-search" style="color: #16a34a;"></i>
+            <h3 class="h5 mb-0 fw-semibold">جستجوی هوشمند</h3>
+        </div>
+        <div class="row align-items-end g-2">
             <div class="col-md-8">
-                <label for="globalSearch" class="form-label fw-bold"><i class="fas fa-search me-2"></i>جستجوی سریع:</label>
-                <input type="text" id="globalSearch" name="global_search" class="form-control" 
-                       placeholder="جستجوی سریع در تمام فیلدها..." value="{{ search_params.global_search }}">
+                <div class="position-relative">
+                    <input type="text" id="globalSearch" name="global_search" class="form-control"
+                           placeholder="جستجو در تمام فیلدها... (لحظه‌ای)"
+                           value="{{ search_params.global_search }}" autocomplete="off">
+                    <div class="search-icon position-absolute top-50 end-0 translate-middle-y me-3">
+                        <i class="fas fa-search text-muted"></i>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <button type="submit" class="btn btn-success w-100 text-white shadow-sm">
-                    <i class="fas fa-search me-2"></i>جستجو
+            <div class="col-md-2">
+                <button type="button" id="applySearchBtn" class="btn btn-success w-100 text-white" title="اعمال فوری فیلتر">
+                    <i class="fas fa-search me-2"></i>اعمال فوری
                 </button>
             </div>
-            <div class="col-md-2 d-flex align-items-end">
-                <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100 shadow-sm">
+            <div class="col-md-2">
+                <a href="{% url 'purchase_list' %}" class="btn btn-secondary w-100">
                     <i class="fas fa-times me-2"></i>پاک کردن
                 </a>
             </div>
+        </div>
+        <div class="mt-2 small d-flex align-items-center gap-2">
+            <i class="fas fa-lightbulb"></i>
+            <span>جستجوی لحظه‌ای در تمام فیلدها — بدون نیاز به زدن دکمه</span>
         </div>
         <!-- Hidden inputs to preserve other search parameters -->
         {% for key, value in search_params.items %}
@@ -2814,5 +2926,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
+</div><!-- end container-fluid -->
 
 {% endblock content %}

@@ -1087,7 +1087,7 @@ def export_to_excel(request):
         return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل:'}, status=500)
 
 
-@role_required('admin', 'logistics_manager', 'financial_manager', 'sales_agent', 'support_agent')
+@role_required('admin', 'logistics_manager')
 @login_required
 def export_to_excel_for_importer(request):
     """
