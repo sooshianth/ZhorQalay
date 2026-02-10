@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, Sum
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from django.views.decorators.http import require_POST
 from django.http import HttpResponse, JsonResponse
 import json
@@ -1123,7 +1123,7 @@ def export_to_excel_for_importer(request):
         return JsonResponse({'status': 'error', 'message': 'هیچ خریدی انتخاب نشده است'}, status=400)
 
     try:
-        response = _export_regular_excel(purchase_ids, selected_columns)
+        response = _export_regular_excel(purchase_ids, selected_columns, for_importer=True)
         # در خروجی اکسل عادی تنها پاسخ 200 = فایل اکسل است (خطاها 400/500 با JsonResponse برمی‌گردند)
         if response.status_code == 200:
             updated = 0
@@ -1144,8 +1144,8 @@ def export_to_excel_for_importer(request):
         return JsonResponse({'status': 'error', 'message': 'خطا در ایجاد فایل اکسل'}, status=500)
 
 
-def _export_regular_excel(purchase_ids, selected_columns):
-    """پردازش معمولی برای تعداد کم خرید"""
+def _export_regular_excel(purchase_ids, selected_columns, for_importer=False):
+    """پردازش معمولی برای تعداد کم خرید. اگر for_importer=True استایل مطابق فایل مرجع واردکننده اعمال می‌شود."""
     purchases = Purchase.objects.filter(id__in=purchase_ids).select_related(
         'customer', 'cargo', 'unique_sales_agent'
     ).prefetch_related(
@@ -1236,7 +1236,7 @@ def _export_regular_excel(purchase_ids, selected_columns):
     # افزودن هدرها به اکسل
     ws.append(headers)
     
-    ws.sheet_view.rightToLeft = True
+    ws.sheet_view.rightToLeft = False if for_importer else True
 
     # داده‌ها
     for purchase in purchases:
@@ -1252,8 +1252,45 @@ def _export_regular_excel(purchase_ids, selected_columns):
         
         ws.append(row)
     
+    # استایل مطابق فایل مرجع واردکننده (عنوان سبز، هدر بنفش، سطرهای داده خاکستری، حاشیه، تراز وسط، فونت Tahoma)
+    if for_importer:
+        num_cols = len(headers)
+        ws.insert_rows(1)
+        title_cell = ws.cell(row=1, column=1, value='ثبت اطلاعات حمل')
+        if num_cols > 1:
+            ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=num_cols)
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        title_font = Font(name='Tahoma', size=12, bold=True, color='008B00')
+        header_fill = PatternFill(start_color='4A3C8C', end_color='4A3C8C', fill_type='solid')
+        header_font = Font(name='Tahoma', size=11, bold=True, color='E7E7FF')
+        row_fill = PatternFill(start_color='DEDFDE', end_color='DEDFDE', fill_type='solid')
+        row_font = Font(name='Tahoma', size=11, color='000000')
+        center_align = Alignment(horizontal='center', vertical='center', wrap_text=True)
+        title_cell.font = title_font
+        title_cell.alignment = center_align
+        title_cell.border = thin_border
+        for row_idx, row_cells in enumerate(ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=num_cols), start=1):
+            for cell in row_cells:
+                if row_idx == 1:
+                    continue
+                cell.border = thin_border
+                cell.alignment = center_align
+                if row_idx == 2:
+                    cell.fill = header_fill
+                    cell.font = header_font
+                else:
+                    cell.fill = row_fill
+                    cell.font = row_font
+        for col_idx in range(1, num_cols + 1):
+            ws.column_dimensions[ws.cell(row=2, column=col_idx).column_letter].width = 14
+    
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    filename = f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    filename = f"purchases_export_importer_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx" if for_importer else f"purchases_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     logger.warning(filename)

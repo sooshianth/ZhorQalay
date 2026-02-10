@@ -2357,7 +2357,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         downloadLink.click();
                         document.body.removeChild(downloadLink);
                         window.URL.revokeObjectURL(url);
-                        alert('فایل دانلود شد. وضعیت خریدهای انتخاب‌شده به «ارسال آدرس به واردکننده» تغییر کرد. در صورت نیاز صفحه را رفرش کنید.');
+                        setTimeout(function() { window.location.reload(); }, 500);
                     })
                     .catch(error => {
                         console.error('❌ خطا در خروجی اکسل واردکننده:', error);
