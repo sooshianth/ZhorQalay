@@ -721,6 +721,7 @@ def apply_barnameh_filter(request):
                 'created_at': barnameh.barnameh_created_at.strftime("%Y/%m/%d") if hasattr(barnameh, 'barnameh_created_at') and barnameh.barnameh_created_at else "",
                 'factor_sodoor_season': barnameh.factor_sodoor_season or "",
                 'factor_date': barnameh.factor_date.strftime("%Y/%m/%d") if barnameh.factor_date else "",
+                'factor_exported_at': barnameh.factor_exported_at.strftime("%Y-%m-%d %H:%M") if getattr(barnameh, 'factor_exported_at', None) else None,
                 'buyer_postal_code': barnameh.get_buyer_postal_code() or "",
                 # Related data from purchase
                 'cargo': get_related_data(barnameh, 'purchase.cargo.cottage'),
@@ -2326,6 +2327,175 @@ def _export_barnameh_excel(barnameh_ids, selected_columns):
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     wb.save(response)
     logger.warning(f"Excel file created: {filename}")
+    return response
+
+
+@role_required('logistics_manager', 'admin', 'financial_manager')
+def export_barnameh_excel_factor(request):
+    """
+    خروجی اکسل فاکتور از بارنامه‌های انتخاب شده.
+    - تمام سطرها باید واردکننده یکسان داشته باشند؛ وگرنه خطا برمی‌گرداند.
+    - ستون «شماره حسابداری» خرید هر بارنامه اضافه می‌شود.
+    - خروجی بر اساس شماره حسابداری سورت می‌شود.
+    """
+    import traceback
+    logger.warning(f"خروجی اکسل فاکتور بارنامه‌ها توسط {request.user.username} با آی‌پی {get_client_ip(request)} آغاز شد")
+
+    if request.method == 'POST':
+        barnameh_ids = request.POST.get('ids', '').split(',')
+        selected_columns = request.POST.get('columns', '')
+    else:
+        barnameh_ids = request.GET.get('ids', '').split(',')
+        selected_columns = request.GET.get('columns', '')
+
+    if selected_columns:
+        selected_columns = selected_columns.strip('"').replace('\\054', ',').replace('\\\\', '\\')
+        selected_columns = [col.strip() for col in selected_columns.split(',') if col.strip()]
+    else:
+        selected_columns = get_barnameh_columns_from_cookie(request)
+        if not selected_columns:
+            selected_columns = ['number', 'serial', 'tonnage', 'status', 'driver_name', 'barnameh_date']
+
+    barnameh_ids = [bid.strip() for bid in barnameh_ids if bid.strip()]
+    if not barnameh_ids:
+        return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای انتخاب نشده است'}, status=400)
+
+    try:
+        barnamehs_qs = Barnameh.objects.select_related(
+            'purchase',
+            'purchase__cargo',
+            'purchase__cargo__vared_konandeh',
+        ).filter(id__in=barnameh_ids)
+
+        if barnamehs_qs.count() == 0:
+            return JsonResponse({'status': 'error', 'message': 'هیچ بارنامه‌ای با شناسه‌های داده شده یافت نشد'}, status=400)
+
+        # بررسی یکسان بودن واردکننده (بر اساس vared_konandeh)
+        importer_ids = set()
+        for b in barnamehs_qs:
+            vid = None
+            if b.purchase and b.purchase.cargo and b.purchase.cargo.vared_konandeh_id:
+                vid = b.purchase.cargo.vared_konandeh_id
+            importer_ids.add(vid)
+
+        if len(importer_ids) > 1:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'برای خروجی فاکتور، تمام بارنامه‌های انتخاب شده باید واردکننده یکسان داشته باشند. لطفاً فقط بارنامه‌های یک واردکننده را انتخاب کنید.'
+            }, status=400)
+
+        barnamehs_list = list(barnamehs_qs)
+        # بررسی اینکه قبلاً برای خروجی فاکتور استفاده نشده باشند
+        already_exported = [b for b in barnamehs_list if getattr(b, 'factor_exported_at', None)]
+        if already_exported:
+            numbers = ', '.join((b.number or str(b.id)) for b in already_exported[:10])
+            if len(already_exported) > 10:
+                numbers += f' و {len(already_exported) - 10} مورد دیگر'
+            return JsonResponse({
+                'status': 'error',
+                'message': f'این بارنامه‌ها قبلاً در خروجی فاکتور استفاده شده‌اند و امکان خروجی مجدد ندارند: {numbers}'
+            }, status=400)
+
+        # مرتب‌سازی بر اساس شماره حسابداری خرید (مقدار خالی آخر)
+        def sort_key(b):
+            an = (b.purchase.accounting_number or '') if b.purchase else ''
+            return (an == '', an)  # empty last, then by value
+
+        barnamehs_list.sort(key=sort_key)
+
+        response = _export_barnameh_excel_factor(barnamehs_list, selected_columns)
+        # علامت‌گذاری بارنامه‌ها به‌عنوان «خروجی فاکتور گرفته شده»
+        Barnameh.objects.filter(id__in=barnameh_ids).update(factor_exported_at=timezone.now())
+        return response
+    except Exception as e:
+        logger.warning(f"Error in export_barnameh_excel_factor: {str(e)}, {traceback.format_exc()}")
+        return JsonResponse({'status': 'error', 'message': f'خطا در ایجاد فایل اکسل فاکتور'}, status=500)
+
+
+def _export_barnameh_excel_factor(barnamehs_list, selected_columns):
+    """خروجی اکسل فاکتور: همان ستون‌های عادی + شماره حسابداری، سورت بر اساس شماره حسابداری."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "فاکتور"
+
+    ws.sheet_view.rightToLeft = True
+    header_font = Font(bold=True)
+    header_fill = PatternFill(start_color='D3D3D3', end_color='D3D3D3', fill_type='solid')
+    alignment = Alignment(horizontal='right', vertical='center')
+
+    column_mapping = {
+        'accounting_number': ('شماره حسابداری', lambda b: (b.purchase.accounting_number or '') if b.purchase else ''),
+        'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
+        'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
+        'barnameh_date': ('تاریخ بارنامه', lambda b: b.barnameh_date.strftime("%Y/%m/%d") if b.barnameh_date else "-"),
+        'driver_name': ('نام راننده', lambda b: b.driver_name or "-"),
+        'driver_phone': ('تلفن راننده', lambda b: b.driver_phone or "-"),
+        'vehicle_plate': ('پلاک', lambda b: b.vehicle_plate or "-"),
+        'tonnage': ('وزن', lambda b: f"{int(b.tonnage)}" if b.tonnage else "0"),
+        'shenase_takhsis_code': ('شناسه تخصیص', lambda b: b.shenase_takhsis_code or "-"),
+        'status': ('وضعیت', lambda b: b.get_status_display() if b.status else "-"),
+        'receiver_name': ('نام تحویل گیرنده', lambda b: b.get_delivery_receiver_name() or "-"),
+        'destination': ('آدرس تحویل', lambda b: b.get_delivery_address() or "-"),
+        'purchase_number': ('شماره خرید', lambda b: b.purchase_number or "-"),
+        'cargo': ('کوتاژ', lambda b: str(b.get_cargo()) if b.get_cargo() else "-"),
+        'company_price': ('فی خرید', lambda b: f"{b.get_company_price():,}" if b.get_company_price() and b.get_company_price() > 0 else "0"),
+        'customer_price': ('فی فروش', lambda b: f"{b.get_customer_price():,}" if b.get_customer_price() and b.get_customer_price() > 0 else "0"),
+        'total_sales_amount': ('مبلغ کل فروش', lambda b: f"{b.get_total_sales_amount():,.0f}" if b.get_total_sales_amount() else "-"),
+        'total_purchase_amount': ('مبلغ کل خرید', lambda b: f"{b.get_total_purchase_amount():,.0f}" if b.get_total_purchase_amount() and b.get_total_purchase_amount() > 0 else "0"),
+        'buyer_name': ('نام خریدار', lambda b: b.get_buyer_name() or "-"),
+        'buyer_national_id': ('شماره ملی خریدار', lambda b: b.get_buyer_national_code() or "-"),
+        'buyer_postal_code': ('کدپستی خریدار', lambda b: b.get_buyer_postal_code() or "-"),
+        'buyer_address': ('آدرس خریدار', lambda b: b.get_buyer_address() or "-"),
+        'demand_amount': ('میزان تقاضا', lambda b: f"{b.get_demand_amount()}" if b.get_demand_amount() else "-"),
+        'importer': ('واردکننده', lambda b: str(b.get_importer()) if b.get_importer() else "-"),
+        'product_type': ('محصول', lambda b: b.get_product_type() or "-"),
+        'product_country': ('کشور محصول', lambda b: b.get_product_country() or "-"),
+        'successful_send_date': ('تاریخ ارسال موفق به بازارگاه', lambda b: b.get_successful_send_date().strftime("%Y/%m/%d") if b.get_successful_send_date() else "-"),
+        'is_sent_to_bki': ('ارسال به بازارگاه', lambda b: "بله" if b.is_sent_to_bki else "خیر"),
+        'created_at': ('تاریخ ایجاد', lambda b: b.barnameh_created_at.strftime("%Y/%m/%d") if b.barnameh_created_at else "-"),
+        'factor_sodoor_season': ('زمان صدور فاکتور فصل', lambda b: b.factor_sodoor_season or "-"),
+        'factor_date': ('تاریخ ثبت فاکتور در سامانه مؤدیان', lambda b: b.factor_date.strftime("%Y/%m/%d") if b.factor_date else "-"),
+    }
+
+    # ستون‌های خروجی: اول «شماره حسابداری»، بعد بقیه مطابق selected_columns
+    factor_columns = ['accounting_number']
+    for col in selected_columns:
+        if col != 'accounting_number' and col in column_mapping:
+            factor_columns.append(col)
+
+    headers = [column_mapping[col][0] for col in factor_columns]
+    ws.append(headers)
+
+    for i, cell in enumerate(ws[1], 1):
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+
+    row_idx = 2
+    for barnameh in barnamehs_list:
+        row = []
+        for col in factor_columns:
+            if col in column_mapping:
+                try:
+                    value = column_mapping[col][1](barnameh)
+                    row.append(value)
+                except Exception as e:
+                    logger.warning(f"خطا در استخراج {col} برای بارنامه {barnameh.id}: {str(e)}")
+                    row.append("0" if col in ['company_price', 'customer_price', 'total_sales_amount', 'total_purchase_amount', 'tonnage'] else "-")
+        ws.append(row)
+        for j, cell in enumerate(ws[row_idx], 1):
+            cell.alignment = alignment
+        row_idx += 1
+
+    for i in range(1, len(headers) + 1):
+        ws.column_dimensions[ws.cell(row=1, column=i).column_letter].width = 12
+    ws.freeze_panes = "A2"
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    filename = f"فاکتور_{timezone.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    wb.save(response)
+    logger.warning(f"Excel factor file created: {filename}")
     return response
 
 

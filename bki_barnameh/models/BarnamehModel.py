@@ -87,6 +87,7 @@ class Barnameh(models.Model):
     delivery_time = jmodels.jDateTimeField(verbose_name='زمان تحویل', null=True, blank=True)
 
     factor_date = jmodels.jDateField(verbose_name='تاریخ ثبت فاکتور در سامانه مؤدیان', null=True, blank=True)
+    factor_exported_at = jmodels.jDateTimeField(verbose_name='تاریخ خروجی فاکتور (اکسل)', null=True, blank=True)
 
 
     class Meta:

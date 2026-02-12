@@ -23,6 +23,7 @@
      data-filter-url="{% url 'apply_barnameh_filter' %}"
      data-column-values-url="{% url 'get_barnameh_column_values' %}"
      data-export-excel-url="{% url 'export_barnameh_excel' %}"
+     data-export-excel-factor-url="{% url 'export_barnameh_excel_factor' %}"
      style="display: none;"></div>
 
 <style>
@@ -599,6 +600,9 @@
             <button type="button" class="btn btn-warning btn-sm" id="exportToExcelBtn">
                 <i class="fas fa-file-excel me-2"></i>خروجی اکسل انتخاب شده
             </button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="exportToExcelFactorBtn" title="خروجی فاکتور: فقط برای بارنامه‌های با واردکننده یکسان؛ شامل شماره حسابداری و سورت بر اساس آن">
+                <i class="fas fa-file-invoice me-2"></i>خروجی اکسل فاکتور
+            </button>
             <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#fullExportModal">
                 <i class="fas fa-download me-2"></i>خروجی اکسل کامل
             </button>
@@ -800,7 +804,8 @@
                         data-is-sent-to-bki="{% if barnameh.is_sent_to_bki %}true{% else %}false{% endif %}"
                         data-is-factored="{% if barnameh.is_factored %}true{% else %}false{% endif %}"
                         data-is-created-by-excel="{% if barnameh.is_created_by_excel %}true{% else %}false{% endif %}"
-                        data-factor-sodoor-season="{{ barnameh.factor_sodoor_season|default:'' }}">
+                        data-factor-sodoor-season="{{ barnameh.factor_sodoor_season|default:'' }}"
+                        data-factor-exported="{% if barnameh.factor_exported_at %}true{% else %}false{% endif %}">
                         
                         <!-- Checkbox column -->
                         <td class="text-center" data-column="select">
@@ -813,7 +818,7 @@
                         {% for column in all_columns %}
                             {% if column.id in selected_columns and column.id != 'actions' %}
                                 {% if column.id == 'number' %}
-                                    <td class="column-number" data-column="number">{{ barnameh.number|default:"-" }}</td>
+                                    <td class="column-number" data-column="number">{{ barnameh.number|default:"-" }}{% if barnameh.factor_exported_at %}<span class="badge bg-secondary ms-1" title="خروجی فاکتور گرفته شده"><i class="fas fa-file-invoice"></i></span>{% endif %}</td>
                                 {% elif column.id == 'serial' %}
                                     <td class="column-serial" data-column="serial">{{ barnameh.serial|default:"-" }}</td>
                                 {% elif column.id == 'tonnage' %}
@@ -1252,6 +1257,60 @@ function exportSelectedToExcel() {
     document.body.removeChild(form);
 }
 
+function exportSelectedToExcelFactor() {
+    const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
+    if (selectedCheckboxes.length === 0) {
+        alert('لطفاً حداقل یک بارنامه انتخاب کنید');
+        return;
+    }
+    const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.id || cb.value);
+    const visibleColumns = [];
+    document.querySelectorAll('#barnamehTable thead th[data-column-id]').forEach(header => {
+        const columnId = header.getAttribute('data-column-id');
+        if (columnId && columnId !== 'actions' && columnId !== 'select') visibleColumns.push(columnId);
+    });
+    const columnsToExport = visibleColumns.length > 0 ? visibleColumns : [
+        'number', 'serial', 'tonnage', 'status', 'driver_name',
+        'driver_phone', 'vehicle_plate', 'receiver_name',
+        'destination', 'barnameh_date', 'purchase_number', 'shenase_takhsis_code'
+    ];
+    const configEl = document.getElementById('barnameh-server-config');
+    const factorUrl = configEl && configEl.dataset.exportExcelFactorUrl ? configEl.dataset.exportExcelFactorUrl : '';
+    if (!factorUrl) {
+        alert('آدرس خروجی فاکتور یافت نشد');
+        return;
+    }
+    const formData = new FormData();
+    formData.append('ids', selectedIds.join(','));
+    formData.append('columns', columnsToExport.join(','));
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) formData.append('csrfmiddlewaretoken', csrfToken.value);
+    const btn = document.getElementById('exportToExcelFactorBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>در حال ایجاد...'; }
+    fetch(factorUrl, { method: 'POST', body: formData, credentials: 'same-origin' })
+        .then(response => {
+            if (response.ok) {
+                return response.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'فاکتور_' + new Date().toISOString().slice(0, 19).replace(/:/g, '-') + '.xlsx';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                });
+            }
+            return response.json().then(data => {
+                alert(data.message || 'خطا در ایجاد فایل اکسل فاکتور');
+            });
+        })
+        .catch(err => { alert('خطا در ارتباط با سرور'); })
+        .finally(() => {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-file-invoice me-2"></i>خروجی اکسل فاکتور'; }
+        });
+}
+
 function bulkSendToBki() {
     const selectedCheckboxes = document.querySelectorAll('#barnamehTable .row-checkbox:checked');
     
@@ -1453,6 +1512,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportBtn = document.getElementById('exportToExcelBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportSelectedToExcel);
+    }
+    const exportFactorBtn = document.getElementById('exportToExcelFactorBtn');
+    if (exportFactorBtn) {
+        exportFactorBtn.addEventListener('click', exportSelectedToExcelFactor);
     }
     
     // فعال کردن tooltips

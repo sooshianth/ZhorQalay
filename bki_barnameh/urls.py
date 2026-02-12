@@ -18,6 +18,7 @@ urlpatterns = [
     
     # مسیرهای جدید
     path('export-barnameh-excel/', views.export_barnameh_excel, name='export_barnameh_excel'),
+    path('export-barnameh-excel-factor/', views.export_barnameh_excel_factor, name='export_barnameh_excel_factor'),
     path('edit-in-bki/<int:barnameh_id>/', views.edit_barnameh_in_bki, name='edit_barnameh_in_bki'),
     path('estelam/<int:barnameh_id>/', views.estelame_barnameh_view, name='estelame_barnameh'),
     

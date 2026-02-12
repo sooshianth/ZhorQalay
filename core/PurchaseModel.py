@@ -122,6 +122,8 @@ class Purchase(BasePurchase):
     factor_status = models.CharField("وضعیت فاکتور", max_length=20, choices=FACTOR_CHOICES, default='not_factored')
     is_naghes_factored = models.BooleanField("فاکتور ناقص", default=False)
 
+    accounting_number = models.CharField("شماره حسابداری", max_length=50, blank=True, null=True)
+
     def is_merged_purchase(self):
         """
         بررسی اینکه آیا این خرید بازارگاه قبلاً با خرید دستی ادغام شده است یا نه

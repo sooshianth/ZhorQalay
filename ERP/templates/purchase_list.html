@@ -619,6 +619,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<div class="mb-2 d-flex justify-content-end">
+    <button type="button" class="btn btn-sm btn-outline-primary btn-select-all-in-table" data-table-id="pendingPurchasesTable" title="انتخاب همه سطرهای در حال نمایش در این جدول">
+        <i class="fas fa-check-double me-1"></i>انتخاب همه (سطرهای نمایش‌داده‌شده)
+    </button>
+</div>
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center python-excel-filter" id="pendingPurchasesTable" 
        data-filter-url="{% url 'apply_purchase_filter' %}"
@@ -633,7 +638,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="checkbox" class="select-all-checkbox-pending" 
                                style="width: 20px; height: 20px; cursor: pointer;" 
                                title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
-                               oncontextmenu="return false;">
+                               oncontextmenu="return false;"
+                               onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
                                 type="button" 
                                 data-bs-toggle="dropdown" 
@@ -1089,6 +1095,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<div class="mb-2 d-flex justify-content-end">
+    <button type="button" class="btn btn-sm btn-outline-primary btn-select-all-in-table" data-table-id="activePurchasesTable" title="انتخاب همه سطرهای در حال نمایش در این جدول">
+        <i class="fas fa-check-double me-1"></i>انتخاب همه (سطرهای نمایش‌داده‌شده)
+    </button>
+</div>
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center python-excel-filter" id="activePurchasesTable"
        data-filter-url="{% url 'apply_purchase_filter' %}"
@@ -1103,7 +1114,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="checkbox" class="select-all-checkbox" 
                                style="width: 20px; height: 20px; cursor: pointer;" 
                                title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
-                               oncontextmenu="return false;">
+                               oncontextmenu="return false;"
+                               onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
                                 type="button" 
                                 data-bs-toggle="dropdown" 
@@ -1603,6 +1615,11 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
+<div class="mb-2 d-flex justify-content-end">
+    <button type="button" class="btn btn-sm btn-outline-primary btn-select-all-in-table" data-table-id="archivedPurchasesTable" title="انتخاب همه سطرهای در حال نمایش در این جدول">
+        <i class="fas fa-check-double me-1"></i>انتخاب همه (سطرهای نمایش‌داده‌شده)
+    </button>
+</div>
 <div class="table-responsive shadow-sm rounded">
 <table class="table table-bordered table-striped align-middle text-center python-excel-filter" 
        id="archivedPurchasesTable"
@@ -1618,7 +1635,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         <input type="checkbox" class="select-all-checkbox-archived" 
                                style="width: 20px; height: 20px; cursor: pointer;" 
                                title="کلیک: انتخاب همه در صفحه | راست کلیک: انتخاب همه در بخش"
-                               oncontextmenu="return false;">
+                               oncontextmenu="return false;"
+                               onclick="event.stopPropagation();">
                         <button class="btn btn-sm btn-outline-secondary dropdown-toggle ms-1" 
                                 type="button" 
                                 data-bs-toggle="dropdown" 
@@ -2489,6 +2507,41 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('❌ دکمه خروجی اکسل یافت نشد!');
         }
         
+        // تابع همگام‌سازی چک‌باکس سرستون با سطرهای همان جدول
+        function syncHeaderCheckboxToRows(headerCheckbox) {
+            if (!headerCheckbox) return;
+            const table = headerCheckbox.closest('table');
+            if (!table) return;
+            const isChecked = headerCheckbox.checked;
+            const rowCheckboxes = table.querySelectorAll('tbody .row-checkbox');
+            rowCheckboxes.forEach(function(cb) { cb.checked = isChecked; });
+            if (window.updateExportButton) window.updateExportButton();
+            if (window.purchaseStatsManager) window.purchaseStatsManager.updateGlobalSelectionCount();
+            document.querySelectorAll('.row-checkbox').forEach(function(cb) {
+                const row = cb.closest('tr');
+                if (row) {
+                    if (cb.checked) row.classList.add('table-warning', 'selected-row');
+                    else row.classList.remove('table-warning', 'selected-row');
+                }
+            });
+        }
+        
+        // کلیک روی سرستون چک‌باکس: اگر کلیک به چک‌باکس نرسیده بود، خودمان toggle می‌کنیم و سطرها را همگام می‌کنیم
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.dropdown-toggle')) return;
+            const th = e.target.closest('th');
+            if (!th) return;
+            const headerCheckbox = th.querySelector('.select-all-checkbox, .select-all-checkbox-pending, .select-all-checkbox-archived');
+            if (!headerCheckbox) return;
+            if (e.target === headerCheckbox) {
+                setTimeout(function() { syncHeaderCheckboxToRows(headerCheckbox); }, 0);
+            } else {
+                headerCheckbox.checked = !headerCheckbox.checked;
+                headerCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                syncHeaderCheckboxToRows(headerCheckbox);
+            }
+        });
+        
         // اضافه کردن event listener برای چک‌باکس‌ها
         document.addEventListener('change', function(e) {
             if (e.target && e.target.classList.contains('row-checkbox')) {
@@ -2515,29 +2568,30 @@ document.addEventListener('DOMContentLoaded', function() {
                             e.target.classList.contains('select-all-checkbox-pending') ||
                             e.target.classList.contains('select-all-checkbox-archived'))) {
                 console.log('🔄 تغییر در چک‌باکس انتخاب همه');
-                setTimeout(() => {
-                    window.updateExportButton();
-                    // همگام‌سازی با purchaseStatsManager
-                    if (window.purchaseStatsManager) {
-                        window.purchaseStatsManager.updateGlobalSelectionCount();
-                    }
-                    
-                    // بروزرسانی رنگ سطرها
-                    document.querySelectorAll('.row-checkbox').forEach(checkbox => {
-                        const row = checkbox.closest('tr');
-                        if (row) {
-                            if (checkbox.checked) {
-                                row.classList.add('table-warning', 'selected-row');
-                            } else {
-                                row.classList.remove('table-warning', 'selected-row');
-                            }
-                        }
-                    });
-                }, 100);
+                syncHeaderCheckboxToRows(e.target);
             }
         });
         
         console.log('✅ راه‌اندازی دکمه خروجی اکسل کامل شد');
+        
+        // دکمه‌های «انتخاب همه (سطرهای نمایش‌داده‌شده)» بالای هر جدول
+        document.querySelectorAll('.btn-select-all-in-table').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var tableId = this.getAttribute('data-table-id');
+                if (!tableId) return;
+                var table = document.getElementById(tableId);
+                if (!table) return;
+                var checkboxes = table.querySelectorAll('tbody tr:not(.no-data-row) .row-checkbox');
+                checkboxes.forEach(function(cb) {
+                    cb.checked = true;
+                    var row = cb.closest('tr');
+                    if (row) row.classList.add('table-warning', 'selected-row');
+                    cb.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+                if (window.updateExportButton) window.updateExportButton();
+                if (window.purchaseStatsManager) window.purchaseStatsManager.updateGlobalSelectionCount();
+            });
+        });
         
         // راه‌اندازی bulk edit manager
         if (typeof BulkEditManager !== 'undefined') {

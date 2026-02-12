@@ -803,7 +803,8 @@ class BarnamehServerFilter {
                 // قبلاً اضافه شده
                 return;
             } else if (columnId === 'number') {
-                rowHtml += `<td class="column-number" data-column="number">${barnameh.number || "-"}</td>`;
+                const factorBadge = barnameh.factor_exported_at ? '<span class="badge bg-secondary ms-1" title="خروجی فاکتور گرفته شده"><i class="fas fa-file-invoice"></i></span>' : '';
+                rowHtml += `<td class="column-number" data-column="number">${barnameh.number || "-"}${factorBadge}</td>`;
             } else if (columnId === 'serial') {
                 rowHtml += `<td class="column-serial" data-column="serial">${barnameh.serial || "-"}</td>`;
             } else if (columnId === 'tonnage') {
