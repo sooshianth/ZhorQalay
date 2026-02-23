@@ -2335,7 +2335,7 @@ def export_barnameh_excel_factor(request):
     """
     خروجی اکسل فاکتور از بارنامه‌های انتخاب شده.
     - تمام سطرها باید واردکننده یکسان داشته باشند؛ وگرنه خطا برمی‌گرداند.
-    - ستون «شماره حسابداری» خرید هر بارنامه اضافه می‌شود.
+    - ستون «شماره حسابداری» از تخصیص هر بارنامه (شناسه تخصیص یا تخصیص غیر بازارگاه) گرفته می‌شود.
     - خروجی بر اساس شماره حسابداری سورت می‌شود.
     """
     import traceback
@@ -2363,6 +2363,8 @@ def export_barnameh_excel_factor(request):
     try:
         barnamehs_qs = Barnameh.objects.select_related(
             'purchase',
+            'shenase_takhsis',
+            'non_bazargah_allocation',
             'purchase__cargo',
             'purchase__cargo__vared_konandeh',
         ).filter(id__in=barnameh_ids)
@@ -2385,20 +2387,9 @@ def export_barnameh_excel_factor(request):
             }, status=400)
 
         barnamehs_list = list(barnamehs_qs)
-        # بررسی اینکه قبلاً برای خروجی فاکتور استفاده نشده باشند
-        already_exported = [b for b in barnamehs_list if getattr(b, 'factor_exported_at', None)]
-        if already_exported:
-            numbers = ', '.join((b.number or str(b.id)) for b in already_exported[:10])
-            if len(already_exported) > 10:
-                numbers += f' و {len(already_exported) - 10} مورد دیگر'
-            return JsonResponse({
-                'status': 'error',
-                'message': f'این بارنامه‌ها قبلاً در خروجی فاکتور استفاده شده‌اند و امکان خروجی مجدد ندارند: {numbers}'
-            }, status=400)
-
-        # مرتب‌سازی بر اساس شماره حسابداری خرید (مقدار خالی آخر)
+        # مرتب‌سازی بر اساس شماره حسابداری تخصیص (مقدار خالی آخر)
         def sort_key(b):
-            an = (b.purchase.accounting_number or '') if b.purchase else ''
+            an = b.get_accounting_number()
             return (an == '', an)  # empty last, then by value
 
         barnamehs_list.sort(key=sort_key)
@@ -2413,7 +2404,7 @@ def export_barnameh_excel_factor(request):
 
 
 def _export_barnameh_excel_factor(barnamehs_list, selected_columns):
-    """خروجی اکسل فاکتور: همان ستون‌های عادی + شماره حسابداری، سورت بر اساس شماره حسابداری."""
+    """خروجی اکسل فاکتور: همان ستون‌های عادی + شماره حسابداری (از تخصیص)، سورت بر اساس شماره حسابداری."""
     wb = Workbook()
     ws = wb.active
     ws.title = "فاکتور"
@@ -2424,7 +2415,7 @@ def _export_barnameh_excel_factor(barnamehs_list, selected_columns):
     alignment = Alignment(horizontal='right', vertical='center')
 
     column_mapping = {
-        'accounting_number': ('شماره حسابداری', lambda b: (b.purchase.accounting_number or '') if b.purchase else ''),
+        'accounting_number': ('شماره حسابداری', lambda b: b.get_accounting_number()),
         'number': ('شماره بارنامه', lambda b: b.number or "تعیین نشده"),
         'serial': ('سریال', lambda b: b.serial or "تعیین نشده"),
         'barnameh_date': ('تاریخ بارنامه', lambda b: b.barnameh_date.strftime("%Y/%m/%d") if b.barnameh_date else "-"),

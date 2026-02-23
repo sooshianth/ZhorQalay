@@ -980,7 +980,8 @@ class ShenaseTakhsis(models.Model):
     delivery_receiver_name = models.CharField("نام تحویل گیرنده", max_length=255, blank=True, null=True)
     delivery_address = models.TextField("آدرس تحویل", blank=True, null=True)
     delivery_postal_code = models.CharField("کد پستی تحویل", max_length=10, blank=True, null=True)
-    
+    accounting_number = models.CharField("شماره حسابداری", max_length=50, blank=True, null=True)
+
     created_at = jmodels.jDateTimeField("تاریخ ثبت", auto_now_add=True)
 
     def save(self, *args, **kwargs):

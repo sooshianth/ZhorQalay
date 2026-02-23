@@ -84,6 +84,7 @@ def export_shenase_takhsis_excel(request):
             'کد درون سازمانی',
             'نام مشتری',
             'وزن (کیلوگرم)',
+            'شماره حسابداری',
             'کد ملی تحویل',
             'شماره تلفن تحویل',
             'نام تحویل گیرنده',
@@ -110,6 +111,7 @@ def export_shenase_takhsis_excel(request):
                 shenase.purchase.invoice_id if shenase.purchase else '—',
                 shenase.purchase.customer.name if (shenase.purchase and shenase.purchase.customer) else '—',
                 shenase.weight or 0,
+                (shenase.accounting_number or '') or '—',
                 shenase.code_melli_tahvil or '—',
                 shenase.tahvil_phone_number or '—',
                 shenase.delivery_receiver_name or '—',
@@ -126,7 +128,7 @@ def export_shenase_takhsis_excel(request):
                 cell.border = border
         
         # تنظیم عرض ستون‌ها
-        column_widths = [8, 20, 15, 15, 25, 15, 15, 15, 20, 35, 12, 18]
+        column_widths = [8, 20, 15, 15, 25, 15, 18, 15, 15, 20, 35, 12, 18]
         for col_num, width in enumerate(column_widths, 1):
             ws.column_dimensions[get_column_letter(col_num)].width = width
         
@@ -205,6 +207,7 @@ def export_full_shenase_takhsis_excel(request):
             'کد درون سازمانی',
             'نام مشتری',
             'وزن (کیلوگرم)',
+            'شماره حسابداری',
             'کد ملی تحویل',
             'شماره تلفن تحویل',
             'نام تحویل گیرنده',
@@ -231,6 +234,7 @@ def export_full_shenase_takhsis_excel(request):
                 shenase.purchase.invoice_id if shenase.purchase else '—',
                 shenase.purchase.customer.name if (shenase.purchase and shenase.purchase.customer) else '—',
                 shenase.weight or 0,
+                (shenase.accounting_number or '') or '—',
                 shenase.code_melli_tahvil or '—',
                 shenase.tahvil_phone_number or '—',
                 shenase.delivery_receiver_name or '—',
@@ -247,7 +251,7 @@ def export_full_shenase_takhsis_excel(request):
                 cell.border = border
         
         # تنظیم عرض ستون‌ها
-        column_widths = [8, 20, 15, 15, 25, 15, 15, 15, 20, 35, 12, 18]
+        column_widths = [8, 20, 15, 15, 25, 15, 18, 15, 15, 20, 35, 12, 18]
         for col_num, width in enumerate(column_widths, 1):
             ws.column_dimensions[get_column_letter(col_num)].width = width
         
@@ -397,6 +401,14 @@ def apply_shenase_takhsis_filter(request):
                             filter_conditions &= Q(delivery_postal_code__in=values)
                         else:
                             filter_conditions &= ~Q(delivery_postal_code__in=values)
+                            
+                elif column_id == 'accounting_number':
+                    values = list(set([v for v in values if v is not None and str(v).strip()]))
+                    if values:
+                        if filter_type == 'include':
+                            filter_conditions &= Q(accounting_number__in=values)
+                        else:
+                            filter_conditions &= ~Q(accounting_number__in=values)
                 
                 else:
                     # برای فیلدهای دینامیک دیگر
@@ -447,6 +459,7 @@ def apply_shenase_takhsis_filter(request):
             # جستجو در فیلدهای مستقیم شناسه تخصیص
             search_conditions |= Q(code__icontains=global_search)
             search_conditions |= Q(purchase_number__icontains=global_search)
+            search_conditions |= Q(accounting_number__icontains=global_search)
             search_conditions |= Q(code_melli_tahvil__icontains=global_search)
             search_conditions |= Q(tahvil_phone_number__icontains=global_search)
             search_conditions |= Q(delivery_receiver_name__icontains=global_search)
@@ -474,6 +487,7 @@ def apply_shenase_takhsis_filter(request):
                 'invoice_id': 'purchase__invoice_id',
                 'customer': 'purchase__customer__name',
                 'weight': 'weight',
+                'accounting_number': 'accounting_number',
                 'code_melli_tahvil': 'code_melli_tahvil',
                 'tahvil_phone_number': 'tahvil_phone_number',
                 'delivery_receiver_name': 'delivery_receiver_name',
@@ -521,6 +535,7 @@ def apply_shenase_takhsis_filter(request):
                 'invoice_id': shenase.purchase.invoice_id if shenase.purchase else '',
                 'customer': shenase.purchase.customer.name if (shenase.purchase and shenase.purchase.customer) else '',
                 'weight': shenase.weight or 0,
+                'accounting_number': getattr(shenase, 'accounting_number', None) or '',
                 'code_melli_tahvil': shenase.code_melli_tahvil or '',
                 'tahvil_phone_number': shenase.tahvil_phone_number or '',
                 'delivery_receiver_name': shenase.delivery_receiver_name or '',
@@ -641,6 +656,7 @@ def get_shenase_takhsis_column_values(request):
             # جستجو در فیلدهای مستقیم شناسه تخصیص
             search_conditions |= Q(code__icontains=global_search)
             search_conditions |= Q(purchase_number__icontains=global_search)
+            search_conditions |= Q(accounting_number__icontains=global_search)
             search_conditions |= Q(code_melli_tahvil__icontains=global_search)
             search_conditions |= Q(tahvil_phone_number__icontains=global_search)
             search_conditions |= Q(delivery_receiver_name__icontains=global_search)
@@ -700,6 +716,10 @@ def get_shenase_takhsis_column_values(request):
             
         elif column_id == 'delivery_postal_code':
             values_qs = base_queryset.values_list('delivery_postal_code', flat=True).distinct().exclude(delivery_postal_code__isnull=True).exclude(delivery_postal_code='')
+            values = sorted(list(set(values_qs)))
+            
+        elif column_id == 'accounting_number':
+            values_qs = base_queryset.values_list('accounting_number', flat=True).distinct().exclude(accounting_number__isnull=True).exclude(accounting_number='')
             values = sorted(list(set(values_qs)))
         
         else:

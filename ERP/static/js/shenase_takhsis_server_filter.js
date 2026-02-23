@@ -685,6 +685,10 @@ class ShenaseTakhsisServerFilter {
                     `;
                     break;
                     
+                case 'accounting_number':
+                    cellsHtml += `<td${cellStyle}>${shenase.accounting_number || '—'}</td>`;
+                    break;
+                    
                 case 'code_melli_tahvil':
                     cellsHtml += `<td${cellStyle}>${shenase.code_melli_tahvil || '—'}</td>`;
                     break;

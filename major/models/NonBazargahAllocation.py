@@ -29,7 +29,10 @@ class NonBazargahAllocation(models.Model):
     
     # وزن تخصیص یافته
     allocated_weight = models.PositiveIntegerField("وزن تخصیص یافته (کیلوگرم)", help_text="وزن کالایی که به این آدرس تخصیص می‌یابد")
-    
+
+    # شماره حسابداری (برای خروجی فاکتور بارنامه)
+    accounting_number = models.CharField("شماره حسابداری", max_length=50, blank=True, null=True)
+
     # توضیحات اضافی
     notes = models.TextField("توضیحات", blank=True, null=True, help_text="توضیحات اضافی در مورد این تخصیص")
     

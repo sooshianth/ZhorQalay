@@ -114,6 +114,19 @@ class Barnameh(models.Model):
             logger.error(f"خطا در دریافت مشتری برای بارنامه {self.id}: {str(e)}")
         return None
 
+    def get_accounting_number(self):
+        """شماره حسابداری را از تخصیص مرتبط (یا در صورت نبود از خرید) برمی‌گرداند."""
+        try:
+            if self.shenase_takhsis and getattr(self.shenase_takhsis, 'accounting_number', None):
+                return self.shenase_takhsis.accounting_number or ''
+            if self.non_bazargah_allocation and getattr(self.non_bazargah_allocation, 'accounting_number', None):
+                return self.non_bazargah_allocation.accounting_number or ''
+            if self.purchase and getattr(self.purchase, 'accounting_number', None):
+                return self.purchase.accounting_number or ''
+        except Exception as e:
+            logger.error(f"خطا در دریافت شماره حسابداری برای بارنامه {self.id}: {str(e)}")
+        return ''
+
     def get_company_price(self):
         """دریافت فی خرید از خرید مرتبط"""
         try:
